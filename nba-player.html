@@ -1,0 +1,1859 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NBA Player Stats</title>
+    <link rel="stylesheet" href="nba-common.css">
+    <style>
+        /* ─── Player page overrides ─── */
+        .msg { padding: 36px 20px; font-size: 14px; }
+        .spinner { width: 16px; height: 16px; border-width: 2px; margin-left: 6px; }
+
+        .section {
+            max-width: 1300px;
+            margin: 28px auto;
+            padding: 0 20px;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .section-bar { width: 4px; height: 24px; background: var(--red); border-radius: 2px; flex-shrink: 0; }
+        .section-header h2 { font-size: 18px; font-weight: 800; }
+
+        .badge {
+            font-size: 12px;
+            color: var(--muted);
+            background: var(--surface2);
+            padding: 3px 10px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+        }
+
+        /* ── Search ── */
+        .search-wrap { position: relative; max-width: 540px; }
+
+        #q, #tq {
+            width: 100%;
+            background: var(--surface);
+            border: 2px solid var(--border);
+            border-radius: 14px;
+            padding: 14px 18px;
+            font-size: 16px;
+            color: var(--text);
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        #q:focus, #tq:focus { border-color: var(--blue); }
+        #q::placeholder, #tq::placeholder { color: var(--muted); }
+
+        .suggestions {
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 0; right: 0;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            z-index: 100;
+            list-style: none;
+            box-shadow: 0 8px 24px rgba(0,0,0,.5);
+        }
+        .suggestions:empty { display: none; }
+        .suggestions li {
+            padding: 10px 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid var(--border);
+            transition: background 0.1s;
+        }
+        .suggestions li:last-child { border-bottom: none; }
+        .suggestions li:hover { background: rgba(255,255,255,0.06); }
+
+        .sugg-photo {
+            width: 38px; height: 38px;
+            border-radius: 50%;
+            object-fit: cover;
+            background: var(--surface);
+            flex-shrink: 0;
+        }
+        .sugg-name { font-size: 14px; font-weight: 700; }
+        .sugg-sub  { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+        /* ── Profile ── */
+        .profile-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px 28px;
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            cursor: pointer;
+            transition: border-color 0.15s, background 0.15s;
+            text-decoration: none;
+            color: inherit;
+        }
+        .profile-card:hover {
+            border-color: var(--blue);
+            background: var(--surface2);
+        }
+        .p-photo {
+            width: 100px; height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid var(--blue);
+            flex-shrink: 0;
+            background: var(--surface2);
+        }
+        .p-name { font-size: 26px; font-weight: 900; margin-bottom: 8px; }
+        .p-meta { display: flex; gap: 8px; flex-wrap: wrap; }
+        .p-meta span {
+            font-size: 12px;
+            color: var(--muted);
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            padding: 3px 10px;
+            border-radius: 8px;
+        }
+
+        /* ── Stats ── */
+        .stats-big {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+        .stat-box {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px 10px;
+            text-align: center;
+        }
+        .stat-box .val { font-size: 28px; font-weight: 900; line-height: 1.1; }
+        .stat-box .lbl { font-size: 10px; color: var(--muted); margin-top: 5px; text-transform: uppercase; letter-spacing: .5px; }
+
+        .stats-detail {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .stats-row {
+            display: grid;
+            gap: 2px;
+            padding: 11px 16px;
+            border-bottom: 1px solid var(--border);
+            font-size: 13px;
+        }
+        .stats-row:last-child { border-bottom: none; }
+        .stats-row.hd { color: var(--muted); font-size: 11px; font-weight: 700; text-transform: uppercase; }
+        .stats-row.dt { font-weight: 600; }
+
+
+        #chart-wrap {
+            overflow: hidden;
+            min-height: 100px;
+        }
+
+        /* ── Trend Table ── */
+        .trend-table-wrap {
+            overflow-x: auto;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+        }
+        .trend-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            min-width: 900px;
+        }
+        .trend-table th {
+            background: var(--surface2);
+            color: var(--muted);
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 9px 8px;
+            text-align: center;
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+            position: sticky;
+            top: 0;
+        }
+        .trend-table th.left-col { text-align: left; padding-left: 12px; }
+        .trend-table td {
+            padding: 7px 8px;
+            text-align: center;
+            border-bottom: 1px solid rgba(37,45,74,0.5);
+            font-weight: 600;
+            font-size: 11px;
+            white-space: nowrap;
+        }
+        .trend-table tr:last-child td { border-bottom: none; }
+        .trend-table tbody tr:hover td { background: rgba(255,255,255,0.03); }
+        .trend-table td.left-col { text-align: left; padding-left: 12px; }
+        .trend-table .dnp td { opacity: 0.45; }
+        .trend-table .res-w { color: #4aab6d; font-weight: 800; }
+        .trend-table .res-l { color: #c94060; font-weight: 800; }
+
+
+        @media (max-width: 600px) {
+            .stats-big { grid-template-columns: repeat(3, 1fr); }
+            .p-name { font-size: 20px; }
+            .p-photo { width: 72px; height: 72px; }
+            .stat-box .val { font-size: 22px; }
+            header h1 { font-size: 20px; }
+        }
+
+        @media (max-width: 480px) {
+            .profile-card { padding: 16px 18px; gap: 16px; }
+            .main-wrap { padding: 16px 12px 32px; }
+            .section-header { flex-wrap: wrap; gap: 8px; }
+        }
+
+        @media (max-width: 380px) {
+            .stats-big { grid-template-columns: repeat(2, 1fr); }
+            .t-stats-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        /* ── Two-column main layout ── */
+        .main-wrap {
+            padding: 24px 20px 40px;
+            display: flex;
+            gap: 24px;
+            align-items: flex-start;
+        }
+
+        .left-col { flex: 1; min-width: 0; }
+
+        .right-col {
+            flex: 0 0 360px;
+            min-width: 0;
+            position: sticky;
+            top: 76px;
+            max-height: calc(100vh - 92px);
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border) transparent;
+        }
+
+        .lc-search { margin-bottom: 20px; }
+        .lc-block  { margin-bottom: 24px; }
+        .lc-block:last-child { margin-bottom: 0; }
+
+        /* ── Stats Leaders Panel ── */
+        .sl-panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .sl-header { padding: 14px 16px 0; }
+
+        .sl-title-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .sl-title { font-size: 15px; font-weight: 800; }
+
+        .sl-season-badge {
+            font-size: 10px;
+            color: var(--muted);
+            background: var(--surface2);
+            padding: 2px 8px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            margin-left: auto;
+        }
+
+        .sl-tabs {
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .sl-tab-select {
+            width: 100%;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 7px 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            outline: none;
+        }
+        .sl-tab-select:focus { border-color: var(--blue); }
+
+        /* Player rows */
+        .sl-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 9px;
+            padding: 10px 14px;
+            min-height: 72px;
+            border-bottom: 1px solid rgba(37,45,74,0.5);
+            transition: background 0.1s;
+        }
+
+        .sl-item:last-child { border-bottom: none; }
+        .sl-item:hover { background: rgba(255,255,255,0.03); }
+
+        .sl-rank {
+            flex-shrink: 0;
+            width: 20px; height: 20px;
+            background: var(--surface2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 800;
+            color: var(--muted);
+            margin-top: 3px;
+        }
+
+        .sl-item:nth-child(-n+3) .sl-rank { background: var(--blue); color: #fff; }
+
+        .sl-photo {
+            width: 34px; height: 34px;
+            border-radius: 50%;
+            object-fit: cover;
+            flex-shrink: 0;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+        }
+
+        .sl-photo-placeholder {
+            width: 34px; height: 34px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--muted);
+        }
+
+        .sl-body { flex: 1; min-width: 0; }
+
+        .sl-name-row {
+            display: flex;
+            align-items: baseline;
+            gap: 5px;
+            margin-bottom: 2px;
+        }
+
+        .sl-name {
+            font-size: 12px;
+            font-weight: 700;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .sl-team { font-size: 10px; color: var(--muted); flex-shrink: 0; }
+
+        .sl-main-stat {
+            display: flex;
+            align-items: baseline;
+            gap: 4px;
+            margin-bottom: 4px;
+        }
+
+        .sl-stat-val { font-size: 16px; font-weight: 900; color: var(--red); }
+        .sl-stat-sub { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; }
+
+        .sl-chips { display: flex; flex-wrap: wrap; gap: 3px; min-height: 18px; }
+
+        .sl-chip {
+            font-size: 9.5px;
+            color: var(--muted);
+            background: rgba(37,45,74,0.8);
+            padding: 1px 5px;
+            border-radius: 4px;
+            white-space: nowrap;
+        }
+
+        .sl-chip strong { color: #c8cfe8; }
+
+        @media (max-width: 960px) {
+            .main-wrap { flex-direction: column; }
+            .right-col { flex: none; width: 100%; position: static; max-height: none; }
+        }
+
+        /* ── Mode toggle ── */
+        .mode-toggle {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .mode-btn {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--muted);
+            font-size: 13px;
+            font-weight: 700;
+            padding: 8px 20px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .mode-btn.active {
+            background: var(--blue);
+            border-color: var(--blue);
+            color: #fff;
+        }
+        .mode-btn:hover:not(.active) {
+            background: var(--surface2);
+            color: var(--text);
+        }
+
+        /* ── Rank badge ── */
+        .rank-badge {
+            font-size: 9px;
+            font-weight: 800;
+            padding: 2px 5px;
+            border-radius: 4px;
+            display: inline-block;
+            margin-top: 4px;
+            letter-spacing: 0.3px;
+        }
+        .rank-badge.top3  { background: #b8860b; color: #fff; }
+        .rank-badge.top10 { background: var(--blue); color: #fff; }
+        .rank-badge.other { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }
+
+        /* ── Team detail stats grid ── */
+        .t-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+        }
+        .t-stat-cell {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px 8px;
+            text-align: center;
+        }
+        .t-stat-lbl {
+            font-size: 10px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 3px;
+        }
+        .t-stat-val { font-size: 18px; font-weight: 900; line-height: 1.1; }
+        @media (max-width: 600px) {
+            .t-stats-grid { grid-template-columns: repeat(3, 1fr); }
+        }
+
+        /* ── Roster Stats Table ── */
+        .t-roster-wrap {
+            overflow-x: auto;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+        }
+        .t-roster-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            min-width: 800px;
+        }
+        .t-roster-table th {
+            background: var(--surface2);
+            color: var(--muted);
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 9px 8px;
+            text-align: center;
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+            position: sticky;
+            top: 0;
+        }
+        .t-roster-table th.player-col { text-align: left; padding-left: 14px; min-width: 160px; }
+        .t-roster-table td {
+            padding: 7px 8px;
+            text-align: center;
+            border-bottom: 1px solid rgba(37,45,74,0.5);
+            font-weight: 600;
+            font-size: 11px;
+        }
+        .t-roster-table tr:last-child td { border-bottom: none; }
+        .t-roster-table tbody tr:hover td { background: rgba(255,255,255,0.03); }
+        .t-roster-player-cell {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding-left: 6px;
+            white-space: nowrap;
+        }
+        .t-roster-photo {
+            width: 30px; height: 30px;
+            border-radius: 50%;
+            object-fit: cover;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+        .t-roster-name { font-size: 12px; font-weight: 700; }
+        .t-roster-pos  { font-size: 10px; color: var(--muted); }
+
+        /* ── Team Schedule ── */
+        .t-schedule-list {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow-x: hidden;
+        }
+        .t-sched-row {
+            display: grid;
+            grid-template-columns: 52px 1fr auto;
+            align-items: center;
+            padding: 9px 14px;
+            border-bottom: 1px solid rgba(37,45,74,0.5);
+            font-size: 13px;
+            font-weight: 600;
+            gap: 8px;
+        }
+        .t-sched-row:last-child { border-bottom: none; }
+        .t-sched-row.past { opacity: 0.38; }
+        .t-sched-row.live { background: rgba(255, 60, 60, 0.07); }
+        .t-sched-date { color: var(--muted); font-size: 12px; white-space: nowrap; }
+        .t-sched-opp { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .t-sched-score { text-align: right; font-size: 12px; white-space: nowrap; }
+        .t-sched-score.win  { color: #4aab6d; font-weight: 800; }
+        .t-sched-score.loss { color: #c94060; font-weight: 800; }
+        .t-sched-live-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 11px;
+            color: #ff4444;
+            font-weight: 700;
+        }
+        .t-sched-live-dot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: #ff4444;
+            flex-shrink: 0;
+            animation: sched-pulse 1.2s ease-in-out infinite;
+        }
+        @keyframes sched-pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50%       { opacity: 0.3; transform: scale(0.75); }
+        }
+        .t-schedule-list {
+            height: 380px;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border) transparent;
+        }
+        .t-schedule-list::-webkit-scrollbar { width: 4px; }
+        .t-schedule-list::-webkit-scrollbar-track { background: transparent; }
+        .t-schedule-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>NBA <em>Player</em> Stats</h1>
+    <div class="last-updated" id="last-updated"></div>
+    <div class="hamburger-wrap" id="hamburger-wrap">
+        <button class="hamburger-btn" id="hamburger-btn" aria-label="Menu">
+            <span></span><span></span><span></span>
+        </button>
+        <nav class="hamburger-menu">
+            <a href="nba-daily.html" target="_blank">Daily</a>
+            <a href="nba-playoff.html" target="_blank">Playoffs</a>
+        </nav>
+    </div>
+</header>
+
+<main>
+    <div class="main-wrap">
+
+        <!-- ── Left: Search + Player Detail ── -->
+        <div class="left-col">
+
+            <div class="mode-toggle">
+                <button class="mode-btn active" id="mode-player" onclick="setMode('player')">Player</button>
+                <button class="mode-btn" id="mode-team" onclick="setMode('team')">Team</button>
+            </div>
+
+            <div class="lc-search" id="player-search-wrap">
+                <div class="search-wrap">
+                    <input type="text" id="q" placeholder="Search player (e.g. LeBron James)">
+                    <ul id="suggestions" class="suggestions"></ul>
+                </div>
+            </div>
+
+            <div class="lc-search" id="team-search-wrap" hidden>
+                <div class="search-wrap">
+                    <input type="text" id="tq" placeholder="Search team (e.g. Lakers)">
+                    <ul id="team-suggestions" class="suggestions"></ul>
+                </div>
+            </div>
+
+            <div id="player-section" hidden>
+
+                <!-- Profile -->
+                <div class="lc-block">
+                    <a id="profile-card" class="profile-card" href="#" target="_blank" rel="noopener">
+                        <img id="p-photo" class="p-photo" src="" alt="">
+                        <div>
+                            <div id="p-name" class="p-name"></div>
+                            <div id="p-meta" class="p-meta"></div>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Season stats -->
+                <div class="lc-block">
+                    <div class="section-header">
+                        <div class="section-bar"></div>
+                        <h2>Season Stats</h2>
+                        <span id="season-badge" class="badge"></span>
+                    </div>
+                    <div id="stats-big" class="stats-big"></div>
+                    <div id="stats-detail" class="stats-detail"></div>
+                </div>
+
+                <!-- Recent Stats -->
+                <div class="lc-block">
+                    <div class="section-header">
+                        <div class="section-bar"></div>
+                        <h2>Recent Stats</h2>
+                    </div>
+                    <div id="chart-wrap">
+                        <div class="msg">Select a player to view stats</div>
+                    </div>
+                </div>
+
+            </div><!-- /player-section -->
+
+            <!-- ── Team Detail ── -->
+            <div id="team-section" hidden>
+
+                <!-- Team Profile -->
+                <div class="lc-block">
+                    <a id="team-profile-card" class="profile-card" href="#" target="_blank" rel="noopener">
+                        <img id="t-logo" class="p-photo" src="" alt="" style="border-radius:8px;object-fit:contain;background:rgba(255,255,255,0.08);padding:4px">
+                        <div>
+                            <div id="t-name" class="p-name"></div>
+                            <div id="t-meta" class="p-meta"></div>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Season Stats -->
+                <div class="lc-block">
+                    <div class="section-header">
+                        <div class="section-bar"></div>
+                        <h2>Season Stats</h2>
+                        <span id="t-season-badge" class="badge"></span>
+                    </div>
+                    <div id="t-stats-big" class="stats-big"></div>
+                    <div id="t-stats-detail"></div>
+                </div>
+
+                <!-- Roster Stats -->
+                <div class="lc-block">
+                    <div class="section-header">
+                        <div class="section-bar"></div>
+                        <h2>Roster Stats</h2>
+                        <span id="t-roster-season-badge" class="badge"></span>
+                    </div>
+                    <div id="t-roster-table-wrap" class="t-roster-wrap"></div>
+                </div>
+
+                <!-- Schedule -->
+                <div class="lc-block" id="t-schedule-block" hidden>
+                    <div class="section-header">
+                        <div class="section-bar"></div>
+                        <h2>Schedule</h2>
+                        <span id="t-schedule-season-badge" class="badge"></span>
+                    </div>
+                    <div id="t-schedule-wrap"></div>
+                </div>
+
+            </div><!-- /team-section -->
+
+        </div><!-- /left-col -->
+
+        <!-- ── Right: Stats Leaders ── -->
+        <div class="right-col">
+            <div class="sl-panel">
+                <div class="sl-header">
+                    <div class="sl-title-row">
+                        <div class="section-bar"></div>
+                        <h2 class="sl-title">Stats Leaders</h2>
+                        <span class="sl-season-badge" id="sl-season-badge">2024-25</span>
+                    </div>
+                    <div class="sl-tabs" id="sl-tabs"></div>
+                </div>
+                <div id="sl-list"><div class="msg">Loading<span class="spinner"></span></div></div>
+            </div>
+        </div><!-- /right-col -->
+
+    </div><!-- /main-wrap -->
+</main>
+
+<script>
+const ESPN_BASE       = 'https://site.web.api.espn.com/apis/common/v3/sports/basketball/nba/athletes';
+const ESPN_ROSTER     = 'https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams';
+const CORE_STATS_BASE = 'https://sports.core.api.espn.com/v2/sports/basketball/leagues/nba/seasons';
+const TEAM_IDS        = [1,2,17,30,4,5,6,7,8,9,10,11,12,13,29,14,15,16,3,18,25,19,20,21,22,23,24,28,26,27];
+const FALLBACK_IMG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='78'%3E%F0%9F%8F%80%3C/text%3E%3C/svg%3E";
+
+let playerIndex  = [];   // [{id, displayName, team, teamAbbr, position, jersey, headshot}]
+let teamIndex    = [];   // [{id, displayName, abbreviation, location, nickname, logo}]
+let indexReady   = false;
+let currentGames = [];
+let searchTimer  = null;
+
+const qEl         = document.getElementById('q');
+const suggEl      = document.getElementById('suggestions');
+const playerSec   = document.getElementById('player-section');
+const chartWrap   = document.getElementById('chart-wrap');
+
+/* ─── Build player index from all 30 team rosters ─── */
+async function buildIndex() {
+    qEl.placeholder = 'Loading player data...';
+    qEl.disabled = true;
+
+    const results = await Promise.allSettled(
+        TEAM_IDS.map(id =>
+            fetch(`${ESPN_ROSTER}/${id}/roster`).then(r => r.json())
+        )
+    );
+
+    const players = [];
+    for (const r of results) {
+        if (r.status !== 'fulfilled') continue;
+        const data = r.value;
+        const teamName  = data.team?.displayName  || '';
+        const teamAbbr  = data.team?.abbreviation || '';
+        for (const p of (data.athletes || [])) {
+            players.push({
+                id:          String(p.id),
+                displayName: p.displayName || p.fullName || '',
+                team:        teamName,
+                teamAbbr,
+                teamId:      String(data.team?.id || ''),
+                position:    p.position?.abbreviation || '',
+                jersey:      p.jersey || '',
+                headshot:    p.headshot?.href || '',
+            });
+        }
+    }
+
+    playerIndex = players.sort((a, b) => a.displayName.localeCompare(b.displayName));
+    indexReady  = true;
+    qEl.placeholder = 'Search player (e.g. LeBron James)';
+    qEl.disabled = false;
+}
+
+buildIndex();
+buildTeamIndexFromApi();
+
+/* ─── Build team index (logos + names from ESPN teams list API) ─── */
+async function buildTeamIndexFromApi() {
+    try {
+        const data = await fetch(`${ESPN_ROSTER}?limit=40`).then(r => r.json());
+        const entries = data.sports?.[0]?.leagues?.[0]?.teams || [];
+        teamIndex = entries
+            .map(e => {
+                const t = e.team || e;
+                return {
+                    id:           String(t.id || ''),
+                    displayName:  t.displayName || '',
+                    abbreviation: t.abbreviation || '',
+                    location:     t.location || '',
+                    nickname:     t.name || t.shortDisplayName || '',
+                    logo:         t.logos?.[0]?.href || '',
+                };
+            })
+            .filter(t => t.id)
+            .sort((a, b) => a.displayName.localeCompare(b.displayName));
+    } catch(e) {
+        console.warn('team index build failed:', e);
+    }
+}
+
+/* ─── Mode toggle ─── */
+function setMode(mode) {
+    const isTeam = mode === 'team';
+    document.getElementById('mode-player').classList.toggle('active', !isTeam);
+    document.getElementById('mode-team').classList.toggle('active', isTeam);
+    document.getElementById('player-search-wrap').hidden = isTeam;
+    playerSec.hidden = true;
+    document.getElementById('team-search-wrap').hidden = !isTeam;
+    document.getElementById('team-section').hidden = true;
+}
+
+/* ─── Team Search ─── */
+const tqEl       = document.getElementById('tq');
+const teamSuggEl = document.getElementById('team-suggestions');
+const teamSec    = document.getElementById('team-section');
+let teamSrchTimer = null;
+
+tqEl.addEventListener('input', () => {
+    clearTimeout(teamSrchTimer);
+    const q = tqEl.value.trim();
+    if (q.length < 1) { clearTeamSugg(); return; }
+    if (!indexReady || teamIndex.length === 0) {
+        teamSuggEl.innerHTML = '<li><span style="color:var(--muted);font-size:13px">Loading teams<span class="spinner"></span></span></li>';
+        return;
+    }
+    teamSrchTimer = setTimeout(() => doTeamSearch(q), 150);
+});
+tqEl.addEventListener('keydown', e => { if (e.key === 'Escape') clearTeamSugg(); });
+document.addEventListener('click', e => { if (!e.target.closest('#team-search-wrap')) clearTeamSugg(); });
+
+function clearTeamSugg() { teamSuggEl.innerHTML = ''; }
+
+function doTeamSearch(q) {
+    const lower = q.toLowerCase();
+    const hits = teamIndex.filter(t =>
+        t.displayName.toLowerCase().includes(lower) ||
+        t.abbreviation.toLowerCase().includes(lower) ||
+        t.location.toLowerCase().includes(lower) ||
+        t.nickname.toLowerCase().includes(lower)
+    ).slice(0, 8);
+    renderTeamSuggestions(hits);
+}
+
+function renderTeamSuggestions(list) {
+    teamSuggEl.innerHTML = '';
+    if (!list.length) {
+        const li = document.createElement('li');
+        li.innerHTML = '<span style="color:var(--muted);font-size:13px">No teams found</span>';
+        teamSuggEl.appendChild(li);
+        return;
+    }
+    list.forEach(t => {
+        const li = document.createElement('li');
+        const logo = t.logo || FALLBACK_IMG;
+        li.innerHTML = `
+            <img class="sugg-photo" src="${logo}" alt="" onerror="this.src='${FALLBACK_IMG}'"
+                style="border-radius:4px;object-fit:contain;background:rgba(255,255,255,0.08);padding:2px">
+            <div>
+                <div class="sugg-name">${esc(t.displayName)}</div>
+                <div class="sugg-sub">${esc(t.abbreviation)}</div>
+            </div>`;
+        li.addEventListener('click', () => selectTeam(t));
+        teamSuggEl.appendChild(li);
+    });
+}
+
+async function selectTeam(t) {
+    tqEl.value = t.displayName;
+    clearTeamSugg();
+    teamSec.hidden = false;
+
+    const logoEl = document.getElementById('t-logo');
+    logoEl.src = t.logo || FALLBACK_IMG;
+    logoEl.onerror = () => { logoEl.src = FALLBACK_IMG; };
+
+    document.getElementById('team-profile-card').href =
+        `https://www.espn.com/nba/team/_/id/${t.id}`;
+    document.getElementById('t-name').textContent = t.displayName;
+    document.getElementById('t-meta').innerHTML = `<span>${esc(t.abbreviation)}</span>`;
+    document.getElementById('t-stats-big').innerHTML =
+        '<div class="msg" style="grid-column:1/-1">Loading<span class="spinner"></span></div>';
+    document.getElementById('t-stats-detail').innerHTML = '';
+    document.getElementById('t-season-badge').textContent = '';
+    document.getElementById('t-roster-table-wrap').innerHTML =
+        '<div class="msg">Loading<span class="spinner"></span></div>';
+    document.getElementById('t-roster-season-badge').textContent = '';
+    document.getElementById('t-schedule-block').hidden = false;
+    document.getElementById('t-schedule-wrap').innerHTML =
+        '<div class="msg">Loading<span class="spinner"></span></div>';
+    document.getElementById('t-schedule-season-badge').textContent = '';
+
+    await Promise.all([
+        loadTeamStats(t.id),
+        loadTeamRosterStats(t.id),
+        loadTeamScheduleFull(t.id),
+        loadTeamStandingsInfo(t.id, t.abbreviation),
+    ]);
+}
+
+/* ─── Team Standings (rank / record / streak) ─── */
+let standingsCache = null;
+
+async function fetchStandingsMap() {
+    if (standingsCache) return standingsCache;
+    const data = await fetch('https://site.api.espn.com/apis/v2/sports/basketball/nba/standings').then(r => r.json());
+    const map = {};
+    for (const conf of (data.children || [])) {
+        const confKey = conf.name?.toLowerCase().includes('east') ? 'E' : 'W';
+        for (const entry of (conf.standings?.entries || [])) {
+            const teamId = String(entry.team?.id || '');
+            if (!teamId) continue;
+            const get = name => entry.stats?.find(s => s.name === name)?.displayValue ?? '';
+            map[teamId] = {
+                rank:   parseInt(get('playoffSeed')) || null,
+                conf:   confKey,
+                record: get('overall'),
+                streak: get('streak'),
+            };
+        }
+    }
+    standingsCache = map;
+    return map;
+}
+
+function streakBadge(streak) {
+    if (!streak) return '';
+    const m = streak.match(/^([WL])\s*(\d+)/);
+    if (!m) return '';
+    const type = m[1], count = parseInt(m[2]);
+    if (type === 'W') return `<span>${count}連勝 🔥</span>`;
+    if (type === 'L') return `<span>${count}連敗 🥶</span>`;
+    return '';
+}
+
+async function loadTeamStandingsInfo(teamId, abbreviation) {
+    try {
+        const map = await fetchStandingsMap();
+        const info = map[String(teamId)];
+        const metaEl = document.getElementById('t-meta');
+        const rankHtml   = info?.rank   ? `<span>${info.conf} #${info.rank}</span>` : '';
+        const recordHtml = info?.record ? `<span>${esc(info.record)}</span>` : '';
+        const streakHtml = info?.streak ? streakBadge(info.streak) : '';
+        metaEl.innerHTML = `<span>${esc(abbreviation)}</span>${rankHtml}${recordHtml}${streakHtml}`;
+    } catch(e) {
+        console.warn('standings info:', e);
+    }
+}
+
+/* ─── Team Stats (ESPN core API: /seasons/{year}/types/2/teams/{id}/statistics) ─── */
+let teamStatsCache = null;
+
+async function fetchAllTeamStats() {
+    if (teamStatsCache) return teamStatsCache;
+    const results = await Promise.allSettled(
+        TEAM_IDS.map(id =>
+            fetch(`${CORE_STATS_BASE}/${SL_YEAR}/types/2/teams/${id}/statistics`).then(r => r.json())
+        )
+    );
+    const cache = {};
+    for (let i = 0; i < results.length; i++) {
+        const r = results[i];
+        if (r.status !== 'fulfilled') continue;
+        const d = r.value;
+        // Extract team ID from $ref URL: ".../teams/13?..."
+        const refUrl = d.team?.['$ref'] || '';
+        const idMatch = refUrl.match(/\/teams\/(\d+)/);
+        const teamId = idMatch ? idMatch[1] : String(TEAM_IDS[i]);
+        // Build flat stats map from all categories
+        const statsMap = {};
+        for (const cat of (d.splits?.categories || [])) {
+            for (const s of (cat.stats || [])) {
+                if (s.name != null) statsMap[s.name] = s.value ?? null;
+            }
+        }
+        cache[teamId] = { stats: statsMap };
+    }
+    teamStatsCache = cache;
+    return cache;
+}
+
+async function loadTeamStats(teamId) {
+    try {
+        const cache = await fetchAllTeamStats();
+        renderTeamStats(cache, teamId);
+    } catch(e) {
+        document.getElementById('t-stats-big').innerHTML =
+            '<div class="msg error" style="grid-column:1/-1">Failed to load stats</div>';
+        console.error('team stats:', e);
+    }
+}
+
+function rankBadge(rank) {
+    if (!rank) return '';
+    const cls = rank <= 3 ? 'top3' : rank <= 10 ? 'top10' : 'other';
+    return `<span class="rank-badge ${cls}">#${rank}</span>`;
+}
+
+function renderTeamStats(cache, teamId) {
+    const teamData = cache[String(teamId)];
+    if (!teamData) {
+        document.getElementById('t-stats-big').innerHTML =
+            '<div class="msg" style="grid-column:1/-1">No stats found</div>';
+        return;
+    }
+
+    function getVal(statName) {
+        return teamData.stats[statName] ?? null;
+    }
+
+    function getRank(statName, lowerIsBetter = false) {
+        const vals = Object.entries(cache)
+            .map(([id, d]) => ({ id, val: d.stats[statName] ?? null }))
+            .filter(x => x.val != null);
+        vals.sort((a, b) => lowerIsBetter ? a.val - b.val : b.val - a.val);
+        const pos = vals.findIndex(x => x.id === String(teamId));
+        return pos >= 0 ? pos + 1 : null;
+    }
+
+    document.getElementById('t-season-badge').textContent =
+        `${SL_YEAR - 1}-${String(SL_YEAR).slice(2)} Season`;
+
+    // ── Big 5 ── (core API stat names confirmed)
+    const bigStats = [
+        { statName: 'avgPoints',   line1: 'Points',   line2: 'PPG' },
+        { statName: 'avgRebounds', line1: 'Rebounds', line2: 'RPG' },
+        { statName: 'avgAssists',  line1: 'Assists',  line2: 'APG' },
+        { statName: 'avgSteals',   line1: 'Steals',   line2: 'SPG' },
+        { statName: 'avgBlocks',   line1: 'Blocks',   line2: 'BPG' },
+    ];
+
+    document.getElementById('t-stats-big').innerHTML = bigStats.map(d => {
+        const val  = getVal(d.statName);
+        const rank = getRank(d.statName);
+        const v    = val != null ? val.toFixed(1) : '-';
+        return `<div class="stat-box">
+            <div class="val">${v}</div>
+            <div class="lbl">${d.line1}<br><span style="opacity:.7;font-size:9px">${d.line2}</span></div>
+            ${rankBadge(rank)}
+        </div>`;
+    }).join('');
+
+    // ── Detail stats grid ── (stat names from core API confirmed)
+    const detailStats = [
+        { lbl: 'FGM',  statName: 'avgFieldGoalsMade',                  fmt: 'n' },
+        { lbl: 'FGA',  statName: 'avgFieldGoalsAttempted',             fmt: 'n' },
+        { lbl: 'FG%',  statName: 'fieldGoalPct',                       fmt: 'p' },
+        { lbl: '3PM',  statName: 'avgThreePointFieldGoalsMade',        fmt: 'n' },
+        { lbl: '3PA',  statName: 'avgThreePointFieldGoalsAttempted',   fmt: 'n' },
+        { lbl: '3P%',  statName: 'threePointFieldGoalPct',             fmt: 'p' },
+        { lbl: 'OREB', statName: 'avgOffensiveRebounds',               fmt: 'n' },
+        { lbl: 'DREB', statName: 'avgDefensiveRebounds',               fmt: 'n' },
+        { lbl: 'FTM',  statName: 'avgFreeThrowsMade',                  fmt: 'n' },
+        { lbl: 'FTA',  statName: 'avgFreeThrowsAttempted',             fmt: 'n' },
+        { lbl: 'FT%',  statName: 'freeThrowPct',                       fmt: 'p' },
+        { lbl: 'TO',   statName: 'avgTurnovers', fmt: 'n', lowerIsBetter: true },
+        { lbl: 'PF',   statName: 'avgFouls',     fmt: 'n', lowerIsBetter: true },
+    ];
+
+    document.getElementById('t-stats-detail').innerHTML = '<div class="t-stats-grid">' +
+        detailStats.map(d => {
+            const val  = getVal(d.statName);
+            const rank = getRank(d.statName, d.lowerIsBetter || false);
+            const v    = val == null ? '-' : d.fmt === 'p' ? val.toFixed(1) + '%' : val.toFixed(1);
+            return `<div class="t-stat-cell">
+                <div class="t-stat-lbl">${d.lbl}</div>
+                <div class="t-stat-val">${v}</div>
+                ${rankBadge(rank)}
+            </div>`;
+        }).join('') + '</div>';
+}
+
+/* ─── Roster Stats ─── */
+async function loadTeamRosterStats(teamId) {
+    const wrap = document.getElementById('t-roster-table-wrap');
+    const rosterPlayers = playerIndex.filter(p => p.teamId === String(teamId));
+    if (!rosterPlayers.length) {
+        wrap.innerHTML = '<div class="msg">No roster data available</div>';
+        return;
+    }
+
+    const results = await Promise.allSettled(
+        rosterPlayers.map(p => fetch(`${ESPN_BASE}/${p.id}/stats`).then(r => r.json()))
+    );
+
+    const rows = [];
+    let seasonName = '';
+    for (let i = 0; i < rosterPlayers.length; i++) {
+        const p = rosterPlayers[i];
+        const r = results[i];
+        if (r.status !== 'fulfilled') continue;
+        const parsed = parsePlayerSeasonStats(r.value);
+        if (!parsed) continue;
+        if (!seasonName && parsed._seasonName) seasonName = parsed._seasonName;
+        rows.push({ player: p, stats: parsed });
+    }
+
+    if (seasonName) document.getElementById('t-roster-season-badge').textContent = seasonName;
+
+    rows.sort((a, b) => (parseFloat(b.stats.PTS) || 0) - (parseFloat(a.stats.PTS) || 0));
+    renderRosterTable(rows, wrap);
+}
+
+function parsePlayerSeasonStats(data) {
+    const categories = data.categories || [];
+    const avgCat = categories.find(c => c.name === 'averages') || categories[0];
+    if (!avgCat) return null;
+    const labels = avgCat.labels || [];
+    let entry = null, maxYear = 0;
+    for (const s of (avgCat.statistics || [])) {
+        if ((s.season?.year || 0) > maxYear) { maxYear = s.season.year; entry = s; }
+    }
+    if (!entry) return null;
+    const S = { _seasonName: entry.season?.displayName || '' };
+    labels.forEach((l, i) => { S[l] = entry.stats?.[i]; });
+    return S;
+}
+
+function renderRosterTable(rows, wrap) {
+    if (!rows.length) {
+        wrap.innerHTML = '<div class="msg">No stats available</div>';
+        return;
+    }
+
+    const cols = [
+        { key: 'PTS', label: 'PTS' },
+        { key: 'REB', label: 'REB' },
+        { key: 'AST', label: 'AST' },
+        { key: 'STL', label: 'STL' },
+        { key: 'BLK', label: 'BLK' },
+        { key: 'GP',  label: 'GP'  },
+        { key: 'MIN', label: 'MIN' },
+        { key: 'FG%', label: 'FG%' },
+        { key: '3P%', label: '3P%' },
+        { key: 'FT%', label: 'FT%' },
+        { key: 'FG',  label: 'FG'  },
+        { key: '3PT', label: '3PT' },
+        { key: 'FT',  label: 'FT'  },
+        { key: 'TO',  label: 'TO'  },
+        { key: 'PF',  label: 'PF'  },
+    ];
+
+    const thead = `<thead><tr>
+        <th class="player-col">Player</th>
+        ${cols.map(c => `<th>${c.label}</th>`).join('')}
+    </tr></thead>`;
+
+    const tbody = '<tbody>' + rows.map(({ player, stats }) => {
+        const photo = player.headshot
+            ? `<img class="t-roster-photo" src="${esc(player.headshot)}" alt="" onerror="this.src='${FALLBACK_IMG}'">`
+            : `<img class="t-roster-photo" src="${FALLBACK_IMG}" alt="">`;
+        const cells = cols.map(c => `<td>${fmt(c.key, stats[c.key])}</td>`).join('');
+        return `<tr>
+            <td class="player-col">
+                <div class="t-roster-player-cell">
+                    ${photo}
+                    <div class="t-roster-name">${esc(player.displayName)}</div>
+                </div>
+            </td>
+            ${cells}
+        </tr>`;
+    }).join('') + '</tbody>';
+
+    wrap.innerHTML = `<table class="t-roster-table">${thead}${tbody}</table>`;
+}
+
+/* ─── Search (client-side filter) ─── */
+qEl.addEventListener('input', () => {
+    clearTimeout(searchTimer);
+    const q = qEl.value.trim();
+    if (q.length < 2) { clearSugg(); return; }
+    searchTimer = setTimeout(() => doSearch(q), 150);
+});
+
+qEl.addEventListener('keydown', e => { if (e.key === 'Escape') clearSugg(); });
+document.addEventListener('click', e => { if (!e.target.closest('.search-wrap')) clearSugg(); });
+
+function clearSugg() { suggEl.innerHTML = ''; }
+
+function doSearch(q) {
+    const lower = q.toLowerCase();
+    const hits = playerIndex
+        .filter(p => p.displayName.toLowerCase().includes(lower))
+        .slice(0, 8);
+    renderSuggestions(hits);
+}
+
+function renderSuggestions(list) {
+    suggEl.innerHTML = '';
+    if (!list.length) {
+        const li = document.createElement('li');
+        li.innerHTML = '<span style="color:var(--muted);font-size:13px">No players found</span>';
+        suggEl.appendChild(li);
+        return;
+    }
+    list.forEach(a => {
+        const li = document.createElement('li');
+        const photo = a.headshot || FALLBACK_IMG;
+        li.innerHTML = `
+            <img class="sugg-photo" src="${photo}" alt="" onerror="this.src='${FALLBACK_IMG}'">
+            <div>
+                <div class="sugg-name">${esc(a.displayName)}</div>
+                <div class="sugg-sub">${esc([a.team, a.position].filter(Boolean).join(' · '))}</div>
+            </div>`;
+        li.addEventListener('click', () => selectPlayer(a));
+        suggEl.appendChild(li);
+    });
+}
+
+/* ─── Select player ─── */
+async function selectPlayer(a) {
+    qEl.value = a.displayName;
+    clearSugg();
+    playerSec.hidden = false;
+
+    // Profile
+    const photoEl = document.getElementById('p-photo');
+    photoEl.src = a.headshot || FALLBACK_IMG;
+    photoEl.onerror = () => { photoEl.src = FALLBACK_IMG; };
+
+    document.getElementById('profile-card').href = `https://www.espn.com/nba/player/_/id/${a.id}`;
+    document.getElementById('p-name').textContent = a.displayName;
+    const metaParts = [a.team, a.position, a.jersey ? '#' + a.jersey : ''].filter(Boolean);
+    document.getElementById('p-meta').innerHTML =
+        metaParts.map(s => `<span>${esc(s)}</span>`).join('');
+
+    // Loading states
+    document.getElementById('stats-big').innerHTML    = '<div class="msg" style="grid-column:1/-1">Loading<span class="spinner"></span></div>';
+    document.getElementById('stats-detail').innerHTML = '';
+    document.getElementById('season-badge').textContent = '';
+    chartWrap.innerHTML = '<div class="msg">Loading<span class="spinner"></span></div>';
+    currentGames = [];
+
+    await Promise.all([loadStats(a.id), loadGamelog(a.id, a.teamId)]);
+}
+
+/* ─── Stats ─── */
+async function loadStats(id) {
+    try {
+        const data = await fetch(`${ESPN_BASE}/${id}/stats`).then(r => r.json());
+        renderStats(data);
+    } catch(e) {
+        document.getElementById('stats-big').innerHTML =
+            '<div class="msg error" style="grid-column:1/-1">Failed to load stats</div>';
+        console.error('stats:', e);
+    }
+}
+
+function renderStats(data) {
+    // API structure: data.categories[] with name="averages"
+    // Each category.statistics[] has per-season entries with season.year and stats[]
+    const categories = data.categories || [];
+    const avgCat = categories.find(c => c.name === 'averages') || categories[0];
+
+    const bigEl = document.getElementById('stats-big');
+    if (!avgCat) {
+        bigEl.innerHTML = '<div class="msg" style="grid-column:1/-1">No stats found</div>';
+        return;
+    }
+
+    const labels = avgCat.labels || [];
+
+    // Find current season (highest year in statistics array)
+    let entry = null, maxYear = 0;
+    for (const s of (avgCat.statistics || [])) {
+        if ((s.season?.year || 0) > maxYear) { maxYear = s.season.year; entry = s; }
+    }
+    if (!entry) {
+        bigEl.innerHTML = '<div class="msg" style="grid-column:1/-1">No stats found</div>';
+        return;
+    }
+
+    const seasonName = entry.season?.displayName || '';
+    if (seasonName) document.getElementById('season-badge').textContent = seasonName + ' Season';
+
+    // Build stat map  (labels: GP GS MIN FG FG% 3PT 3P% FT FT% OR DR REB AST BLK STL PF TO PTS)
+    const S = {};
+    labels.forEach((l, i) => { S[l] = entry.stats?.[i]; });
+
+    const bigDefs = [
+        { key: 'PTS', label: 'Points\nPPG' },
+        { key: 'REB', label: 'Rebounds\nRPG' },
+        { key: 'AST', label: 'Assists\nAPG' },
+        { key: 'STL', label: 'Steals\nSPG' },
+        { key: 'BLK', label: 'Blocks\nBPG' },
+    ];
+
+    bigEl.innerHTML = bigDefs.map(d => {
+        const lines = d.label.split('\n');
+        return `<div class="stat-box">
+            <div class="val">${fmt(d.key, S[d.key])}</div>
+            <div class="lbl">${lines[0]}<br><span style="opacity:.7;font-size:9px">${lines[1] || ''}</span></div>
+        </div>`;
+    }).join('');
+
+    // Detail rows — use actual API label names
+    const detRows = [
+        ['GP', 'MIN', 'FG%', '3P%', 'FT%'],
+        ['FG',  '3PT', 'FT',  'TO',  'PF' ],
+    ];
+    const cols = detRows[0].length;
+    const detEl = document.getElementById('stats-detail');
+    detEl.innerHTML = detRows.map(row =>
+        `<div class="stats-row hd" style="grid-template-columns:repeat(${cols},1fr)">${row.map(k => `<div>${k}</div>`).join('')}</div>` +
+        `<div class="stats-row dt" style="grid-template-columns:repeat(${cols},1fr)">${row.map(k => `<div>${fmt(k, S[k])}</div>`).join('')}</div>`
+    ).join('');
+}
+
+function fmt(key, val) {
+    if (val == null || val === '') return '-';
+    // FG / 3PT / FT come as "made-attempted" strings e.g. "8.1-16.2"
+    if (['FG', '3PT', 'FT'].includes(key)) return val || '-';
+    // Percentages are already 0-100 (e.g. 49.9), not 0-1
+    if (['FG%', '3P%', 'FT%'].includes(key)) {
+        const n = parseFloat(val);
+        return isNaN(n) ? '-' : n.toFixed(1) + '%';
+    }
+    const n = parseFloat(val);
+    if (isNaN(n)) return val;
+    return Number.isInteger(n) ? String(n) : n.toFixed(1);
+}
+
+/* ─── Gamelog ─── */
+async function loadGamelog(id, teamId) {
+    try {
+        const [gamelogData, teamGames] = await Promise.all([
+            fetch(`${ESPN_BASE}/${id}/gamelog`).then(r => r.json()),
+            loadTeamSchedule(teamId),
+        ]);
+        currentGames = parseGamelog(gamelogData, teamGames);
+        renderTrendTable();
+    } catch(e) {
+        chartWrap.innerHTML = '<div class="msg error">Failed to load game log</div>';
+        console.error('gamelog:', e);
+    }
+}
+
+async function loadTeamSchedule(teamId) {
+    if (!teamId) return [];
+    try {
+        const data = await fetch(`${ESPN_ROSTER}/${teamId}/schedule`).then(r => r.json());
+        const now = Date.now();
+        const games = [];
+        for (const ev of (data.events || [])) {
+            if (!ev.date) continue;
+            if (new Date(ev.date).getTime() > now) continue;  // skip future
+            const comp  = ev.competitions?.[0];
+            if (!comp) continue;
+            const comps    = comp.competitors || [];
+            const teamComp = comps.find(c => String(c.team?.id) === String(teamId));
+            const oppComp  = comps.find(c => String(c.team?.id) !== String(teamId));
+            if (!teamComp || !oppComp) continue;
+            if (parseInt(teamComp.team?.id) > 30 || parseInt(oppComp.team?.id) > 30) continue;
+            const completed = comp.status?.type?.completed;
+            const teamScore = parseFloat(teamComp.score) || 0;
+            const oppScore  = parseFloat(oppComp.score)  || 0;
+            const result    = completed ? (teamScore > oppScore ? 'W' : 'L') : '';
+            games.push({
+                gameDate : ev.date,
+                opponent : oppComp.team?.abbreviation || '?',
+                atVs     : teamComp.homeAway === 'away' ? '@' : 'vs',
+                result,
+            });
+        }
+        games.sort((a, b) => new Date(a.gameDate) - new Date(b.gameDate));
+        return games;
+    } catch(e) {
+        console.warn('team schedule:', e);
+        return [];
+    }
+}
+
+function parseGameStatMap(labels, rawStats) {
+    const S = {};
+    labels.forEach((lbl, i) => {
+        const val = rawStats?.[i] ?? '';
+        if (['FG', '3PT', 'FT'].includes(lbl)) {
+            // "made-attempted" format e.g. "8-12"
+            const [mStr, aStr] = (val || '0-0').split('-');
+            const made = parseFloat(mStr) || 0;
+            const att  = parseFloat(aStr) || 0;
+            if (lbl === 'FG')  { S['FGM'] = made; S['FGA'] = att; }
+            if (lbl === '3PT') { S['3PM'] = made; S['3PA'] = att; }
+            if (lbl === 'FT')  { S['FTM'] = made; S['FTA'] = att; }
+        } else {
+            S[lbl] = parseFloat(val) || 0;
+        }
+    });
+    return S;
+}
+
+function normDate(isoStr) {
+    if (!isoStr) return '';
+    // Convert to JST (UTC+9) date string YYYY-MM-DD for consistent matching
+    const d = new Date(new Date(isoStr).getTime() + 9 * 3600 * 1000);
+    return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`;
+}
+
+function parseGamelog(data, teamGames = []) {
+    // Structure:
+    //   data.labels[]        — stat column names (top-level)
+    //   data.events{}        — dict keyed by eventId → game metadata
+    //   data.seasonTypes[0].categories[].events[] → [{eventId, stats[]}]
+    //   categories are split by month within the season
+    const labels    = data.labels || [];
+    const eventsMap = data.events || {};
+    if (!labels.includes('PTS')) return [];
+
+    // Build player game map keyed by JST date
+    const playerByDate = {};
+    const currentST = (data.seasonTypes || [])[0];
+    if (currentST) {
+        for (const cat of (currentST.categories || [])) {
+            for (const ce of (cat.events || [])) {
+                const eid = String(ce.eventId);
+                const ev  = eventsMap[eid] || {};
+                if (parseInt(ev.homeTeamId) > 30 || parseInt(ev.awayTeamId) > 30) continue;
+                const stats = parseGameStatMap(labels, ce.stats);
+                if (isNaN(stats['PTS'])) continue;
+                const dk = normDate(ev.gameDate || '');
+                if (dk) playerByDate[dk] = {
+                    gameDate : ev.gameDate || '',
+                    opponent : ev.opponent?.abbreviation || '?',
+                    atVs     : ev.atVs || 'vs',
+                    result   : ev.gameResult || '',
+                    score    : ev.score || '',
+                    stats,
+                };
+            }
+        }
+    }
+
+    if (teamGames.length > 0) {
+        // Use team schedule as x-axis; stats = null when player didn't play
+        return teamGames.map(tg => {
+            const dk = normDate(tg.gameDate);
+            const pg = dk ? playerByDate[dk] : null;
+            return {
+                gameDate : tg.gameDate,
+                opponent : pg?.opponent ?? tg.opponent,
+                atVs     : pg?.atVs     ?? tg.atVs,
+                result   : pg?.result   || tg.result || '',
+                score    : pg?.score    ?? '',
+                stats    : pg ? pg.stats : null,  // null = DNP
+            };
+        });
+    }
+
+    // Fallback: player-only (no team schedule available)
+    const games = Object.values(playerByDate);
+    games.sort((a, b) => new Date(a.gameDate) - new Date(b.gameDate));
+    return games;
+}
+
+/* ─── Trend Table ─── */
+
+function jstDate(isoStr) {
+    if (!isoStr) return '';
+    const d = new Date(new Date(isoStr).getTime() + 9 * 3600 * 1000);
+    return `${String(d.getUTCMonth()+1).padStart(2,'0')}/${String(d.getUTCDate()).padStart(2,'0')}`;
+}
+
+function fmtGameVal(key, val) {
+    if (val == null || isNaN(val)) return '-';
+    if (['FG%', '3P%', 'FT%'].includes(key)) return val.toFixed(1) + '%';
+    if (key === 'MIN') return val.toFixed(1);
+    return Number.isInteger(val) ? String(val) : val.toFixed(0);
+}
+
+function renderTrendTable() {
+    const games = currentGames.slice(-10).reverse(); // newest first, last 10 games
+
+    if (!games.length) {
+        chartWrap.innerHTML = '<div class="msg">No game data available</div>';
+        return;
+    }
+
+    const statCols = [
+        { key: 'MIN',  label: 'MIN' },
+        { key: 'PTS',  label: 'PTS' },
+        { key: 'REB',  label: 'REB' },
+        { key: 'AST',  label: 'AST' },
+        { key: 'STL',  label: 'STL' },
+        { key: 'BLK',  label: 'BLK' },
+        { key: 'FGM',  label: 'FGM' },
+        { key: 'FGA',  label: 'FGA' },
+        { key: 'FG%',  label: 'FG%' },
+        { key: '3PM',  label: '3PM' },
+        { key: '3PA',  label: '3PA' },
+        { key: '3P%',  label: '3P%' },
+        { key: 'FTM',  label: 'FTM' },
+        { key: 'FTA',  label: 'FTA' },
+        { key: 'FT%',  label: 'FT%' },
+        { key: 'TO',   label: 'TO'  },
+        { key: 'PF',   label: 'PF'  },
+    ];
+
+    const thead = `<thead><tr>
+        <th class="left-col">Date</th>
+        <th class="left-col">Opp</th>
+        <th>Result</th>
+        ${statCols.map(c => `<th>${c.label}</th>`).join('')}
+    </tr></thead>`;
+
+    const tbody = '<tbody>' + games.map(g => {
+        const dnp    = g.stats === null;
+        const dateLbl = jstDate(g.gameDate);
+        const atLbl  = g.atVs === '@' ? '@' : 'vs';
+        const oppLbl = `${atLbl} ${esc(g.opponent)}`;
+        const result = g.result || '';
+        const score  = g.score  || '';
+        const resCls = result === 'W' ? 'res-w' : result === 'L' ? 'res-l' : '';
+        const resTxt = score ? esc(score) : (result || '-');
+        const statCells = dnp
+            ? `<td colspan="${statCols.length}" style="color:var(--muted);font-style:italic">DNP</td>`
+            : statCols.map(c => `<td>${fmtGameVal(c.key, g.stats?.[c.key])}</td>`).join('');
+        return `<tr class="${dnp ? 'dnp' : ''}">
+            <td class="left-col">${esc(dateLbl)}</td>
+            <td class="left-col">${oppLbl}</td>
+            <td class="${resCls}">${resTxt}</td>
+            ${statCells}
+        </tr>`;
+    }).join('') + '</tbody>';
+
+    chartWrap.innerHTML = `<div class="trend-table-wrap"><table class="trend-table">${thead}${tbody}</table></div>`;
+}
+
+/* ─── Team Full Schedule ─── */
+async function loadTeamScheduleFull(teamId) {
+    const wrap = document.getElementById('t-schedule-wrap');
+    try {
+        // seasontype=2 → Regular Season only
+        const data = await fetch(`${ESPN_ROSTER}/${teamId}/schedule?seasontype=2`).then(r => r.json());
+
+        const seasonName = data.season?.displayName || '';
+        if (seasonName) document.getElementById('t-schedule-season-badge').textContent = seasonName;
+
+        const now = Date.now();
+        const games = [];
+
+        for (const ev of (data.events || [])) {
+            if (!ev.date) continue;
+            const comp = ev.competitions?.[0];
+            if (!comp) continue;
+            const comps    = comp.competitors || [];
+            const teamComp = comps.find(c => String(c.team?.id) === String(teamId));
+            const oppComp  = comps.find(c => String(c.team?.id) !== String(teamId));
+            if (!teamComp || !oppComp) continue;
+            if (parseInt(teamComp.team?.id) > 30 || parseInt(oppComp.team?.id) > 30) continue;
+
+            const gameTime   = new Date(ev.date).getTime();
+            const statusState = comp.status?.type?.state || '';
+            const statusName  = comp.status?.type?.name  || '';
+            const completed   = comp.status?.type?.completed || false;
+            const isLive      = statusState === 'in' || statusName === 'STATUS_IN_PROGRESS';
+            const isPast      = completed || (!isLive && gameTime < now);
+            const teamScoreNum = teamComp.score?.value ?? parseFloat(teamComp.score);
+            const oppScoreNum  = oppComp.score?.value  ?? parseFloat(oppComp.score);
+            const hasScore = !isNaN(teamScoreNum) && !isNaN(oppScoreNum);
+            const scoreStr = hasScore ? `${Math.round(teamScoreNum)}-${Math.round(oppScoreNum)}` : '';
+            const result = (completed && hasScore) ? (teamScoreNum > oppScoreNum ? 'W' : 'L') : '';
+
+            games.push({
+                eventId: String(ev.id || ''),
+                date: ev.date,
+                opponent: oppComp.team?.abbreviation || '?',
+                atVs: teamComp.homeAway === 'away' ? '@' : 'vs',
+                scoreStr, result,
+                isPast, isLive, completed,
+                teamId: String(teamComp.team?.id || ''),
+            });
+        }
+
+        // Supplement live scores from scoreboard API (schedule API returns null scores for in-progress)
+        const liveGames = games.filter(g => g.isLive);
+        if (liveGames.length) {
+            try {
+                const sb = await fetch('https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard').then(r => r.json());
+                const sbMap = {};
+                for (const ev of (sb.events || [])) {
+                    const comp = ev.competitions?.[0];
+                    if (!comp) continue;
+                    const comps = comp.competitors || [];
+                    sbMap[String(ev.id)] = comps;
+                }
+                for (const g of liveGames) {
+                    const comps = sbMap[g.eventId];
+                    if (!comps) continue;
+                    const tc = comps.find(c => String(c.team?.id) === g.teamId);
+                    const oc = comps.find(c => String(c.team?.id) !== g.teamId);
+                    if (!tc || !oc) continue;
+                    const ts = parseFloat(tc.score);
+                    const os = parseFloat(oc.score);
+                    if (!isNaN(ts) && !isNaN(os)) {
+                        g.scoreStr = `${Math.round(ts)}-${Math.round(os)}`;
+                    }
+                }
+            } catch(e) {
+                console.warn('scoreboard fetch failed:', e);
+            }
+        }
+
+        // Ascending order (chronological)
+        games.sort((a, b) => new Date(a.date) - new Date(b.date));
+        renderTeamSchedule(games, wrap);
+    } catch(e) {
+        wrap.innerHTML = '<div class="msg error">Failed to load schedule</div>';
+        console.error('team schedule full:', e);
+    }
+}
+
+function renderTeamSchedule(games, wrap) {
+    if (!games.length) {
+        wrap.innerHTML = '<div class="msg">No schedule available</div>';
+        return;
+    }
+
+    // Determine scroll target: today's game, or next upcoming game
+    const todayJST = normDate(new Date().toISOString());
+    let targetIdx = games.findIndex(g => normDate(g.date) === todayJST);
+    if (targetIdx === -1) targetIdx = games.findIndex(g => !g.isPast && !g.isLive);
+    if (targetIdx === -1) targetIdx = games.length - 1; // all past: scroll to last
+
+    const rows = games.map((g, i) => {
+        const d = new Date(new Date(g.date).getTime() + 9 * 3600 * 1000);
+        const dateLbl = `${d.getUTCMonth() + 1}/${String(d.getUTCDate()).padStart(2, '0')}`;
+        const oppLbl  = `${g.atVs} ${esc(g.opponent)}`;
+
+        let scoreHtml;
+        if (g.isLive) {
+            const liveScore = g.scoreStr ? ` ${g.scoreStr}` : '';
+            scoreHtml = `<span class="t-sched-score">
+                <span class="t-sched-live-badge">
+                    <span class="t-sched-live-dot"></span>試合中${esc(liveScore)}
+                </span>
+            </span>`;
+        } else if (g.completed) {
+            const cls = g.result === 'W' ? 'win' : 'loss';
+            const scorePart = g.scoreStr ? ` ${g.scoreStr}` : '';
+            scoreHtml = `<span class="t-sched-score ${cls}">${g.result}${esc(scorePart)}</span>`;
+        } else {
+            scoreHtml = `<span class="t-sched-score" style="color:var(--muted)">-</span>`;
+        }
+
+        const rowCls = g.isLive ? 'live' : g.isPast ? 'past' : '';
+        const target = i === targetIdx ? ' data-sched-target' : '';
+        return `<div class="t-sched-row ${rowCls}"${target}>
+            <span class="t-sched-date">${dateLbl}</span>
+            <span class="t-sched-opp">${oppLbl}</span>
+            ${scoreHtml}
+        </div>`;
+    }).join('');
+
+    wrap.innerHTML = `<div class="t-schedule-list">${rows}</div>`;
+
+    // Scroll target row to top of the list
+    const list = wrap.querySelector('.t-schedule-list');
+    const targetEl = wrap.querySelector('[data-sched-target]');
+    if (list && targetEl) {
+        list.scrollTop = targetEl.offsetTop;
+    }
+}
+
+/* ─── Stats Leaders ─── */
+
+const SL_API   = 'https://site.api.espn.com/apis/common/v3/sports/basketball/nba/statistics/byathlete';
+// NBA season year: season starting in Oct uses next calendar year (e.g. 2025-26 → 2026)
+const _now = new Date();
+const SL_YEAR  = _now.getMonth() >= 9 ? _now.getFullYear() + 1 : _now.getFullYear();
+const SL_TYPE  = 2;  // Regular Season
+
+// Configurable tab definitions — edit freely
+const SL_TABS = [
+    { key: 'PTS',  label: 'PTS',  sort: 'offensive.avgPoints:desc',                   catName: 'offensive', statName: 'avgPoints',                  sub: 'PPG' },
+    { key: '3P%',  label: '3P%',  sort: 'offensive.threePointFieldGoalPct:desc',       catName: 'offensive', statName: 'threePointFieldGoalPct',      sub: '3PT%', isPct: true, madeStatName: 'avgThreePointFieldGoalsMade', attStatName: 'avgThreePointFieldGoalsAttempted' },
+    { key: 'FTA',  label: 'FTA',  sort: 'offensive.avgFreeThrowsAttempted:desc',       catName: 'offensive', statName: 'avgFreeThrowsAttempted',       sub: 'per game' },
+    { key: 'FT%',  label: 'FT%',  sort: 'offensive.freeThrowPct:desc',                catName: 'offensive', statName: 'freeThrowPct',                 sub: 'FT%', isPct: true, madeStatName: 'avgFreeThrowsMade', attStatName: 'avgFreeThrowsAttempted' },
+    { key: 'AST',  label: 'AST',  sort: 'offensive.avgAssists:desc',                  catName: 'offensive', statName: 'avgAssists',                   sub: 'APG' },
+    { key: 'STL',  label: 'STL',  sort: 'defensive.avgSteals:desc',                   catName: 'defensive', statName: 'avgSteals',                    sub: 'SPG' },
+    { key: 'BLK',  label: 'BLK',  sort: 'defensive.avgBlocks:desc',                   catName: 'defensive', statName: 'avgBlocks',                    sub: 'BPG' },
+    { key: 'TO',   label: 'TO',   sort: 'offensive.avgTurnovers:desc',                catName: 'offensive', statName: 'avgTurnovers',                  sub: 'per game' },
+    { key: 'DD2',  label: 'DD2',  sort: 'general.doubleDouble:desc',                  catName: 'general',   statName: 'doubleDouble',                  sub: 'total', isInt: true },
+    { key: 'TD3',  label: 'TD3',  sort: 'general.tripleDouble:desc',                  catName: 'general',   statName: 'tripleDouble',                  sub: 'total', isInt: true },
+    { key: 'BSA',  label: 'BSA (Basic Stat Aggregate)',  sort: 'offensive.avgPoints:desc', catName: 'offensive', statName: 'avgPoints', sub: 'BSA', isPRA: true },
+];
+
+let slCache     = {};       // key → athletes[]
+let slCatMap    = null;     // category name → { statName → index }
+let slActiveKey = SL_TABS[0].key;
+
+function buildSlCatMap(categories) {
+    const map = {};
+    for (const cat of categories) {
+        map[cat.name] = {};
+        (cat.names || []).forEach((name, i) => { map[cat.name][name] = i; });
+    }
+    return map;
+}
+
+function getSlVal(athlete, catName, statName) {
+    if (!slCatMap) return null;
+    const idx = slCatMap[catName]?.[statName];
+    if (idx == null) return null;
+    const athCat = (athlete.categories || []).find(c => c.name === catName);
+    return athCat?.values?.[idx] ?? null;
+}
+
+function fmtSlVal(val, tab) {
+    if (val == null || isNaN(val)) return '-';
+    if (tab.isInt)  return String(Math.round(val));
+    if (tab.isPct)  return val.toFixed(1) + '%';
+    return val.toFixed(1);
+}
+
+async function fetchSlLeaders(tab) {
+    const limit = tab.isPRA ? 50 : 10;
+    const url = `${SL_API}?season=${SL_YEAR}&seasontype=${SL_TYPE}&limit=${limit}&qualified=true&sort=${encodeURIComponent(tab.sort)}`;
+    const data = await fetch(url).then(r => r.json());
+    if (!slCatMap && data.categories) {
+        slCatMap = buildSlCatMap(data.categories);
+    }
+    if (data.requestedSeason?.displayName) {
+        document.getElementById('sl-season-badge').textContent = data.requestedSeason.displayName;
+    }
+    let athletes = data.athletes || [];
+    if (tab.isPRA) {
+        athletes = athletes
+            .map(a => {
+                const pts = getSlVal(a, 'offensive', 'avgPoints')         ?? 0;
+                const reb = getSlVal(a, 'general',   'avgRebounds')       ?? 0;
+                const ast = getSlVal(a, 'offensive', 'avgAssists')        ?? 0;
+                const blk = getSlVal(a, 'defensive', 'avgBlocks')         ?? 0;
+                const stl = getSlVal(a, 'defensive', 'avgSteals')         ?? 0;
+                const tov = getSlVal(a, 'offensive', 'avgTurnovers')      ?? 0;
+                const pf  = getSlVal(a, 'general',   'avgFouls')  ?? 0;
+                return { ...a, _pra: pts + reb + ast + blk + stl - tov - pf };
+            })
+            .sort((a, b) => b._pra - a._pra)
+            .slice(0, 10);
+    }
+    return athletes;
+}
+
+function renderSlLeaders(athletes, tab) {
+    const el = document.getElementById('sl-list');
+    if (!athletes.length) { el.innerHTML = '<div class="msg">No data</div>'; return; }
+
+    el.innerHTML = athletes.map((a, i) => {
+        const ath     = a.athlete || {};
+        const mainVal = getSlVal(a, tab.catName, tab.statName);
+        const pts     = getSlVal(a, 'offensive', 'avgPoints');
+        const reb     = getSlVal(a, 'general',   'avgRebounds');
+        const ast     = getSlVal(a, 'offensive', 'avgAssists');
+
+        const headshotUrl = ath.headshot?.href || '';
+        const name        = ath.displayName  || '—';
+        const team        = ath.teamShortName || '';
+
+        const photoEl = headshotUrl
+            ? `<img class="sl-photo" src="${esc(headshotUrl)}" alt="${esc(name)}" onerror="this.style.display='none'">`
+            : `<div class="sl-photo-placeholder">${esc(name.charAt(0) || '?')}</div>`;
+
+        const chips = [];
+        if (!tab.isPRA && tab.key !== 'PTS')  chips.push(`<span class="sl-chip"><strong>${pts  != null ? pts.toFixed(1)  : '-'}</strong> pts</span>`);
+        if (!tab.isPRA && tab.key !== 'AST')  chips.push(`<span class="sl-chip"><strong>${ast  != null ? ast.toFixed(1)  : '-'}</strong> ast</span>`);
+        if (!tab.isPRA) chips.push(`<span class="sl-chip"><strong>${reb != null ? reb.toFixed(1) : '-'}</strong> reb</span>`);
+
+        let statValHtml, statSubHtml, mainStatStyle = '';
+        if (tab.isPRA) {
+            const blk = getSlVal(a, 'defensive', 'avgBlocks')        ?? 0;
+            const stl = getSlVal(a, 'defensive', 'avgSteals')        ?? 0;
+            const tov = getSlVal(a, 'offensive', 'avgTurnovers')     ?? 0;
+            const pf  = getSlVal(a, 'general',   'avgFouls') ?? 0;
+            const praVal = a._pra ?? ((pts ?? 0) + (reb ?? 0) + (ast ?? 0) + blk + stl - tov - pf);
+            const f = v => v != null ? v.toFixed(1) : '-';
+            mainStatStyle = 'flex-direction:column;align-items:flex-start;';
+            statValHtml = `<span class="sl-stat-val">${praVal.toFixed(1)}</span>`;
+            statSubHtml = `<span class="sl-stat-sub">(${f(pts)}+${f(reb)}+${f(ast)}+${blk.toFixed(1)}+${stl.toFixed(1)}-${tov.toFixed(1)}-${pf.toFixed(1)})</span>`;
+        } else if (tab.madeStatName && tab.attStatName) {
+            const madeVal = getSlVal(a, tab.catName, tab.madeStatName);
+            const attVal  = getSlVal(a, tab.catName, tab.attStatName);
+            const madeStr = madeVal != null ? madeVal.toFixed(1) : '-';
+            const attStr  = attVal  != null ? attVal.toFixed(1)  : '-';
+            statValHtml = `<span class="sl-stat-val">${esc(fmtSlVal(mainVal, tab))}</span>`;
+            statSubHtml = `<span class="sl-stat-sub">(${madeStr}/${attStr})</span>`;
+        } else {
+            statValHtml = `<span class="sl-stat-val">${esc(fmtSlVal(mainVal, tab))}</span>`;
+            statSubHtml = `<span class="sl-stat-sub">${esc(tab.sub)}</span>`;
+        }
+
+        return `
+        <div class="sl-item">
+            <div class="sl-rank">${i + 1}</div>
+            ${photoEl}
+            <div class="sl-body">
+                <div class="sl-name-row">
+                    <span class="sl-name">${esc(name)}</span>
+                    <span class="sl-team">${esc(team)}</span>
+                </div>
+                <div class="sl-main-stat" style="${mainStatStyle}">
+                    ${statValHtml}
+                    ${statSubHtml}
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+async function switchSlTab(key) {
+    slActiveKey = key;
+    const sel = document.getElementById('sl-tab-select');
+    if (sel && sel.value !== key) sel.value = key;
+
+    const tab = SL_TABS.find(t => t.key === key);
+    if (!tab) return;
+
+    if (slCache[key]) { renderSlLeaders(slCache[key], tab); return; }
+
+    const el = document.getElementById('sl-list');
+    el.innerHTML = '<div class="msg">Loading<span class="spinner"></span></div>';
+    try {
+        const athletes = await fetchSlLeaders(tab);
+        slCache[key] = athletes;
+        renderSlLeaders(athletes, tab);
+    } catch(e) {
+        el.innerHTML = '<div class="msg error">Failed to load</div>';
+        console.error('leaders:', e);
+    }
+}
+
+function initSlTabs() {
+    const tabsEl = document.getElementById('sl-tabs');
+    tabsEl.innerHTML = `<select id="sl-tab-select" class="sl-tab-select">
+        ${SL_TABS.map(t => `<option value="${t.key}"${t.key === slActiveKey ? ' selected' : ''}>${t.label}</option>`).join('')}
+    </select>`;
+    tabsEl.querySelector('#sl-tab-select').addEventListener('change', e => {
+        switchSlTab(e.target.value);
+    });
+    switchSlTab(slActiveKey);
+}
+
+initSlTabs();
+document.getElementById('last-updated').textContent =
+    new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' });
+
+/* ─── Utility ─── */
+function esc(s) {
+    return String(s)
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+</script>
+<script src="nba-common.js"></script>
+</body>
+</html>

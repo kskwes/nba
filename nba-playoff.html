@@ -1,0 +1,1149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NBA Playoffs</title>
+    <link rel="stylesheet" href="nba-common.css">
+    <style>
+        /* ─── Bracket layout ─── */
+        .bracket-outer { overflow-x: auto; padding-bottom: 12px; }
+        .bracket-inner {
+            display: flex;
+            min-width: 1100px;
+            align-items: stretch;
+            gap: 0;
+        }
+
+        .conf-bracket {
+            display: flex;
+            min-width: 0;
+        }
+        .conf-bracket.east { flex-direction: row-reverse; }
+
+        .round-col {
+            display: flex;
+            flex-direction: column;
+            width: 172px;
+            flex-shrink: 0;
+            position: relative;
+        }
+
+        .round-label {
+            font-size: 10px; font-weight: 700; color: var(--muted);
+            text-align: center; letter-spacing: 0.8px; text-transform: uppercase;
+            padding: 10px 0 8px; border-bottom: 1px solid var(--border);
+            margin-bottom: 0;
+        }
+
+        .round-slots { display: flex; flex-direction: column; flex: 1; }
+
+        .matchup-slot {
+            display: flex;
+            align-items: center;
+            padding: 5px 8px;
+            position: relative;
+        }
+        .r1 .matchup-slot { flex: 1; }
+        .r2 .matchup-slot { flex: 2; }
+        .cf .matchup-slot { flex: 4; }
+
+        /* Connector lines */
+        .r1 .matchup-slot::after {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: 50%;
+            width: 8px;
+            height: 1px;
+            background: var(--border);
+        }
+        .r1 .matchup-slot:nth-child(odd)::before {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: 50%;
+            width: 1px;
+            height: 100%;
+            background: var(--border);
+        }
+        .r2 .matchup-slot::after {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: 50%;
+            width: 8px;
+            height: 1px;
+            background: var(--border);
+        }
+        .r2 .matchup-slot:nth-child(odd)::before {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: 50%;
+            width: 1px;
+            height: 100%;
+            background: var(--border);
+        }
+        .cf .matchup-slot::after {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: 50%;
+            width: 8px;
+            height: 1px;
+            background: var(--border);
+        }
+        .east .r1 .matchup-slot::after,
+        .east .r2 .matchup-slot::after,
+        .east .cf .matchup-slot::after { right: auto; left: 0; }
+        .east .r1 .matchup-slot::before,
+        .east .r2 .matchup-slot::before { right: auto; left: 0; }
+        .east .cf .matchup-slot::after { right: auto; left: 0; }
+
+        /* ─── Finals column ─── */
+        .finals-col {
+            flex-shrink: 0;
+            width: 188px;
+            display: flex;
+            flex-direction: column;
+        }
+        .finals-col .round-label { color: var(--gold); }
+        .finals-col .round-slots { justify-content: center; }
+        .finals-col .matchup-slot { flex: 1; }
+
+        /* ─── Matchup Card ─── */
+        .matchup-card {
+            width: 100%;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 7px 9px 5px;
+            cursor: pointer;
+            transition: border-color 0.15s, transform 0.12s;
+            user-select: none;
+        }
+        .matchup-card:hover { border-color: var(--blue); transform: translateY(-1px); }
+        .matchup-card.empty {
+            background: transparent;
+            border: 1px dashed rgba(37,45,74,0.6);
+            cursor: default; opacity: 0.5;
+        }
+        .matchup-card.empty:hover { border-color: rgba(37,45,74,0.6); transform: none; }
+        .matchup-card.champion { border-color: var(--gold); box-shadow: 0 0 12px rgba(253,185,39,0.2); }
+
+        .mc-team {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 3px 0;
+        }
+        .mc-team + .mc-team { border-top: 1px solid rgba(37,45,74,0.6); }
+
+        .mc-seed {
+            font-size: 9px; color: var(--muted);
+            width: 12px; text-align: right; flex-shrink: 0; font-weight: 600;
+        }
+        .mc-logo {
+            width: 22px; height: 22px; object-fit: contain; flex-shrink: 0;
+            filter: drop-shadow(0 1px 3px rgba(0,0,0,0.5));
+        }
+        .mc-name { font-size: 12px; font-weight: 700; flex: 1; color: #cdd5ef; }
+        .mc-wins {
+            font-size: 14px; font-weight: 900; color: var(--muted);
+            min-width: 14px; text-align: center; flex-shrink: 0;
+        }
+        .mc-winner .mc-name { color: #fff; }
+        .mc-winner .mc-wins { color: #fff; }
+        .mc-loser { opacity: 0.45; }
+        .mc-wins-active { color: #64b5f6; }
+
+        .mc-status {
+            font-size: 8.5px; color: var(--muted);
+            text-align: center; margin-top: 4px; padding-top: 3px;
+            border-top: 1px solid rgba(37,45,74,0.5);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .mc-champion-badge {
+            text-align: center; font-size: 9px; font-weight: 800;
+            color: var(--gold); margin-top: 3px; letter-spacing: 0.5px;
+        }
+
+        /* ─── Conf label ─── */
+        .conf-half {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+        }
+        .conf-label {
+            font-size: 11px; font-weight: 900; letter-spacing: 2px;
+            text-transform: uppercase;
+            padding: 16px 0 4px;
+            color: var(--muted);
+        }
+        .conf-label.west { color: #64b5f6; text-align: left; padding-left: 4px; }
+        .conf-label.east { color: #ef9a9a; text-align: right; padding-right: 4px; }
+        .conf-half .conf-bracket { flex: 1; }
+
+        /* ─── Play-In layout ─── */
+        .playin-wrap {
+            display: flex;
+            gap: 24px;
+            align-items: flex-start;
+        }
+        .playin-conf {
+            flex: 1;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+        .playin-conf-header {
+            padding: 14px 18px;
+            font-size: 14px; font-weight: 800; letter-spacing: 1px;
+            text-transform: uppercase;
+            border-bottom: 2px solid var(--border);
+        }
+        .playin-conf-header.west { border-bottom-color: #1e3a5f; color: #64b5f6; }
+        .playin-conf-header.east { border-bottom-color: #3d1a1a; color: #ef9a9a; }
+
+        .playin-game {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 16px;
+            border-bottom: 1px solid rgba(37,45,74,0.5);
+            text-decoration: none;
+            color: inherit;
+            transition: background 0.12s;
+            cursor: pointer;
+        }
+        .playin-game:last-child { border-bottom: none; }
+        .playin-game:hover { background: var(--surface2); }
+
+        .pg-label {
+            flex-shrink: 0; width: 80px;
+            font-size: 9.5px; font-weight: 700; color: var(--muted);
+            text-transform: uppercase; letter-spacing: 0.5px;
+            text-align: center;
+        }
+        .pg-matchup { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+        .pg-team {
+            display: flex; align-items: center; gap: 6px;
+            font-size: 12.5px; font-weight: 700;
+        }
+        .pg-logo { width: 20px; height: 20px; object-fit: contain; flex-shrink: 0; }
+        .pg-name { flex: 1; }
+        .pg-score { font-size: 14px; font-weight: 900; color: var(--muted); min-width: 28px; text-align: right; }
+        .pg-team.winner .pg-name { color: #fff; }
+        .pg-team.winner .pg-score { color: #fff; }
+        .pg-team.loser { opacity: 0.5; }
+        .pg-arrow { flex-shrink: 0; color: var(--muted); font-size: 13px; }
+        .pg-result {
+            flex-shrink: 0; font-size: 9px; font-weight: 700;
+            padding: 2px 6px; border-radius: 4px;
+            background: rgba(201,8,42,0.15); color: var(--red);
+        }
+        .pg-result.live { background: rgba(76,175,80,0.15); color: #4caf50; }
+        .pg-result.sched { background: rgba(122,133,163,0.1); color: var(--muted); }
+        .pg-sep { font-size: 10px; color: #4a5270; text-align: center; padding: 4px; font-weight: 700; }
+
+        @media (max-width: 700px) {
+            .playin-wrap { flex-direction: column; }
+        }
+
+        /* ─── Modal ─── */
+        .modal-overlay {
+            display: none;
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.75);
+            z-index: 200;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            width: 100%; max-width: 520px;
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+        .modal-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 18px 20px; border-bottom: 1px solid var(--border);
+            position: sticky; top: 0; background: var(--surface);
+            border-radius: 16px 16px 0 0;
+        }
+        .modal-title { font-size: 15px; font-weight: 800; }
+        .modal-close {
+            background: none; border: none; color: var(--muted);
+            font-size: 22px; cursor: pointer; line-height: 1;
+            padding: 0 4px; transition: color 0.12s;
+        }
+        .modal-close:hover { color: #fff; }
+
+        .modal-series-header {
+            padding: 14px 20px;
+            display: flex; align-items: center; justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+        }
+        .msh-teams { display: flex; align-items: center; gap: 10px; }
+        .msh-team { display: flex; align-items: center; gap: 6px; }
+        .msh-logo { width: 32px; height: 32px; object-fit: contain; }
+        .msh-name { font-size: 13px; font-weight: 700; }
+        .msh-vs { font-size: 12px; color: var(--muted); font-weight: 700; }
+        .msh-record {
+            font-size: 13px; font-weight: 900; color: var(--muted);
+            text-align: right; line-height: 1.4;
+        }
+        .msh-record strong { font-size: 16px; color: #fff; display: block; }
+
+        .modal-games { padding: 8px 0; }
+        .modal-game {
+            display: flex; align-items: center; gap: 8px;
+            padding: 10px 20px; border-bottom: 1px solid rgba(37,45,74,0.4);
+            text-decoration: none; color: inherit;
+            transition: background 0.12s;
+        }
+        .modal-game:last-child { border-bottom: none; }
+        .modal-game:hover { background: var(--surface2); }
+        .mg-num { font-size: 10px; font-weight: 700; color: var(--muted); width: 44px; flex-shrink: 0; }
+        .mg-date { font-size: 10px; color: var(--muted); width: 60px; flex-shrink: 0; }
+        .mg-teams { flex: 1; display: flex; align-items: center; gap: 6px; }
+        .mg-team-score {
+            display: flex; align-items: center; gap: 5px;
+            font-size: 12px; color: var(--muted); flex: 1;
+        }
+        .mg-team-score.winner { color: #fff; }
+        .mg-team-score.winner .mg-score { font-weight: 900; }
+        .mg-logo { width: 18px; height: 18px; object-fit: contain; flex-shrink: 0; }
+        .mg-abbr { font-size: 11px; font-weight: 700; }
+        .mg-score { font-size: 13px; text-align: right; min-width: 24px; }
+        .mg-dash { font-size: 10px; color: #4a5270; flex-shrink: 0; }
+        .mg-espn {
+            font-size: 9px; color: var(--muted); flex-shrink: 0;
+            padding: 2px 6px; border: 1px solid var(--border); border-radius: 4px;
+            transition: all 0.12s;
+        }
+        .modal-game:hover .mg-espn { border-color: var(--blue); color: #64b5f6; }
+        .mg-sched { font-size: 10px; color: var(--muted); flex: 1; }
+
+        @media (max-width: 600px) {
+            .msh-teams { flex-direction: column; gap: 6px; }
+            .modal-series-header { flex-direction: column; gap: 10px; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>NBA <em>Playoffs</em></h1>
+    <div class="last-updated" id="last-updated"></div>
+    <div class="hamburger-wrap" id="hamburger-wrap">
+        <button class="hamburger-btn" id="hamburger-btn" aria-label="Menu">
+            <span></span><span></span><span></span>
+        </button>
+        <nav class="hamburger-menu">
+            <a href="nba-daily.html" target="_blank">Daily</a>
+            <a href="nba-player.html" target="_blank">Player Stats</a>
+        </nav>
+    </div>
+</header>
+
+<div class="main-wrap">
+    <div class="tabs-nav">
+        <button class="tab-btn active" data-tab="playoffs">Playoffs</button>
+        <button class="tab-btn" data-tab="playin">Play-In</button>
+    </div>
+
+    <div class="tab-panel active" id="tab-playoffs">
+        <div id="bracket-wrap">
+            <div class="msg">Loading<span class="spinner"></span></div>
+        </div>
+    </div>
+
+    <div class="tab-panel" id="tab-playin">
+        <div id="playin-wrap">
+            <div class="msg">Loading<span class="spinner"></span></div>
+        </div>
+    </div>
+</div>
+
+<!-- Series Modal -->
+<div id="modal-overlay" class="modal-overlay">
+    <div class="modal" id="modal">
+        <div class="modal-header">
+            <span class="modal-title" id="modal-title"></span>
+            <button class="modal-close" id="modal-close">×</button>
+        </div>
+        <div id="modal-body"></div>
+    </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════
+   CONFIG  – change SEASON to test different years
+   2025 = 2024-25 season
+   ══════════════════════════════════════════════ */
+const SEASON = 2026;
+
+const ESPN_SCOREBOARD = 'https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard';
+const ESPN_STANDINGS  = 'https://site.api.espn.com/apis/v2/sports/basketball/nba/standings';
+
+/* ── State ── */
+const seedMap    = {};   // teamId → { seed, conf, abbr, logo, name }
+const seriesMap  = {};   // "minId-maxId" → series object
+const playInData = { West: [], East: [] };
+const TBD_ID     = '__tbd__';  // placeholder for unresolved play-in opponent
+
+/* ── Helpers ── */
+const ABBR_MAP = { NY: 'NYK', GS: 'GSW', NO: 'NOP', SA: 'SAS', UTAH: 'UTA' };
+function normAbbr(a) { return ABBR_MAP[a] || a; }
+
+function etDateStr(d) { return d.toISOString().slice(0, 10).replace(/-/g, ''); }
+
+function fmtShortDate(utcStr) {
+    return new Date(utcStr).toLocaleDateString('en-US', {
+        month: 'short', day: 'numeric', timeZone: 'America/New_York'
+    });
+}
+
+function seriesKey(id1, id2) { return [id1, id2].sort().join('-'); }
+
+/* ── Tab switching ── */
+function switchTab(tab) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === `tab-${tab}`));
+}
+document.querySelectorAll('.tab-btn').forEach(btn =>
+    btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
+
+/* ── Modal ── */
+document.getElementById('modal-overlay').addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeModal();
+});
+document.getElementById('modal-close').addEventListener('click', closeModal);
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+function openModal(key) {
+    const s = seriesMap[key];
+    if (!s || !s.games.length) return;
+
+    const [id1, id2] = s.teamIds;
+    const t1 = seedMap[id1] || { abbr: '?', logo: '', seed: '?', name: id1 };
+    const t2 = seedMap[id2] || { abbr: '?', logo: '', seed: '?', name: id2 };
+
+    // Higher seed first
+    const [hi, lo] = (t1.seed || 99) <= (t2.seed || 99)
+        ? [{ ...t1, id: id1 }, { ...t2, id: id2 }]
+        : [{ ...t2, id: id2 }, { ...t1, id: id1 }];
+
+    const hiW = s.seriesWins[hi.id] || 0;
+    const loW = s.seriesWins[lo.id] || 0;
+    const total = s.games.filter(g => g.completed).length;
+    const summaryText = s.seriesSummary || `${hiW}-${loW}`;
+
+    document.getElementById('modal-title').textContent =
+        `${roundLabel(s.round, s.conf)} — ${hi.abbr} vs ${lo.abbr}`;
+
+    const logoOE = `onerror="this.style.display='none'"`;
+    let html = `
+        <div class="modal-series-header">
+            <div class="msh-teams">
+                <div class="msh-team">
+                    <img class="msh-logo" src="${hi.logo}" alt="${hi.abbr}" ${logoOE}>
+                    <span class="msh-name">${hi.abbr}</span>
+                </div>
+                <span class="msh-vs">vs</span>
+                <div class="msh-team">
+                    <img class="msh-logo" src="${lo.logo}" alt="${lo.abbr}" ${logoOE}>
+                    <span class="msh-name">${lo.abbr}</span>
+                </div>
+            </div>
+            <div class="msh-record">
+                <strong>${hiW} - ${loW}</strong>
+                ${summaryText}
+            </div>
+        </div>
+        <div class="modal-games">`;
+
+    const sorted = [...s.games].sort((a, b) => new Date(a.date) - new Date(b.date));
+    sorted.forEach((g, i) => {
+        const hiScore = g.scores[hi.id] ?? null;
+        const loScore = g.scores[lo.id] ?? null;
+        const hiWon = g.winner === hi.id;
+        const loWon = g.winner === lo.id;
+
+        if (g.completed && hiScore !== null) {
+            html += `
+                <a class="modal-game" href="https://www.espn.com/nba/game/_/gameId/${g.id}" target="_blank" rel="noopener">
+                    <span class="mg-num">Game ${i + 1}</span>
+                    <span class="mg-date">${fmtShortDate(g.date)}</span>
+                    <div class="mg-teams">
+                        <div class="mg-team-score ${hiWon ? 'winner' : ''}">
+                            <img class="mg-logo" src="${hi.logo}" alt="${hi.abbr}" ${logoOE}>
+                            <span class="mg-score">${hiScore}</span>
+                        </div>
+                        <span class="mg-dash">-</span>
+                        <div class="mg-team-score ${loWon ? 'winner' : ''}">
+                            <span class="mg-score">${loScore}</span>
+                            <img class="mg-logo" src="${lo.logo}" alt="${lo.abbr}" ${logoOE}>
+                        </div>
+                    </div>
+                    <span class="mg-espn">ESPN ↗</span>
+                </a>`;
+        } else {
+            const timeStr = new Date(g.date).toLocaleTimeString('en-US', {
+                hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Tokyo'
+            });
+            html += `
+                <a class="modal-game" href="https://www.espn.com/nba/game/_/gameId/${g.id}" target="_blank" rel="noopener">
+                    <span class="mg-num">Game ${i + 1}</span>
+                    <span class="mg-date">${fmtShortDate(g.date)}</span>
+                    <span class="mg-sched">${timeStr} JST</span>
+                    <span class="mg-espn">ESPN ↗</span>
+                </a>`;
+        }
+    });
+    html += '</div>';
+
+    document.getElementById('modal-body').innerHTML = html;
+    document.getElementById('modal-overlay').classList.add('active');
+}
+
+function closeModal() {
+    document.getElementById('modal-overlay').classList.remove('active');
+}
+
+/* ── Round helpers ── */
+function parseRound(comp) {
+    const id = parseInt(comp.type?.id);
+    if (id === 14) return 1;
+    if (id === 15) return 2;
+    if (id === 16) return 3;
+    if (id === 17) return 4;
+    const h = (comp.notes?.[0]?.headline || '').toLowerCase();
+    if (h.includes('1st round'))   return 1;
+    if (h.includes('semifinal') || h.includes('second round')) return 2;
+    if (h.includes('finals') && !h.includes('nba finals'))     return 3;
+    if (h.includes('nba finals'))  return 4;
+    return 0;
+}
+
+function parseConf(comp) {
+    const id = parseInt(comp.type?.id);
+    if (id === 17) return 'Finals';
+    const h = comp.notes?.[0]?.headline || '';
+    if (/\bwest\b/i.test(h)) return 'West';
+    if (/\beast\b/i.test(h)) return 'East';
+    return 'Finals';
+}
+
+function roundLabel(round, conf) {
+    if (round === 4) return 'NBA Finals';
+    if (round === 3) return `${conf} Conference Finals`;
+    if (round === 2) return `${conf} Semifinals`;
+    if (round === 1) return `${conf} 1st Round`;
+    return '';
+}
+
+/* ── Standings fetch ── */
+async function fetchStandings() {
+    try {
+        const url = `${ESPN_STANDINGS}?season=${SEASON}`;
+        const d = await fetch(url).then(r => r.json());
+        if (!d.children) return;
+        d.children.forEach(conf => {
+            const isEast   = conf.name.toLowerCase().includes('east');
+            const confKey  = isEast ? 'East' : 'West';
+            const processEntries = entries => {
+                entries.forEach(e => {
+                    const get  = name => e.stats?.find(s => s.name === name)?.displayValue ?? '';
+                    const seed = parseInt(get('playoffSeed'));
+                    if (!seed) return;
+                    seedMap[e.team.id] = {
+                        seed, conf: confKey,
+                        abbr: normAbbr(e.team.abbreviation || ''),
+                        logo: e.team.logos?.[0]?.href || '',
+                        name: e.team.displayName || e.team.abbreviation || '',
+                    };
+                });
+            };
+            // Handle both flat structure (conf.standings.entries) and
+            // nested structure (conf.children[division].standings.entries)
+            if (conf.standings?.entries?.length) {
+                processEntries(conf.standings.entries);
+            } else if (conf.children) {
+                conf.children.forEach(div => processEntries(div.standings?.entries || []));
+            }
+        });
+    } catch (err) { console.warn('standings error:', err); }
+}
+
+/* ── Process events into series/play-in ── */
+function processEvent(event) {
+    const comp = event.competitions?.[0];
+    if (!comp) return;
+    const seasonType = event.season?.type;
+
+    /* ── Play-In ── */
+    if (seasonType === 5) {
+        const headline = comp.notes?.[0]?.headline || '';
+        const conf = /east/i.test(headline) ? 'East' : 'West';
+        const away = comp.competitors.find(c => c.homeAway === 'away') || comp.competitors[0];
+        const home = comp.competitors.find(c => c.homeAway === 'home') || comp.competitors[1];
+        const completed = !!(comp.status?.type?.completed || comp.status?.type?.state === 'post');
+        const live      = !completed && comp.status?.type?.state === 'in';
+
+        // Avoid duplicates
+        if (!playInData[conf].find(g => g.id === event.id)) {
+            playInData[conf].push({
+                id: event.id, date: event.date, headline, completed, live,
+                away: { id: away.team.id, abbr: normAbbr(away.team.abbreviation), logo: away.team.logo || '', score: away.score, winner: !!away.winner },
+                home: { id: home.team.id, abbr: normAbbr(home.team.abbreviation), logo: home.team.logo || '', score: home.score, winner: !!home.winner },
+            });
+        }
+        return;
+    }
+
+    /* ── Playoffs ── */
+    if (seasonType !== 3) return;
+    const round = parseRound(comp);
+    if (!round) return;
+    const conf = parseConf(comp);
+
+    const c0 = comp.competitors[0];
+    const c1 = comp.competitors[1];
+    const key = seriesKey(c0.team.id, c1.team.id);
+
+    if (!seriesMap[key]) {
+        seriesMap[key] = {
+            key, round, conf,
+            teamIds: [c0.team.id, c1.team.id],
+            games: [],
+            seriesWins: { [c0.team.id]: 0, [c1.team.id]: 0 },
+            winner: null, completed: false,
+            seriesSummary: '',
+        };
+        // Seed logos/names from competitor data if not in seedMap
+        [c0, c1].forEach(c => {
+            if (!seedMap[c.team.id]) {
+                seedMap[c.team.id] = {
+                    seed: null, conf,
+                    abbr: normAbbr(c.team.abbreviation),
+                    logo: c.team.logo || '',
+                    name: c.team.displayName || c.team.abbreviation,
+                };
+            }
+        });
+    }
+
+    const s = seriesMap[key];
+
+    // Update from series object
+    if (comp.series) {
+        s.seriesSummary = comp.series.summary || '';
+        s.completed     = comp.series.completed || false;
+        (comp.series.competitors || []).forEach(sc => {
+            if (sc.id in s.seriesWins) s.seriesWins[sc.id] = sc.wins;
+        });
+    }
+
+    // Determine winner
+    if (s.completed) {
+        const [a, b] = s.teamIds;
+        s.winner = (s.seriesWins[a] || 0) >= (s.seriesWins[b] || 0) ? a : b;
+    }
+
+    // Add game (avoid duplicates)
+    if (!s.games.find(g => g.id === event.id)) {
+        const completed = !!(comp.status?.type?.completed || comp.status?.type?.state === 'post');
+        const away = comp.competitors.find(c => c.homeAway === 'away') || comp.competitors[0];
+        const home = comp.competitors.find(c => c.homeAway === 'home') || comp.competitors[1];
+        let winner = null;
+        if (completed) {
+            const as = parseInt(away.score), hs = parseInt(home.score);
+            if (!isNaN(as) && !isNaN(hs)) winner = as > hs ? away.team.id : home.team.id;
+        }
+        s.games.push({
+            id: event.id, date: event.date, completed,
+            scores: { [away.team.id]: away.score, [home.team.id]: home.score },
+            winner,
+        });
+    }
+}
+
+/* ── Fetch all playoff data ── */
+async function fetchAllPlayoffData() {
+    // Scan April 14 → June 26 of the playoff year
+    const yr = SEASON;
+    const start = new Date(`${yr}-04-14`);
+    const end   = new Date(`${yr}-06-27`);
+
+    const dates = [];
+    for (let d = new Date(start); d < end; d.setDate(d.getDate() + 1)) {
+        dates.push(etDateStr(d));
+    }
+
+    const chunks = [];
+    const CHUNK = 20; // parallel batch size
+    for (let i = 0; i < dates.length; i += CHUNK) chunks.push(dates.slice(i, i + CHUNK));
+
+    for (const chunk of chunks) {
+        const results = await Promise.all(
+            chunk.map(ds =>
+                fetch(`${ESPN_SCOREBOARD}?dates=${ds}&limit=25`)
+                    .then(r => r.json())
+                    .then(j => j.events || [])
+                    .catch(() => [])
+            )
+        );
+        results.flat().forEach(event => {
+            try { processEvent(event); } catch(e) { /* skip malformed events */ }
+        });
+    }
+}
+
+/* ── Is play-in for a conf fully resolved? ── */
+function isPlayInComplete(conf) {
+    const games = playInData[conf];
+    if (!games) return false;   // unknown conf (e.g. 'Finals') → not complete
+    const game78done = games.some(g => {
+        if (!g.completed) return false;
+        if (/7th.*seed|7-8/i.test(g.headline)) return true;
+        // Fallback: check participants by seed
+        const sa = seedMap[g.away?.id]?.seed, sh = seedMap[g.home?.id]?.seed;
+        return (sa === 7 && sh === 8) || (sa === 8 && sh === 7);
+    });
+    const game8thdone = games.some(g => g.completed && /8th.*seed/i.test(g.headline));
+    return game78done && game8thdone;
+}
+
+/* ── Remove pre-scheduled series (any round) that depend on unresolved play-in ── */
+function removeUnconfirmedPlayinSeries() {
+    Object.keys(seriesMap).forEach(key => {
+        const s = seriesMap[key];
+        // Keep series that have real completed game data
+        if (s.games.some(g => g.completed)) return;
+        // Remove if any team is an unconfirmed play-in seed
+        if (s.teamIds.some(id => {
+            const t = seedMap[id];
+            if (!t) return true;                    // unknown team → remove
+            const seed = t.seed ?? 99;              // null/missing seed treated as play-in tier
+            if (seed < 7) return false;             // confirmed playoff seed (1–6) → keep
+            // Play-in tier (7+): only keep if that conf's play-in is fully resolved
+            return !isPlayInComplete(t.conf);
+        })) delete seriesMap[key];
+    });
+}
+
+/* ── After play-in is processed, update 7/8 seeds ── */
+function updatePlayInSeeds() {
+    ['West', 'East'].forEach(conf => {
+        const games = playInData[conf];
+        // 7th seed game: winner → 7-seed
+        const game78 = games.find(g => /7th seed/i.test(g.headline))
+                    || games.find(g => {
+                           const sa = seedMap[g.away.id]?.seed, sh = seedMap[g.home.id]?.seed;
+                           return (sa === 7 && sh === 8) || (sa === 8 && sh === 7);
+                       });
+        if (game78) {
+            const winner7 = game78.away.winner ? game78.away.id : (game78.home.winner ? game78.home.id : null);
+            if (winner7 && seedMap[winner7]) seedMap[winner7].seed = 7;
+        }
+        // 8th seed game: winner → 8-seed
+        const game8th = games.find(g => /8th seed/i.test(g.headline));
+        if (game8th) {
+            const winner8 = game8th.away.winner ? game8th.away.id : (game8th.home.winner ? game8th.home.id : null);
+            if (winner8) {
+                if (!seedMap[winner8]) {
+                    // Team came from 9/10 play-in — copy data from play-in game
+                    const src = game8th.away.id === winner8 ? game8th.away : game8th.home;
+                    seedMap[winner8] = { abbr: src.abbr, logo: src.logo, name: src.abbr, conf, seed: 8 };
+                } else {
+                    seedMap[winner8].seed = 8;
+                }
+            }
+        }
+    });
+}
+
+/* ── Build predicted bracket from standings (pre-playoff) ── */
+function buildPredictedBracket() {
+    // Ensure TBD placeholder exists in seedMap
+    if (!seedMap[TBD_ID]) {
+        seedMap[TBD_ID] = { seed: null, conf: null, abbr: 'TBD', logo: '', name: 'TBD' };
+    }
+
+    ['West', 'East'].forEach(conf => {
+        const playInDone = isPlayInComplete(conf);
+
+        // Pair seeds: (1v8), (4v5), (3v6), (2v7)
+        [[1,8], [4,5], [3,6], [2,7]].forEach(([s1, s2]) => {
+            const isPlayInSlot = (s2 === 7 || s2 === 8);
+
+            // Find the confirmed top-seed team (s1)
+            const e1 = Object.entries(seedMap).find(([id, t]) => id !== TBD_ID && t.conf === conf && t.seed === s1);
+            if (!e1) return;
+
+            // For play-in slots (7/8) when play-in isn't resolved, use TBD placeholder
+            let e2;
+            if (isPlayInSlot && !playInDone) {
+                e2 = [TBD_ID, seedMap[TBD_ID]];
+            } else {
+                e2 = Object.entries(seedMap).find(([id, t]) => id !== TBD_ID && t.conf === conf && t.seed === s2);
+                if (!e2) return;
+            }
+
+            const [id1] = e1, [id2] = e2;
+            const key = seriesKey(id1, id2);
+
+            // Remove any stale pre-scheduled entry occupying this bracket slot
+            // (ESPN sometimes fills play-in slots with wrong placeholder teams)
+            if (isPlayInSlot) {
+                Object.keys(seriesMap).forEach(k => {
+                    if (k === key) return;
+                    const ex = seriesMap[k];
+                    if (ex.round !== 1 || ex.conf !== conf) return;
+                    if (ex.games.some(g => g.completed)) return; // keep real game data
+                    if (ex.teamIds.includes(id1)) delete seriesMap[k];
+                });
+            }
+
+            if (!seriesMap[key]) {
+                seriesMap[key] = {
+                    key, round: 1, conf,
+                    teamIds: [id1, id2],
+                    games: [],
+                    seriesWins: { [id1]: 0, [id2]: 0 },
+                    winner: null, completed: false,
+                    seriesSummary: '',
+                };
+            }
+        });
+    });
+}
+
+/* ── Build predicted play-in from standings (pre-play-in) ── */
+function buildPredictedPlayIn() {
+    ['West', 'East'].forEach(conf => {
+        const realGames = playInData[conf];
+
+        // Once any game is live or completed, real data has scores/winners — keep it
+        if (realGames.some(g => g.completed || g.live)) return;
+
+        // Before games start: build from standings, attach real game IDs for linking
+        const getTeam = seed => {
+            const entry = Object.entries(seedMap).find(([, t]) => t.conf === conf && t.seed === seed);
+            if (!entry) return null;
+            const [id, t] = entry;
+            return { id, abbr: t.abbr, logo: t.logo, score: null, winner: false };
+        };
+
+        // Find a real scheduled game ID to enable linking even before tip-off
+        // Falls back to seed-based matching when headline format doesn't match
+        const findRealId = (pattern, seed1, seed2) => {
+            const byHL = realGames.find(g => pattern.test(g.headline));
+            if (byHL) return byHL.id;
+            if (seed1 !== undefined) {
+                const bySeed = realGames.find(g => {
+                    const sa = seedMap[g.away.id]?.seed, sh = seedMap[g.home.id]?.seed;
+                    return (sa === seed1 && sh === seed2) || (sa === seed2 && sh === seed1);
+                });
+                if (bySeed) return bySeed.id;
+            }
+            return null;
+        };
+
+        const t7 = getTeam(7), t8 = getTeam(8), t9 = getTeam(9), t10 = getTeam(10);
+        const tbd = { id: null, abbr: 'TBD', logo: '', score: null, winner: false };
+        const pfx = `NBA Play-In - ${conf} - `;
+
+        playInData[conf] = [];
+
+        if (t7 && t8) playInData[conf].push({
+            id: findRealId(/7th seed/i, 7, 8), date: null,
+            headline: `${pfx}7th Seed Game`,
+            completed: false, live: false,
+            away: t7, home: t8,
+        });
+        if (t9 && t10) playInData[conf].push({
+            id: findRealId(/9th.*10th|10th.*9th|9.*10/i, 9, 10), date: null,
+            headline: `${pfx}9th/10th Seed Game`,
+            completed: false, live: false,
+            away: t9, home: t10,
+        });
+        // 8th seed game participants TBD until play-in results are in
+        playInData[conf].push({
+            id: findRealId(/8th seed/i), date: null,
+            headline: `${pfx}8th Seed Game`,
+            completed: false, live: false,
+            away: tbd, home: tbd,
+        });
+    });
+}
+
+/* ── Bracket ordering helpers ── */
+function r1SlotOrder(series) {
+    // Bracket visual order: 1v8(0), 4v5(1), 3v6(2), 2v7(3)
+    const seeds = series.teamIds.map(id => seedMap[id]?.seed || 99);
+    const high  = Math.min(...seeds);
+    if (high <= 1) return 0;
+    if (high <= 2) return 3;
+    if (high <= 3) return 2;
+    return 1; // 4v5
+}
+
+function r1SlotOf(teamId, conf) {
+    const r1 = Object.values(seriesMap).filter(s => s.round === 1 && s.conf === conf);
+    for (const s of r1) {
+        if (s.teamIds.includes(teamId)) return r1SlotOrder(s);
+    }
+    return 99;
+}
+
+function r2SlotOrder(series, conf) {
+    return Math.min(...series.teamIds.map(id => r1SlotOf(id, conf)));
+}
+
+function getSeriesByRoundConf(round, conf) {
+    return Object.values(seriesMap).filter(s => s.round === round && s.conf === conf);
+}
+
+function getFinalsSereis() {
+    const s = Object.values(seriesMap).find(s => s.round === 4);
+    if (!s) return null;
+    // If real game data exists, trust it
+    if (s.games.some(g => g.completed)) return s;
+    // Otherwise reject if any team is an unconfirmed play-in placeholder
+    const valid = s.teamIds.every(id => {
+        if (id === TBD_ID) return false;
+        const t = seedMap[id];
+        if (!t) return false;
+        const seed = t.seed ?? 99;
+        return seed < 7 || isPlayInComplete(t.conf);
+    });
+    return valid ? s : null;
+}
+
+/* ── Matchup card builder ── */
+function buildMatchupCard(s, clickable = true) {
+    if (!s) {
+        return `<div class="matchup-card empty">
+                    <div class="mc-team"><span class="mc-name" style="color:var(--muted);font-size:10px">TBD</span></div>
+                    <div class="mc-team"><span class="mc-name" style="color:var(--muted);font-size:10px">TBD</span></div>
+                </div>`;
+    }
+
+    const [id1, id2] = s.teamIds;
+    const t1 = seedMap[id1] || { abbr: '?', logo: '', seed: null, name: '?' };
+    const t2 = seedMap[id2] || { abbr: '?', logo: '', seed: null, name: '?' };
+
+    // Higher seed first
+    const [hi, lo] = (t1.seed || 99) <= (t2.seed || 99)
+        ? [{ ...t1, id: id1 }, { ...t2, id: id2 }]
+        : [{ ...t2, id: id2 }, { ...t1, id: id1 }];
+
+    const hiW   = s.seriesWins[hi.id] || 0;
+    const loW   = s.seriesWins[lo.id] || 0;
+    const hiWon = s.winner === hi.id;
+    const loWon = s.winner === lo.id;
+    const inProgress = !s.winner && s.games.some(g => !g.completed);
+
+    const logoOE  = `onerror="this.style.display='none'"`;
+    const champion = s.round === 4 && s.winner;
+    const winnerTeam = champion ? seedMap[s.winner] : null;
+
+    const statusText = s.seriesSummary
+        ? s.seriesSummary
+        : inProgress ? 'In Progress'
+        : !s.games.length ? 'Upcoming' : '';
+
+    const onclick = clickable && s.games.length
+        ? `onclick="openModal('${s.key}')" style="cursor:pointer"`
+        : `style="cursor:default"`;
+
+    return `<div class="matchup-card ${champion ? 'champion' : ''}" ${onclick}>
+        <div class="mc-team ${hiWon ? 'mc-winner' : loWon ? 'mc-loser' : ''}">
+            <span class="mc-seed">${hi.seed ?? ''}</span>
+            <img class="mc-logo" src="${hi.logo}" alt="${hi.abbr}" ${logoOE}>
+            <span class="mc-name">${hi.abbr}</span>
+            <span class="mc-wins ${hiWon ? '' : inProgress ? 'mc-wins-active' : ''}">${hiW}</span>
+        </div>
+        <div class="mc-team ${loWon ? 'mc-winner' : hiWon ? 'mc-loser' : ''}">
+            <span class="mc-seed">${lo.seed ?? ''}</span>
+            <img class="mc-logo" src="${lo.logo}" alt="${lo.abbr}" ${logoOE}>
+            <span class="mc-name">${lo.abbr}</span>
+            <span class="mc-wins ${loWon ? '' : inProgress ? 'mc-wins-active' : ''}">${loW}</span>
+        </div>
+        ${statusText ? `<div class="mc-status">${statusText}</div>` : ''}
+        ${champion && winnerTeam ? `<div class="mc-champion-badge">🏆 ${winnerTeam.name}</div>` : ''}
+    </div>`;
+}
+
+/* ── Render bracket ── */
+function renderBracket() {
+    const el = document.getElementById('bracket-wrap');
+
+    // R1: place each series at its designated slot index so TBD slots stay in position
+    function buildR1Slots(conf) {
+        const slots = [null, null, null, null];
+        getSeriesByRoundConf(1, conf).forEach(s => {
+            const pos = r1SlotOrder(s);
+            if (pos >= 0 && pos < 4) slots[pos] = s;
+        });
+        return slots;
+    }
+    const westR1 = buildR1Slots('West');
+    const westR2 = getSeriesByRoundConf(2, 'West').sort((a, b) => r2SlotOrder(a, 'West') - r2SlotOrder(b, 'West'));
+    const westCF = getSeriesByRoundConf(3, 'West');
+    const eastR1 = buildR1Slots('East');
+    const eastR2 = getSeriesByRoundConf(2, 'East').sort((a, b) => r2SlotOrder(a, 'East') - r2SlotOrder(b, 'East'));
+    const eastCF = getSeriesByRoundConf(3, 'East');
+    const finals = getFinalsSereis();
+
+    // Pad arrays (R2, CF, Finals only — R1 is already 4 slots)
+    while (westR2.length < 2) westR2.push(null);
+    while (westCF.length < 1) westCF.push(null);
+    while (eastR2.length < 2) eastR2.push(null);
+    while (eastCF.length < 1) eastCF.push(null);
+
+    function roundCol(cls, label, series, conf) {
+        const slots = series.map(s =>
+            `<div class="matchup-slot">${buildMatchupCard(s)}</div>`
+        ).join('');
+        return `<div class="round-col ${cls}">
+            <div class="round-label">${label}</div>
+            <div class="round-slots">${slots}</div>
+        </div>`;
+    }
+
+    el.innerHTML = `
+    <div class="bracket-outer">
+        <div class="bracket-inner">
+            <!-- West -->
+            <div class="conf-half">
+                <div class="conf-label west">Western Conference</div>
+                <div class="conf-bracket west">
+                    ${roundCol('r1', '1st Round', westR1, 'West')}
+                    ${roundCol('r2', 'Conf Semis', westR2, 'West')}
+                    ${roundCol('cf', 'Conf Finals', westCF, 'West')}
+                </div>
+            </div>
+            <!-- Finals -->
+            <div class="finals-col">
+                <div class="round-label" style="color:var(--gold)">NBA Finals</div>
+                <div class="round-slots" style="justify-content:center">
+                    <div class="matchup-slot" style="flex:1">
+                        ${buildMatchupCard(finals)}
+                    </div>
+                </div>
+            </div>
+            <!-- East -->
+            <div class="conf-half">
+                <div class="conf-label east">Eastern Conference</div>
+                <div class="conf-bracket east">
+                    ${roundCol('r1', '1st Round', eastR1, 'East')}
+                    ${roundCol('r2', 'Conf Semis', eastR2, 'East')}
+                    ${roundCol('cf', 'Conf Finals', eastCF, 'East')}
+                </div>
+            </div>
+        </div>
+    </div>`;
+}
+
+/* ── Render Play-In ── */
+function renderPlayIn() {
+    const el = document.getElementById('playin-wrap');
+
+    // Sort games: 7v8 first, then 9v10, then 8th seed
+    function sortOrder(g) {
+        if (/7th seed/i.test(g.headline)) return 0;
+        if (/9th.*10th|10th.*9th|9.*10/i.test(g.headline)) return 1;
+        if (/8th seed/i.test(g.headline)) return 2;
+        return 3;
+    }
+
+    function gameHTML(g) {
+        const logoOE = `onerror="this.style.display='none'"`;
+        const { away, home } = g;
+        const awayWon = away.winner;
+        const homeWon = home.winner;
+
+        let label = g.headline.replace(/^NBA Play-In - (East|West) - /i, '');
+        let resultCls = g.completed ? '' : g.live ? 'live' : 'sched';
+        let resultTxt = g.completed ? 'Final' : g.live ? 'Live' : 'Upcoming';
+
+        const inner = `
+            <div class="pg-label">${label}</div>
+            <div class="pg-matchup">
+                <div class="pg-team ${awayWon ? 'winner' : homeWon ? 'loser' : ''}">
+                    <img class="pg-logo" src="${away.logo}" alt="${away.abbr}" ${logoOE}>
+                    <span class="pg-name">${away.abbr}</span>
+                    ${g.completed || g.live ? `<span class="pg-score">${away.score ?? '-'}</span>` : ''}
+                </div>
+                <div class="pg-team ${homeWon ? 'winner' : awayWon ? 'loser' : ''}">
+                    <img class="pg-logo" src="${home.logo}" alt="${home.abbr}" ${logoOE}>
+                    <span class="pg-name">${home.abbr}</span>
+                    ${g.completed || g.live ? `<span class="pg-score">${home.score ?? '-'}</span>` : ''}
+                </div>
+            </div>
+            <span class="pg-result ${resultCls}">${resultTxt}</span>`;
+
+        // Predicted (no real game yet): non-clickable div
+        if (!g.id) {
+            return `<div class="playin-game" style="cursor:default;opacity:0.7">${inner}</div>`;
+        }
+        return `<a class="playin-game" href="https://www.espn.com/nba/game/_/gameId/${g.id}" target="_blank" rel="noopener">${inner}</a>`;
+    }
+
+    function confHTML(conf) {
+        const games = [...playInData[conf]].sort((a, b) => sortOrder(a) - sortOrder(b));
+        if (!games.length) {
+            return `<div class="playin-conf">
+                <div class="playin-conf-header ${conf.toLowerCase()}">${conf}ern Conference</div>
+                <div class="msg" style="padding:24px">No play-in games found</div>
+            </div>`;
+        }
+        const rows = games.map(g => gameHTML(g)).join('');
+        return `<div class="playin-conf">
+            <div class="playin-conf-header ${conf.toLowerCase()}">${conf}ern Conference</div>
+            ${rows}
+        </div>`;
+    }
+
+    el.innerHTML = `
+        <div class="playin-wrap">
+            ${confHTML('West')}
+            ${confHTML('East')}
+        </div>`;
+}
+
+/* ── Main ── */
+async function init() {
+    document.getElementById('last-updated').textContent =
+        new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' });
+
+    // Fetch phase — errors are isolated so cleanup always runs
+    try { await fetchStandings(); }      catch(e) { console.warn('standings:', e); }
+    try { await fetchAllPlayoffData(); } catch(e) { console.warn('playoff data:', e); }
+
+    // Cleanup & render — always runs regardless of fetch errors
+    updatePlayInSeeds();
+    removeUnconfirmedPlayinSeries();
+    buildPredictedBracket();
+    buildPredictedPlayIn();
+    renderBracket();
+    renderPlayIn();
+}
+
+init();
+
+</script>
+<script src="nba-common.js"></script>
+</body>
+</html>

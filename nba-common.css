@@ -1,0 +1,148 @@
+/* ─── Variables ─── */
+:root {
+    --blue: #17408B;
+    --red: #C9082A;
+    --gold: #FDB927;
+    --bg: #0d0d0d;
+    --surface: #161b2e;
+    --surface2: #1f2544;
+    --text: #ffffff;
+    --muted: #7a85a3;
+    --border: #252d4a;
+}
+
+/* ─── Reset & Base ─── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    min-height: 100vh;
+}
+
+/* ─── Header ─── */
+header {
+    background: linear-gradient(135deg, #0f2d6b 0%, var(--blue) 100%);
+    padding: 28px 24px 20px;
+    text-align: center;
+    border-bottom: 3px solid var(--red);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+header h1 { font-size: 30px; font-weight: 900; letter-spacing: 4px; text-transform: uppercase; }
+header h1 em { font-style: normal; color: var(--red); }
+
+.last-updated { font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 6px; }
+
+/* ─── Hamburger menu ─── */
+.hamburger-wrap {
+    position: absolute; right: 20px; top: 50%; transform: translateY(-50%);
+}
+.hamburger-btn {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 8px;
+    padding: 7px 10px;
+    cursor: pointer;
+    display: flex; flex-direction: column; gap: 5px;
+    transition: background 0.15s;
+}
+.hamburger-btn:hover { background: rgba(255,255,255,0.15); }
+.hamburger-btn span {
+    display: block; width: 20px; height: 2px;
+    background: rgba(255,255,255,0.8); border-radius: 2px;
+    transition: all 0.2s;
+}
+.hamburger-wrap.open .hamburger-btn span:nth-child(1) {
+    transform: translateY(7px) rotate(45deg);
+}
+.hamburger-wrap.open .hamburger-btn span:nth-child(2) { opacity: 0; }
+.hamburger-wrap.open .hamburger-btn span:nth-child(3) {
+    transform: translateY(-7px) rotate(-45deg);
+}
+.hamburger-menu {
+    display: none;
+    position: absolute; right: 0; top: calc(100% + 8px);
+    background: #1a2240;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 12px;
+    overflow: hidden;
+    min-width: 160px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    z-index: 200;
+}
+.hamburger-wrap.open .hamburger-menu { display: block; }
+.hamburger-menu a {
+    display: block;
+    color: rgba(255,255,255,0.75);
+    text-decoration: none;
+    font-size: 13px; font-weight: 600;
+    padding: 12px 18px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    transition: background 0.12s, color 0.12s;
+}
+.hamburger-menu a:last-child { border-bottom: none; }
+.hamburger-menu a:hover { background: rgba(255,255,255,0.08); color: #fff; }
+
+/* ─── Loading / Messages ─── */
+.msg { text-align: center; padding: 50px 20px; color: var(--muted); font-size: 15px; }
+.msg.error { color: var(--red); }
+
+.spinner {
+    display: inline-block; width: 18px; height: 18px;
+    border: 3px solid var(--border); border-top-color: var(--blue);
+    border-radius: 50%; animation: spin .7s linear infinite;
+    vertical-align: middle; margin-left: 8px;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ─── Tab navigation ─── */
+.tabs-nav {
+    display: flex;
+    gap: 4px;
+    background: var(--surface);
+    border-radius: 12px;
+    padding: 4px;
+    margin: 20px 0;
+    border: 1px solid var(--border);
+    width: fit-content;
+}
+
+.tab-btn {
+    padding: 9px 32px;
+    background: none;
+    border: none;
+    border-radius: 9px;
+    color: var(--muted);
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.tab-btn.active { background: var(--blue); color: #fff; }
+
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ─── Main wrap ─── */
+.main-wrap { max-width: 1360px; margin: 0 auto; padding: 0 20px 40px; }
+
+/* ─── Mobile ─── */
+@media (max-width: 480px) {
+    header { padding: 18px 16px 14px; }
+    header h1 { font-size: 22px; letter-spacing: 2px; }
+    .tabs-nav {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+    .tabs-nav::-webkit-scrollbar { display: none; }
+    .tab-btn { padding: 9px 18px; font-size: 13px; white-space: nowrap; }
+    .main-wrap { padding: 0 12px 32px; }
+}
