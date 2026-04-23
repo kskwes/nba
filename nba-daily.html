@@ -194,8 +194,9 @@
 
         /* ─── Responsive ─── */
         @media (max-width: 768px) {
-            .standings-lottery-wrap { flex-direction: column; }
+            .standings-lottery-wrap { flex-direction: column; align-items: stretch; }
             .lottery-section { border-top: 1px solid var(--border); padding-top: 28px; margin-top: 28px; }
+            #lottery-list { overflow-x: auto; }
         }
 
         @media (max-width: 600px) {
@@ -372,6 +373,7 @@
 
         @media (max-width: 1060px) {
             .today-layout { flex-direction: column; align-items: stretch; justify-content: flex-start; }
+            .today-games-col { flex: none; width: 100%; }
             .today-games-col .games-grid { grid-template-columns: repeat(3, 1fr); }
             .top-players-wrap { flex: none; width: 100%; }
         }
@@ -459,6 +461,7 @@
 
         @media (max-width: 1060px) {
             .tomorrow-layout { flex-direction: column; align-items: stretch; }
+            .tomorrow-games-col { flex: none; width: 100%; }
             .tomorrow-games-col .games-grid { grid-template-columns: repeat(3, 1fr); }
             .injury-players-wrap { flex: none; width: 100%; }
         }
