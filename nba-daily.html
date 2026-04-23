@@ -473,6 +473,17 @@
         @media (max-width: 480px) {
             .tomorrow-games-col .games-grid { grid-template-columns: 1fr; }
         }
+
+        /* ─── Mobile: section reorder ─── */
+        @media (max-width: 1060px) {
+            #tab-games { display: flex; flex-direction: column; gap: 28px; }
+            #tab-games .section { display: contents; }
+            .today-layout, .tomorrow-layout { display: contents; }
+            .today-games-col   { order: 1; }
+            .tomorrow-games-col { order: 2; }
+            .top-players-wrap  { order: 3; }
+            .injury-players-wrap { order: 4; }
+        }
     </style>
 </head>
 <body>
