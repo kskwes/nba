@@ -100,6 +100,15 @@
         .dash { font-size: 20px; color: #4a5270; font-weight: 300; }
         .vs { font-size: 16px; font-weight: 800; color: var(--muted); letter-spacing: 2px; }
 
+        .series-note {
+            text-align: center;
+            font-size: 10.5px;
+            color: var(--muted);
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            margin-top: 8px;
+        }
+
 
         /* ─── Conf sub-tabs ─── */
         .conf-tabs { display: flex; gap: 8px; margin-bottom: 20px; }
@@ -609,6 +618,7 @@ const ESPN_STANDINGS  = 'https://site.api.espn.com/apis/v2/sports/basketball/nba
 
 const rankMap = {};
 const standingsData = { East: [], West: [] };
+let isPlayoffMode = false;
 
 // ESPN略称 → 標準3文字略称
 const ABBR_MAP = { NY: 'NYK', GS: 'GSW', NO: 'NOP', SA: 'SAS', UTAH: 'UTA' };
@@ -848,21 +858,52 @@ function buildCard(event) {
     const awayWon = isOver && !isNaN(awayNum) && !isNaN(homeNum) && awayNum > homeNum;
     const homeWon = isOver && !isNaN(awayNum) && !isNaN(homeNum) && homeNum > awayNum;
 
+    // Playoff series data
+    const series = comp.series;
+    const awaySeriesWins = series?.competitors?.find(c => c.id === away.team.id)?.wins ?? 0;
+    const homeSeriesWins = series?.competitors?.find(c => c.id === home.team.id)?.wins ?? 0;
+    const seriesNote = series
+        ? (comp.notes?.find(n => n.headline && /series|game\s+\d+/i.test(n.headline))?.headline || '')
+        : '';
+
+    // Game number label (e.g. "Game 5") for playoff status bar
+    let gameNumber = '';
+    if (isPlayoffMode && series) {
+        const allText = [st.type.shortDetail, ...(comp.notes || []).map(n => n.headline || '')].join(' ');
+        const m = allText.match(/Game\s+\d+/i);
+        if (m) gameNumber = m[0];
+    }
+
     let statusLabel, statusClass;
     if (isOver) {
-        statusLabel = 'FINAL'; statusClass = 'status-final';
+        statusLabel = (isPlayoffMode && gameNumber) ? `FINAL  •  ${gameNumber}` : 'FINAL';
+        statusClass = 'status-final';
     } else if (isLive) {
-        statusLabel = `● LIVE  Q${st.period}  ${st.displayClock}`; statusClass = 'status-live';
+        const tag = (isPlayoffMode && gameNumber) ? `  •  ${gameNumber}` : '';
+        statusLabel = `● LIVE  Q${st.period}  ${st.displayClock}${tag}`;
+        statusClass = 'status-live';
     } else {
         const timeStr = new Date(event.date).toLocaleTimeString('en-US', {
             hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Tokyo'
         });
-        statusLabel = `${timeStr} JST`; statusClass = 'status-sched';
+        const tag = (isPlayoffMode && gameNumber) ? `  •  ${gameNumber}` : '';
+        statusLabel = `${timeStr} JST${tag}`;
+        statusClass = 'status-sched';
     }
 
-    function info(t) {
+    function info(t, myWins, oppWins) {
         const rk  = rankMap[t.team.id];
         const rec = t.records?.find(r => r.type === 'total') ?? t.records?.[0];
+        if (isPlayoffMode && series) {
+            return {
+                logo:   t.team.logo || '',
+                name:   normAbbr(t.team.abbreviation) || t.team.displayName,
+                record: `${myWins}-${oppWins}`,
+                rank:   rk ? `#${rk.rank} Seed` : '',
+                l10:    '',
+                streak: ''
+            };
+        }
         return {
             logo:   t.team.logo || '',
             name:   normAbbr(t.team.abbreviation) || t.team.displayName,
@@ -873,8 +914,8 @@ function buildCard(event) {
         };
     }
 
-    const aw = info(away);
-    const hw = info(home);
+    const aw = info(away, awaySeriesWins, homeSeriesWins);
+    const hw = info(home, homeSeriesWins, awaySeriesWins);
 
     const centerHTML = (isOver || isLive)
         ? `<div class="score ${awayWon ? 'win' : ''}">${awayScore || '-'}</div>
@@ -913,7 +954,8 @@ function buildCard(event) {
             ${teamBlock(aw, awayWon)}
             <div class="center">${centerHTML}</div>
             ${teamBlock(hw, homeWon)}
-        </div>`;
+        </div>
+        ${(isPlayoffMode && seriesNote) ? `<div class="series-note">${seriesNote}</div>` : ''}`;
     return card;
 }
 
@@ -1155,6 +1197,10 @@ async function init() {
                 Promise.resolve(todayEvents)
             ]);
         }
+
+        // Playoff auto-detection: competition.series is only present during playoffs
+        isPlayoffMode = [...resultsEvents, ...scheduleEvents]
+            .some(e => e.competitions?.[0]?.series != null);
 
         // 本日スタッツ: 完了済み試合があれば当日、なければ前日にフォールバック
         const todayCompleted = todayEvents.filter(e =>
