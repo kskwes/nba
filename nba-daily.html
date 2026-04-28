@@ -6,6 +6,37 @@
     <title>NBA Daily</title>
     <link rel="stylesheet" href="nba-common.css">
     <style>
+        /* ─── Refresh button ─── */
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .refresh-btn {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--muted);
+            font-size: 15px;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: color 0.15s, border-color 0.15s, transform 0.3s;
+            flex-shrink: 0;
+            padding: 0;
+            line-height: 1;
+        }
+
+        .refresh-btn:hover:not(:disabled) { color: #fff; border-color: var(--blue); }
+        .refresh-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .refresh-btn.spinning { animation: spin 0.8s linear infinite; }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
         /* ─── Section (game results) ─── */
         .section { margin-bottom: 36px; }
 
@@ -499,7 +530,10 @@
 
 <header>
     <h1>NBA <em>Daily</em></h1>
-    <div class="last-updated" id="last-updated"></div>
+    <div class="header-right">
+        <div class="last-updated" id="last-updated"></div>
+        <button class="refresh-btn" id="refresh-btn" aria-label="Refresh">↻</button>
+    </div>
     <div class="hamburger-wrap" id="hamburger-wrap">
         <button class="hamburger-btn" id="hamburger-btn" aria-label="Menu">
             <span></span><span></span><span></span>
@@ -674,6 +708,7 @@ document.querySelectorAll('.tab-btn').forEach(btn =>
     btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
 document.querySelectorAll('.conf-btn[data-conf]').forEach(btn =>
     btn.addEventListener('click', () => switchConf(btn.dataset.conf)));
+document.getElementById('refresh-btn').addEventListener('click', () => init());
 
 /* ── API ── */
 async function loadStandings() {
@@ -1171,6 +1206,9 @@ function renderInjuryPlayers(players) {
 
 /* ── Main ── */
 async function init() {
+    const btn = document.getElementById('refresh-btn');
+    if (btn) { btn.disabled = true; btn.classList.add('spinning'); }
+
     const now = new Date();
     const etNow      = toEtDate(now);
     const etYesterday = new Date(etNow.getTime() - 24 * 3600 * 1000);
@@ -1235,6 +1273,8 @@ async function init() {
             document.getElementById(id).innerHTML =
                 '<div class="msg error">Failed to load data</div>';
         });
+    } finally {
+        if (btn) { btn.disabled = false; btn.classList.remove('spinning'); }
     }
 
     if (document.querySelectorAll('.status-live').length > 0) {
