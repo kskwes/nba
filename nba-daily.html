@@ -1220,10 +1220,10 @@ async function init() {
             topPlayersDate  = new Date(now.getTime() - 86400000);
         }
 
-        document.getElementById('today-date').textContent       = fmtJstDate(now);
-        document.getElementById('tomorrow-date').textContent    = fmtJstDate(new Date(now.getTime() + 86400000));
+        document.getElementById('today-date').textContent       = resultsEvents.length  ? fmtJstDate(new Date(resultsEvents[0].date))  : fmtJstDate(now);
+        document.getElementById('tomorrow-date').textContent    = scheduleEvents.length ? fmtJstDate(new Date(scheduleEvents[0].date)) : fmtJstDate(new Date(now.getTime() + 86400000));
         document.getElementById('top-players-date').textContent = fmtJstDate(topPlayersDate);
-        document.getElementById('injury-date').textContent      = fmtJstDate(now);
+        document.getElementById('injury-date').textContent      = todayEvents.length    ? fmtJstDate(new Date(todayEvents[0].date))    : fmtJstDate(now);
         renderGames(resultsEvents,  'today-games');
         renderGames(scheduleEvents, 'tomorrow-games');
         extractTopPlayers(topPlayerEvents).then(renderTopPlayers);
