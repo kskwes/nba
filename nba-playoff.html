@@ -538,8 +538,8 @@ function parseConf(comp) {
     const id = parseInt(comp.type?.id);
     if (id === 17) return 'Finals';
     const h = comp.notes?.[0]?.headline || '';
-    if (/\bwest\b/i.test(h)) return 'West';
-    if (/\beast\b/i.test(h)) return 'East';
+    if (/west/i.test(h)) return 'West';
+    if (/east/i.test(h)) return 'East';
     return 'Finals';
 }
 
@@ -919,13 +919,12 @@ function getFinalsSereis() {
     if (!s) return null;
     // If real game data exists, trust it
     if (s.games.some(g => g.completed)) return s;
-    // Otherwise reject if any team is an unconfirmed play-in placeholder
+    // Both teams must have actually won their Conference Finals (round 3)
     const valid = s.teamIds.every(id => {
         if (id === TBD_ID) return false;
-        const t = seedMap[id];
-        if (!t) return false;
-        const seed = t.seed ?? 99;
-        return seed < 7 || isPlayInComplete(t.conf);
+        return Object.values(seriesMap).some(
+            cs => cs.round === 3 && cs.completed && cs.winner === id
+        );
     });
     return valid ? s : null;
 }
@@ -998,18 +997,36 @@ function renderBracket() {
         });
         return slots;
     }
+    // R2: only show a matchup when both teams are confirmed R1 winners
+    function isR2Confirmed(s) {
+        if (s.games.some(g => g.completed)) return true;
+        return s.teamIds.every(id =>
+            Object.values(seriesMap).some(r1 => r1.round === 1 && r1.completed && r1.winner === id)
+        );
+    }
+
+    // R2: place each series at its fixed slot (upper=0, lower=1) so partial data stays in position
+    function buildR2Slots(conf) {
+        const slots = [null, null];
+        getSeriesByRoundConf(2, conf).forEach(s => {
+            if (!isR2Confirmed(s)) return;
+            const pos = r2SlotOrder(s, conf);
+            const idx = pos <= 1 ? 0 : 1;
+            slots[idx] = s;
+        });
+        return slots;
+    }
+
     const westR1 = buildR1Slots('West');
-    const westR2 = getSeriesByRoundConf(2, 'West').sort((a, b) => r2SlotOrder(a, 'West') - r2SlotOrder(b, 'West'));
+    const westR2 = buildR2Slots('West');
     const westCF = getSeriesByRoundConf(3, 'West');
     const eastR1 = buildR1Slots('East');
-    const eastR2 = getSeriesByRoundConf(2, 'East').sort((a, b) => r2SlotOrder(a, 'East') - r2SlotOrder(b, 'East'));
+    const eastR2 = buildR2Slots('East');
     const eastCF = getSeriesByRoundConf(3, 'East');
     const finals = getFinalsSereis();
 
-    // Pad arrays (R2, CF, Finals only — R1 is already 4 slots)
-    while (westR2.length < 2) westR2.push(null);
+    // Pad arrays (CF only — R1/R2 already use fixed-slot builders)
     while (westCF.length < 1) westCF.push(null);
-    while (eastR2.length < 2) eastR2.push(null);
     while (eastCF.length < 1) eastCF.push(null);
 
     function roundCol(cls, label, series, conf) {
