@@ -677,12 +677,17 @@ const LOTTERY_ODDS = [
     [ 0.5,  0.6,  0.6,  0.3],
 ];
 
-/* ── ET date helpers (EST = UTC-5) ── */
-const ET_MS = 5 * 3600 * 1000;
+/* ── ET date helpers (America/New_York, handles DST automatically) ── */
+function etDateStr(utcDate) {
+    return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' })
+        .format(utcDate).replace(/-/g, '');
+}
 
-function toEtDate(utc) { return new Date(utc.getTime() - ET_MS); }
-
-function etDateStr(etDate) { return etDate.toISOString().slice(0, 10).replace(/-/g, ''); }
+function etDateShift(utcDate, days) {
+    const s = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(utcDate);
+    const [y, m, d] = s.split('-').map(Number);
+    return new Date(Date.UTC(y, m - 1, d + days, 17, 0, 0));
+}
 
 function fmtJstDate(utcDate) {
     const datePart = new Intl.DateTimeFormat('ja-JP', {
@@ -1211,9 +1216,8 @@ async function init() {
     if (btn) { btn.disabled = true; btn.classList.add('spinning'); }
 
     const now = new Date();
-    const etNow      = toEtDate(now);
-    const etYesterday = new Date(etNow.getTime() - 24 * 3600 * 1000);
-    const etTomorrow  = new Date(etNow.getTime() + 24 * 3600 * 1000);
+    const etYesterday = etDateShift(now, -1);
+    const etTomorrow  = etDateShift(now, +1);
 
     document.getElementById('last-updated').textContent =
         'Updated: ' + now.toLocaleTimeString('en-US', { timeZone: 'Asia/Tokyo' });
@@ -1224,24 +1228,17 @@ async function init() {
     renderLottery();
 
     try {
-        const todayEvents = await fetchEvents(etNow);
-        let resultsEvents, scheduleEvents;
-
-        if (hasResults(todayEvents)) {
-            resultsEvents  = todayEvents;
-            scheduleEvents = await fetchEvents(etTomorrow);
-        } else {
-            [resultsEvents, scheduleEvents] = await Promise.all([
-                fetchEvents(etYesterday),
-                Promise.resolve(todayEvents)
-            ]);
-        }
+        const [todayEvents, scheduleEvents] = await Promise.all([
+            fetchEvents(now),
+            fetchEvents(etTomorrow)
+        ]);
+        const resultsEvents = todayEvents;
 
         // Playoff auto-detection: competition.series is only present during playoffs
         isPlayoffMode = [...resultsEvents, ...scheduleEvents]
             .some(e => e.competitions?.[0]?.series != null);
 
-        // 本日スタッツ: 完了済み試合があれば当日、なければ前日にフォールバック
+        // Top Players: 当日完了済み試合があればその結果、なければ前日にフォールバック
         const todayCompleted = todayEvents.filter(e =>
             e.status.type.completed || e.status.type.state === 'post'
         );
@@ -1249,13 +1246,9 @@ async function init() {
         if (todayCompleted.length > 0) {
             topPlayerEvents = todayEvents;
             topPlayersDate  = now;
-        } else if (hasResults(todayEvents)) {
-            // ライブ中だが完了済みなし → 前日を別途取得
-            topPlayerEvents = await fetchEvents(etYesterday);
-            topPlayersDate  = new Date(now.getTime() - 86400000);
         } else {
-            // 本日未開始 → resultsEvents がすでに前日分
-            topPlayerEvents = resultsEvents;
+            // 当日未開始またはライブ中のみ → 前日スタッツを表示
+            topPlayerEvents = await fetchEvents(etYesterday);
             topPlayersDate  = new Date(now.getTime() - 86400000);
         }
 
