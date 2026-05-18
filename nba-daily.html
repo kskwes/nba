@@ -1216,8 +1216,14 @@ async function init() {
     if (btn) { btn.disabled = true; btn.classList.add('spinning'); }
 
     const now = new Date();
-    const etYesterday = etDateShift(now, -1);
-    const etTomorrow  = etDateShift(now, +1);
+
+    // 閲覧がJST環境のため、JST日付を基準にET日付を計算する
+    // NBA試合は7pm+ ET = 翌日8am+ JST のため、JST今日の試合 = ET(JST今日-1日)
+    const jstStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Tokyo' }).format(now);
+    const [jy, jm, jd] = jstStr.split('-').map(Number);
+    const etForJstToday     = new Date(Date.UTC(jy, jm - 1, jd - 1, 17, 0, 0));
+    const etForJstTomorrow  = new Date(Date.UTC(jy, jm - 1, jd,     17, 0, 0));
+    const etForJstYesterday = new Date(Date.UTC(jy, jm - 1, jd - 2, 17, 0, 0));
 
     document.getElementById('last-updated').textContent =
         'Updated: ' + now.toLocaleTimeString('en-US', { timeZone: 'Asia/Tokyo' });
@@ -1229,8 +1235,8 @@ async function init() {
 
     try {
         const [todayEvents, scheduleEvents] = await Promise.all([
-            fetchEvents(now),
-            fetchEvents(etTomorrow)
+            fetchEvents(etForJstToday),
+            fetchEvents(etForJstTomorrow)
         ]);
         const resultsEvents = todayEvents;
 
@@ -1248,7 +1254,7 @@ async function init() {
             topPlayersDate  = now;
         } else {
             // 当日未開始またはライブ中のみ → 前日スタッツを表示
-            topPlayerEvents = await fetchEvents(etYesterday);
+            topPlayerEvents = await fetchEvents(etForJstYesterday);
             topPlayersDate  = new Date(now.getTime() - 86400000);
         }
 
