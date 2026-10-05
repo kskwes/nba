@@ -80,7 +80,10 @@
             cursor: pointer;
         }
 
-        .card:hover { transform: translateY(-2px); border-color: var(--blue); }
+        .card { cursor: default; }
+        .card.clickable { cursor: pointer; }
+        .card.clickable:hover { transform: translateY(-2px); border-color: var(--blue); }
+        .card.clickable:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 
         .status {
             text-align: center;
@@ -259,35 +262,34 @@
             .score { font-size: 22px; }
             .team-name { font-size: 11px; }
             .center { min-width: 76px; }
-            .tab-btn { padding: 9px 18px; font-size: 13px; }
+            .tab-btn { padding: 9px 14px; font-size: 13px; }
             .conf-btn { font-size: 12px; padding: 5px 14px; }
         }
 
-        /* ─── Today layout (games 3col + top players) ─── */
-        .today-layout {
+        /* ─── Games layout (左: 試合一覧 / 右: Top Players・Injury) ─── */
+        .games-layout {
             display: flex;
             gap: 20px;
             align-items: flex-start;
         }
 
-        .today-games-col { flex: 1 1 0; min-width: 0; overflow: hidden; }
+        .games-main { flex: 1 1 0; min-width: 0; }
+        .games-side { flex: 0 0 360px; min-width: 0; }
 
-        .today-games-col .games-grid {
+        .games-main .games-grid {
             grid-template-columns: repeat(3, minmax(0, 1fr));
         }
 
         /* カードを3列幅に合わせてスケールダウン */
-        .today-games-col .card { padding: 12px 10px 14px; }
-        .today-games-col .logo { width: 44px; height: 44px; }
-        .today-games-col .score { font-size: 22px; min-width: 30px; }
-        .today-games-col .center { min-width: 76px; }
-        .today-games-col .team-name { font-size: 11px; }
-        .today-games-col .team-record { font-size: 10px; }
-        .today-games-col .team-rank { font-size: 10px; padding: 1px 5px; }
-        .today-games-col .team-l10 { font-size: 10px; }
-        .today-games-col .matchup { gap: 4px; }
-
-        .top-players-wrap { flex: 0 0 360px; min-width: 0; }
+        .games-main .card { padding: 12px 10px 14px; }
+        .games-main .logo { width: 44px; height: 44px; }
+        .games-main .score { font-size: 22px; min-width: 30px; }
+        .games-main .center { min-width: 76px; }
+        .games-main .team-name { font-size: 11px; }
+        .games-main .team-record { font-size: 10px; }
+        .games-main .team-rank { font-size: 10px; padding: 1px 5px; }
+        .games-main .team-l10 { font-size: 10px; }
+        .games-main .matchup { gap: 4px; }
 
         .top-players-col {
             background: var(--surface);
@@ -412,47 +414,6 @@
 
         .tp-chip strong { color: #c8cfe8; }
 
-        @media (max-width: 1060px) {
-            .today-layout { flex-direction: column; align-items: stretch; justify-content: flex-start; }
-            .today-games-col { flex: none; width: 100%; }
-            .today-games-col .games-grid { grid-template-columns: repeat(3, 1fr); }
-            .top-players-wrap { flex: none; width: 100%; }
-        }
-
-        @media (max-width: 700px) {
-            .today-games-col .games-grid { grid-template-columns: repeat(2, 1fr); }
-        }
-
-        @media (max-width: 480px) {
-            .today-games-col .games-grid { grid-template-columns: 1fr; }
-        }
-
-        /* ─── Tomorrow layout (schedule + injury report) ─── */
-        .tomorrow-layout {
-            display: flex;
-            gap: 20px;
-            align-items: flex-start;
-        }
-
-        .tomorrow-games-col { flex: 1 1 0; min-width: 0; overflow: hidden; }
-
-        .tomorrow-games-col .games-grid {
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-        }
-
-        /* Scale down cards to fit 3-column width */
-        .tomorrow-games-col .card { padding: 12px 10px 14px; }
-        .tomorrow-games-col .logo { width: 44px; height: 44px; }
-        .tomorrow-games-col .score { font-size: 22px; min-width: 30px; }
-        .tomorrow-games-col .center { min-width: 76px; }
-        .tomorrow-games-col .team-name { font-size: 11px; }
-        .tomorrow-games-col .team-record { font-size: 10px; }
-        .tomorrow-games-col .team-rank { font-size: 10px; padding: 1px 5px; }
-        .tomorrow-games-col .team-l10 { font-size: 9.5px; }
-        .tomorrow-games-col .matchup { gap: 4px; }
-
-        .injury-players-wrap { flex: 0 0 360px; min-width: 0; }
-
         .injury-players-col {
             background: var(--surface);
             border: 1px solid var(--border);
@@ -501,29 +462,89 @@
         .ip-dtd  { background: rgba(122,133,163,0.15); color: var(--muted); }
 
         @media (max-width: 1060px) {
-            .tomorrow-layout { flex-direction: column; align-items: stretch; }
-            .tomorrow-games-col { flex: none; width: 100%; }
-            .tomorrow-games-col .games-grid { grid-template-columns: repeat(3, 1fr); }
-            .injury-players-wrap { flex: none; width: 100%; }
+            .games-layout { flex-direction: column; align-items: stretch; }
+            .games-main, .games-side { flex: none; width: 100%; }
         }
 
         @media (max-width: 700px) {
-            .tomorrow-games-col .games-grid { grid-template-columns: repeat(2, 1fr); }
+            .games-main .games-grid { grid-template-columns: repeat(2, 1fr); }
         }
 
         @media (max-width: 480px) {
-            .tomorrow-games-col .games-grid { grid-template-columns: 1fr; }
+            .games-main .games-grid { grid-template-columns: 1fr; }
         }
 
-        /* ─── Mobile: section reorder ─── */
-        @media (max-width: 1060px) {
-            #tab-games { display: flex; flex-direction: column; gap: 28px; }
-            #tab-games .section { display: contents; }
-            .today-layout, .tomorrow-layout { display: contents; }
-            .today-games-col   { order: 1; }
-            .tomorrow-games-col { order: 2; }
-            .top-players-wrap  { order: 3; }
-            .injury-players-wrap { order: 4; }
+        /* ─── Mobile: Top 10 / Injury をメインタブに分離 ─── */
+        .tab-btn.mobile-only { display: none; }
+        @media (max-width: 768px) {
+            .tab-btn.mobile-only { display: inline-block; }
+            .tabs-nav { max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+            .tabs-nav::-webkit-scrollbar { display: none; }
+            .tab-btn { white-space: nowrap; flex-shrink: 0; }
+            #tab-games[data-view="games"] .games-side,
+            #tab-games[data-view="top"] .games-main,
+            #tab-games[data-view="top"] .injury-players-wrap,
+            #tab-games[data-view="injury"] .games-main,
+            #tab-games[data-view="injury"] .top-players-wrap { display: none; }
+        }
+
+        /* ─── Box score modal ─── */
+        .box-modal {
+            display: none; position: fixed; inset: 0; z-index: 1000;
+            background: rgba(0,0,0,0.7);
+            align-items: center; justify-content: center; padding: 16px;
+        }
+        .box-modal.open { display: flex; }
+        .box-modal-dialog {
+            position: relative; width: 100%; max-width: 760px; max-height: 90vh;
+            overflow-y: auto; background: var(--surface);
+            border: 1px solid var(--border); border-radius: 16px;
+            padding: 20px 20px 24px;
+        }
+        .box-modal-close {
+            position: absolute; top: 10px; right: 12px;
+            background: none; border: none; color: var(--muted);
+            font-size: 26px; line-height: 1; cursor: pointer; padding: 4px 8px;
+        }
+        .box-modal-close:hover { color: var(--text); }
+        .box-modal .status { margin: 0 36px 16px; }
+        .box-scoreline { display: flex; align-items: center; justify-content: center; gap: 24px; margin-bottom: 18px; }
+        .box-team { display: flex; flex-direction: column; align-items: center; gap: 4px; opacity: .6; }
+        .box-team.winner, .box-modal .status-live ~ .box-scoreline .box-team { opacity: 1; }
+        .box-team img { width: 52px; height: 52px; object-fit: contain; }
+        .box-team-abbr { font-size: 13px; font-weight: 800; letter-spacing: 1px; }
+        .box-score { font-size: 30px; font-weight: 900; display: flex; gap: 10px; }
+        .box-score span { color: var(--muted); font-weight: 400; }
+        .box-team-tabs { margin: 18px 0 10px; }
+        .box-team-panel { display: none; }
+        .box-team-panel.active { display: block; }
+        .box-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .box-table { width: 100%; border-collapse: collapse; font-size: 12px; white-space: nowrap; }
+        .box-table th, .box-table td { padding: 6px 7px; text-align: center; border-bottom: 1px solid var(--border); }
+        .box-table th { color: var(--muted); font-size: 10.5px; font-weight: 700; letter-spacing: .5px; }
+        .box-table .box-name {
+            text-align: left; position: sticky; left: 0; background: var(--surface);
+            font-weight: 600; min-width: 120px;
+        }
+        .box-pos { color: var(--muted); font-size: 10px; margin-left: 4px; font-weight: 400; }
+        .box-pts { font-weight: 800; color: var(--gold); }
+        .box-sep td {
+            text-align: left; color: var(--muted); font-size: 10px; font-weight: 700;
+            letter-spacing: 1px; text-transform: uppercase; background: var(--surface2);
+            position: sticky; left: 0;
+        }
+        .box-dnp td { color: var(--muted); }
+        .box-dnp td:not(.box-name) { text-align: left; font-style: italic; }
+        .box-line { margin-bottom: 4px; }
+        .box-line .box-name { min-width: 60px; }
+        #box-players .msg { padding: 30px 20px; }
+
+        @media (max-width: 480px) {
+            .box-modal { padding: 8px; }
+            .box-modal-dialog { padding: 16px 12px 20px; max-height: 94vh; }
+            .box-scoreline { gap: 14px; }
+            .box-team img { width: 40px; height: 40px; }
+            .box-score { font-size: 24px; }
         }
     </style>
 </head>
@@ -542,6 +563,7 @@
         <nav class="hamburger-menu">
             <a href="nba-playoff.html" target="_blank">Playoffs</a>
             <a href="nba-player.html" target="_blank">Player Stats</a>
+            <a href="nba-salary.html" target="_blank">Salary</a>
         </nav>
     </div>
 </header>
@@ -552,13 +574,15 @@
     <div class="tabs-nav">
         <button class="tab-btn active" data-tab="games">Games</button>
         <button class="tab-btn" data-tab="standings">Standings</button>
+        <button class="tab-btn mobile-only" data-tab="top">Top 10</button>
+        <button class="tab-btn mobile-only" data-tab="injury">Injury</button>
     </div>
 
     <!-- ① 試合結果タブ -->
-    <div class="tab-panel active" id="tab-games">
-        <section class="section">
-            <div class="today-layout">
-                <div class="today-games-col">
+    <div class="tab-panel active" id="tab-games" data-view="games">
+        <div class="games-layout">
+            <div class="games-main">
+                <section class="section">
                     <div class="section-header">
                         <div class="section-bar"></div>
                         <h2>Today's Games</h2>
@@ -567,8 +591,30 @@
                     <div class="games-grid" id="today-games">
                         <div class="msg">Loading<span class="spinner"></span></div>
                     </div>
-                </div>
-                <div class="top-players-wrap">
+                </section>
+                <section class="section">
+                    <div class="section-header">
+                        <div class="section-bar"></div>
+                        <h2>Tomorrow's Schedule</h2>
+                        <span class="date-badge" id="tomorrow-date"></span>
+                    </div>
+                    <div class="games-grid" id="tomorrow-games">
+                        <div class="msg">Loading<span class="spinner"></span></div>
+                    </div>
+                </section>
+                <section class="section">
+                    <div class="section-header">
+                        <div class="section-bar"></div>
+                        <h2>Yesterday's Games</h2>
+                        <span class="date-badge" id="yesterday-date"></span>
+                    </div>
+                    <div class="games-grid" id="yesterday-games">
+                        <div class="msg">Loading<span class="spinner"></span></div>
+                    </div>
+                </section>
+            </div>
+            <aside class="games-side">
+                <section class="section top-players-wrap">
                     <div class="section-header">
                         <div class="section-bar"></div>
                         <h2>Top 10 Players</h2>
@@ -579,23 +625,8 @@
                             <div class="msg">Loading<span class="spinner"></span></div>
                         </div>
                     </div>
-                </div>
-            </div>
-        </section>
-
-        <section class="section">
-            <div class="tomorrow-layout">
-                <div class="tomorrow-games-col">
-                    <div class="section-header">
-                        <div class="section-bar"></div>
-                        <h2>Tomorrow's Schedule</h2>
-                        <span class="date-badge" id="tomorrow-date"></span>
-                    </div>
-                    <div class="games-grid" id="tomorrow-games">
-                        <div class="msg">Loading<span class="spinner"></span></div>
-                    </div>
-                </div>
-                <div class="injury-players-wrap">
+                </section>
+                <section class="section injury-players-wrap">
                     <div class="section-header">
                         <div class="section-bar"></div>
                         <h2>Today's Injury Report</h2>
@@ -606,9 +637,9 @@
                             <div class="msg">Loading<span class="spinner"></span></div>
                         </div>
                     </div>
-                </div>
-            </div>
-        </section>
+                </section>
+            </aside>
+        </div>
     </div>
 
     <!-- ② 順位タブ -->
@@ -644,6 +675,13 @@
         </div><!-- /standings-lottery-wrap -->
 
     </div><!-- /tab-standings -->
+
+    <div class="box-modal" id="box-modal" onclick="if (event.target === this) closeBoxScoreModal()">
+        <div class="box-modal-dialog" role="dialog" aria-modal="true" aria-label="Box score">
+            <button class="box-modal-close" onclick="closeBoxScoreModal()" aria-label="Close">&times;</button>
+            <div id="box-modal-body"></div>
+        </div>
+    </div>
 
 </div><!-- /main-wrap -->
 
@@ -701,8 +739,11 @@ function fmtJstDate(utcDate) {
 
 /* ── Tab / conf switching ── */
 function switchTab(tab) {
+    // Top 10 / Injury はスマホ用タブ。中身は Games パネル内の右カラムを表示切替する
+    const panel = (tab === 'top' || tab === 'injury') ? 'games' : tab;
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
-    document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === `tab-${tab}`));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === `tab-${panel}`));
+    document.getElementById('tab-games').dataset.view = tab;
 }
 
 function switchConf(conf) {
@@ -712,6 +753,12 @@ function switchConf(conf) {
 
 document.querySelectorAll('.tab-btn').forEach(btn =>
     btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
+
+// PC幅に戻ったらスマホ専用タブは存在しないので Games に戻す
+window.matchMedia('(min-width: 769px)').addEventListener('change', e => {
+    const view = document.getElementById('tab-games').dataset.view;
+    if (e.matches && (view === 'top' || view === 'injury')) switchTab('games');
+});
 document.querySelectorAll('.conf-btn[data-conf]').forEach(btn =>
     btn.addEventListener('click', () => switchConf(btn.dataset.conf)));
 document.getElementById('refresh-btn').addEventListener('click', () => init());
@@ -982,13 +1029,17 @@ function buildCard(event) {
         </div>`;
     }
 
-    const gameUrl = `https://www.espn.com/nba/game/_/gameId/${event.id}`;
-
-    const card = document.createElement('a');
+    const card = document.createElement('div');
     card.className = 'card';
-    card.href = gameUrl;
-    card.target = '_blank';
-    card.rel = 'noopener noreferrer';
+    if (isOver || isLive) {
+        card.classList.add('clickable');
+        card.tabIndex = 0;
+        card.setAttribute('role', 'button');
+        card.addEventListener('click', () => openBoxScoreModal(event));
+        card.addEventListener('keydown', e => {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openBoxScoreModal(event); }
+        });
+    }
     card.innerHTML = `
         <div class="status ${statusClass}">${statusLabel}</div>
         <div class="matchup">
@@ -1001,15 +1052,145 @@ function buildCard(event) {
 }
 
 /* ── Box Score / Top Players ── */
+// 終了済み試合のみキャッシュ（ライブ中は毎回取り直す）
+const boxScoreCache = new Map();
+
 async function fetchBoxScore(eventId) {
+    if (boxScoreCache.has(eventId)) return boxScoreCache.get(eventId);
     try {
         const res = await fetch(
             `https://site.api.espn.com/apis/site/v2/sports/basketball/nba/summary?event=${eventId}`
         );
         if (!res.ok) return null;
-        return await res.json();
+        const data = await res.json();
+        if (data?.header?.competitions?.[0]?.status?.type?.completed) boxScoreCache.set(eventId, data);
+        return data;
     } catch { return null; }
 }
+
+/* ── Box Score modal ── */
+const BOX_COLS = [
+    ['MIN', 'MIN', 'min', 'minutes'],
+    ['PTS', 'PTS', 'pts', 'points'],
+    ['REB', 'REB', 'reb', 'rebounds'],
+    ['AST', 'AST', 'ast', 'assists'],
+    ['FG',  'FG',  'fg',  'fieldGoalsMade-fieldGoalsAttempted'],
+    ['3PT', '3PT', '3pt', 'threePointFieldGoalsMade-threePointFieldGoalsAttempted'],
+    ['FT',  'FT',  'ft',  'freeThrowsMade-freeThrowsAttempted'],
+    ['STL', 'STL', 'stl', 'steals'],
+    ['BLK', 'BLK', 'blk', 'blocks'],
+    ['TO',  'TO',  'to',  'TOV', 'turnovers'],
+    ['+/-', '+/-', 'plusMinus'],
+];
+
+function closeBoxScoreModal() {
+    document.getElementById('box-modal').classList.remove('open');
+    document.body.style.overflow = '';
+}
+
+function switchBoxTeam(idx) {
+    document.querySelectorAll('.box-team-btn').forEach(b => b.classList.toggle('active', +b.dataset.idx === idx));
+    document.querySelectorAll('.box-team-panel').forEach(p => p.classList.toggle('active', +p.dataset.idx === idx));
+}
+
+function boxTeamTable(teamData) {
+    const sg = teamData.statistics?.[0];
+    if (!sg?.athletes?.length) return '<div class="msg">No stats available</div>';
+    const names = sg.names || [];
+    const keys  = sg.keys  || [];
+    const idx = BOX_COLS.map(([, ...cands]) => getStatIdx(names, keys, ...cands));
+
+    const row = a => {
+        const pos = a.athlete?.position?.abbreviation || '';
+        const nameCell = `<td class="box-name">${a.athlete?.shortName || a.athlete?.displayName || '—'}
+            ${pos ? `<span class="box-pos">${pos}</span>` : ''}</td>`;
+        if (a.didNotPlay || !a.stats?.length) {
+            return `<tr class="box-dnp">${nameCell}<td colspan="${BOX_COLS.length}">${a.reason || 'DNP'}</td></tr>`;
+        }
+        const cells = idx.map((i, c) => {
+            const v = i >= 0 ? (a.stats[i] ?? '-') : '-';
+            return `<td class="${BOX_COLS[c][0] === 'PTS' ? 'box-pts' : ''}">${v}</td>`;
+        }).join('');
+        return `<tr>${nameCell}${cells}</tr>`;
+    };
+
+    const starters = sg.athletes.filter(a => a.starter);
+    const bench    = sg.athletes.filter(a => !a.starter);
+    const head = `<tr><th class="box-name">Player</th>${BOX_COLS.map(c => `<th>${c[0]}</th>`).join('')}</tr>`;
+    const sep  = label => `<tr class="box-sep"><td colspan="${BOX_COLS.length + 1}">${label}</td></tr>`;
+
+    return `<div class="box-table-wrap"><table class="box-table">
+        <thead>${head}</thead>
+        <tbody>
+            ${starters.length ? sep('Starters') + starters.map(row).join('') : ''}
+            ${bench.length ? sep('Bench') + bench.map(row).join('') : ''}
+        </tbody>
+    </table></div>`;
+}
+
+async function openBoxScoreModal(event) {
+    const modal = document.getElementById('box-modal');
+    const body  = document.getElementById('box-modal-body');
+    const comp  = event.competitions[0];
+    const away  = comp.competitors.find(c => c.homeAway === 'away') ?? comp.competitors[0];
+    const home  = comp.competitors.find(c => c.homeAway === 'home') ?? comp.competitors[1];
+    const st    = event.status;
+    const isOver = !!st.type.completed || st.type.state === 'post';
+    const statusText = isOver ? 'FINAL' : `● LIVE  Q${st.period}  ${st.displayClock}`;
+
+    const abbr = t => normAbbr(t.team.abbreviation) || t.team.displayName;
+    const awayNum = parseInt(away.score), homeNum = parseInt(home.score);
+
+    // クォーター別スコア（OTがあれば列が増える）
+    const periods = Math.max(away.linescores?.length || 0, home.linescores?.length || 0);
+    const pLabel = i => i < 4 ? `Q${i + 1}` : (i === 4 ? 'OT' : `OT${i - 3}`);
+    const lineRow = t => `<tr><td class="box-name">${abbr(t)}</td>
+        ${Array.from({ length: periods }, (_, i) => `<td>${t.linescores?.[i]?.value ?? '-'}</td>`).join('')}
+        <td class="box-pts">${t.score ?? '-'}</td></tr>`;
+    const lineHTML = periods ? `<div class="box-table-wrap"><table class="box-table box-line">
+        <thead><tr><th class="box-name"></th>${Array.from({ length: periods }, (_, i) => `<th>${pLabel(i)}</th>`).join('')}<th>T</th></tr></thead>
+        <tbody>${lineRow(away)}${lineRow(home)}</tbody>
+    </table></div>` : '';
+
+    const teamHead = (t, won) => `<div class="box-team ${won ? 'winner' : ''}">
+        <img src="${t.team.logo || ''}" alt="${abbr(t)}">
+        <div class="box-team-abbr">${abbr(t)}</div>
+    </div>`;
+
+    body.innerHTML = `
+        <div class="status ${isOver ? 'status-final' : 'status-live'}">${statusText}</div>
+        <div class="box-scoreline">
+            ${teamHead(away, isOver && awayNum > homeNum)}
+            <div class="box-score">${away.score ?? '-'}<span>-</span>${home.score ?? '-'}</div>
+            ${teamHead(home, isOver && homeNum > awayNum)}
+        </div>
+        ${lineHTML}
+        <div id="box-players"><div class="msg">Loading box score...</div></div>`;
+
+    modal.classList.add('open');
+    document.body.style.overflow = 'hidden';
+
+    const data = await fetchBoxScore(event.id);
+    const el = document.getElementById('box-players');
+    if (!modal.classList.contains('open') || !el) return;
+    const teams = data?.boxscore?.players;
+    if (!teams?.length) { el.innerHTML = '<div class="msg error">Failed to load box score</div>'; return; }
+
+    // away → home の順に並べる
+    const order = [away.team.id, home.team.id];
+    teams.sort((a, b) => order.indexOf(a.team?.id) - order.indexOf(b.team?.id));
+
+    el.innerHTML = `
+        <div class="conf-tabs box-team-tabs">
+            ${teams.map((t, i) => `<button class="conf-btn box-team-btn" data-idx="${i}" onclick="switchBoxTeam(${i})">${normAbbr(t.team?.abbreviation || '')}</button>`).join('')}
+        </div>
+        ${teams.map((t, i) => `<div class="box-team-panel" data-idx="${i}">${boxTeamTable(t)}</div>`).join('')}`;
+    switchBoxTeam(0);
+}
+
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && document.getElementById('box-modal').classList.contains('open')) closeBoxScoreModal();
+});
 
 function getStatIdx(names, keys, ...candidates) {
     for (const c of candidates) {
@@ -1234,9 +1415,10 @@ async function init() {
     renderLottery();
 
     try {
-        const [todayEvents, scheduleEvents] = await Promise.all([
+        const [todayEvents, scheduleEvents, yesterdayEvents] = await Promise.all([
             fetchEvents(etForJstToday),
-            fetchEvents(etForJstTomorrow)
+            fetchEvents(etForJstTomorrow),
+            fetchEvents(etForJstYesterday)
         ]);
         const resultsEvents = todayEvents;
 
@@ -1254,22 +1436,24 @@ async function init() {
             topPlayersDate  = now;
         } else {
             // 当日未開始またはライブ中のみ → 前日スタッツを表示
-            topPlayerEvents = await fetchEvents(etForJstYesterday);
+            topPlayerEvents = yesterdayEvents;
             topPlayersDate  = new Date(now.getTime() - 86400000);
         }
 
         document.getElementById('today-date').textContent       = resultsEvents.length  ? fmtJstDate(new Date(resultsEvents[0].date))  : fmtJstDate(now);
         document.getElementById('tomorrow-date').textContent    = scheduleEvents.length ? fmtJstDate(new Date(scheduleEvents[0].date)) : fmtJstDate(new Date(now.getTime() + 86400000));
+        document.getElementById('yesterday-date').textContent   = yesterdayEvents.length ? fmtJstDate(new Date(yesterdayEvents[0].date)) : fmtJstDate(new Date(now.getTime() - 86400000));
         document.getElementById('top-players-date').textContent = fmtJstDate(topPlayersDate);
         document.getElementById('injury-date').textContent      = todayEvents.length    ? fmtJstDate(new Date(todayEvents[0].date))    : fmtJstDate(now);
         renderGames(resultsEvents,  'today-games');
         renderGames(scheduleEvents, 'tomorrow-games');
+        renderGames(yesterdayEvents, 'yesterday-games');
         extractTopPlayers(topPlayerEvents).then(renderTopPlayers);
         fetchInjuryPlayers(todayEvents).then(renderInjuryPlayers);
 
     } catch (err) {
         console.error(err);
-        ['today-games', 'tomorrow-games'].forEach(id => {
+        ['today-games', 'tomorrow-games', 'yesterday-games'].forEach(id => {
             document.getElementById(id).innerHTML =
                 '<div class="msg error">Failed to load data</div>';
         });
