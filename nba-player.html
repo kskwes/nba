@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NBA Player Stats</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&display=swap">
     <link rel="stylesheet" href="nba-common.css">
     <style>
         /* ─── Player page overrides ─── */
@@ -22,7 +25,6 @@
             gap: 12px;
             margin-bottom: 16px;
         }
-        .section-bar { width: 4px; height: 24px; background: var(--red); border-radius: 2px; flex-shrink: 0; }
         .section-header h2 { font-size: 18px; font-weight: 800; }
 
         .badge {
@@ -41,7 +43,7 @@
             width: 100%;
             background: var(--surface);
             border: 2px solid var(--border);
-            border-radius: 14px;
+            border-radius: 10px;
             padding: 14px 18px;
             font-size: 16px;
             color: var(--text);
@@ -57,7 +59,7 @@
             left: 0; right: 0;
             background: var(--surface2);
             border: 1px solid var(--border);
-            border-radius: 12px;
+            border-radius: 8px;
             overflow: hidden;
             z-index: 100;
             list-style: none;
@@ -90,7 +92,7 @@
         .profile-card {
             background: var(--surface);
             border: 1px solid var(--border);
-            border-radius: 16px;
+            border-radius: 10px;
             padding: 24px 28px;
             display: flex;
             align-items: center;
@@ -112,7 +114,7 @@
             flex-shrink: 0;
             background: var(--surface2);
         }
-        .p-name { font-size: 26px; font-weight: 900; margin-bottom: 8px; }
+        .p-name { font-family: var(--font-score); font-size: 30px; font-weight: 600; letter-spacing: .5px; line-height: 1.15; margin-bottom: 8px; }
         .p-meta { display: flex; gap: 8px; flex-wrap: wrap; }
         .p-meta span {
             font-size: 12px;
@@ -133,7 +135,7 @@
         .stat-box {
             background: var(--surface);
             border: 1px solid var(--border);
-            border-radius: 12px;
+            border-radius: 8px;
             padding: 14px 10px;
             text-align: center;
         }
@@ -143,7 +145,7 @@
         .stats-detail {
             background: var(--surface);
             border: 1px solid var(--border);
-            border-radius: 12px;
+            border-radius: 8px;
             overflow: hidden;
         }
         .stats-row {
@@ -166,7 +168,7 @@
         /* ── Trend Table ── */
         .trend-table-wrap {
             overflow-x: auto;
-            border-radius: 12px;
+            border-radius: 8px;
             border: 1px solid var(--border);
             background: var(--surface);
         }
@@ -194,7 +196,7 @@
         .trend-table td {
             padding: 7px 8px;
             text-align: center;
-            border-bottom: 1px solid rgba(37,45,74,0.5);
+            border-bottom: 1px solid var(--line-soft);
             font-weight: 600;
             font-size: 11px;
             white-space: nowrap;
@@ -203,8 +205,8 @@
         .trend-table tbody tr:hover td { background: rgba(255,255,255,0.03); }
         .trend-table td.left-col { text-align: left; padding-left: 12px; }
         .trend-table .dnp td { opacity: 0.45; }
-        .trend-table .res-w { color: #4aab6d; font-weight: 800; }
-        .trend-table .res-l { color: #c94060; font-weight: 800; }
+        .trend-table .res-w { color: var(--pos); font-weight: 800; }
+        .trend-table .res-l { color: var(--neg); font-weight: 800; }
 
 
         @media (max-width: 600px) {
@@ -240,8 +242,8 @@
             flex: 0 0 360px;
             min-width: 0;
             position: sticky;
-            top: 76px;
-            max-height: calc(100vh - 92px);
+            top: 70px;
+            max-height: calc(100vh - 86px);
             overflow-y: auto;
             scrollbar-width: thin;
             scrollbar-color: var(--border) transparent;
@@ -255,7 +257,7 @@
         .sl-panel {
             background: var(--surface);
             border: 1px solid var(--border);
-            border-radius: 16px;
+            border-radius: 10px;
             overflow: hidden;
         }
 
@@ -268,7 +270,7 @@
             margin-bottom: 10px;
         }
 
-        .sl-title { font-size: 15px; font-weight: 800; }
+        .sl-title { font-family: var(--font-score); font-size: 16px; font-weight: 600; letter-spacing: 1.2px; text-transform: uppercase; }
 
         .sl-season-badge {
             font-size: 10px;
@@ -306,7 +308,7 @@
             gap: 9px;
             padding: 10px 14px;
             min-height: 72px;
-            border-bottom: 1px solid rgba(37,45,74,0.5);
+            border-bottom: 1px solid var(--line-soft);
             transition: background 0.1s;
         }
 
@@ -321,13 +323,14 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 10px;
-            font-weight: 800;
+            font-family: var(--font-score);
+            font-size: 11px;
+            font-weight: 600;
             color: var(--muted);
             margin-top: 3px;
         }
 
-        .sl-item:nth-child(-n+3) .sl-rank { background: var(--blue); color: #fff; }
+        .sl-item:nth-child(-n+3) .sl-rank { background: var(--accent); color: var(--on-accent); }
 
         .sl-photo {
             width: 34px; height: 34px;
@@ -378,7 +381,7 @@
             margin-bottom: 4px;
         }
 
-        .sl-stat-val { font-size: 16px; font-weight: 900; color: var(--red); }
+        .sl-stat-val { font-family: var(--font-score); font-size: 19px; font-weight: 600; line-height: 1; color: var(--accent); }
         .sl-stat-sub { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; }
 
         .sl-chips { display: flex; flex-wrap: wrap; gap: 3px; min-height: 18px; }
@@ -386,13 +389,13 @@
         .sl-chip {
             font-size: 9.5px;
             color: var(--muted);
-            background: rgba(37,45,74,0.8);
+            background: var(--surface2);
             padding: 1px 5px;
             border-radius: 4px;
             white-space: nowrap;
         }
 
-        .sl-chip strong { color: #c8cfe8; }
+        .sl-chip strong { color: var(--text-dim); }
 
         @media (max-width: 960px) {
             .main-wrap { flex-direction: column; }
@@ -418,9 +421,9 @@
             transition: all 0.15s;
         }
         .mode-btn.active {
-            background: var(--blue);
-            border-color: var(--blue);
-            color: #fff;
+            background: var(--accent);
+            border-color: var(--accent);
+            color: var(--on-accent);
         }
         .mode-btn:hover:not(.active) {
             background: var(--surface2);
@@ -437,8 +440,8 @@
             margin-top: 4px;
             letter-spacing: 0.3px;
         }
-        .rank-badge.top3  { background: #b8860b; color: #fff; }
-        .rank-badge.top10 { background: var(--blue); color: #fff; }
+        .rank-badge.top3  { background: var(--accent); color: var(--on-accent); }
+        .rank-badge.top10 { background: rgba(245,183,0,0.14); color: var(--accent); }
         .rank-badge.other { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }
 
         /* ── Team detail stats grid ── */
@@ -469,7 +472,7 @@
         /* ── Roster Stats Table ── */
         .t-roster-wrap {
             overflow-x: auto;
-            border-radius: 12px;
+            border-radius: 8px;
             border: 1px solid var(--border);
             background: var(--surface);
         }
@@ -497,7 +500,7 @@
         .t-roster-table td {
             padding: 7px 8px;
             text-align: center;
-            border-bottom: 1px solid rgba(37,45,74,0.5);
+            border-bottom: 1px solid var(--line-soft);
             font-weight: 600;
             font-size: 11px;
         }
@@ -525,7 +528,7 @@
         .t-schedule-list {
             background: var(--surface);
             border: 1px solid var(--border);
-            border-radius: 12px;
+            border-radius: 8px;
             overflow-x: hidden;
         }
         .t-sched-row {
@@ -533,31 +536,31 @@
             grid-template-columns: 52px 1fr auto;
             align-items: center;
             padding: 9px 14px;
-            border-bottom: 1px solid rgba(37,45,74,0.5);
+            border-bottom: 1px solid var(--line-soft);
             font-size: 13px;
             font-weight: 600;
             gap: 8px;
         }
         .t-sched-row:last-child { border-bottom: none; }
         .t-sched-row.past { opacity: 0.38; }
-        .t-sched-row.live { background: rgba(255, 60, 60, 0.07); }
+        .t-sched-row.live { background: rgba(255,77,66,0.08); }
         .t-sched-date { color: var(--muted); font-size: 12px; white-space: nowrap; }
         .t-sched-opp { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .t-sched-score { text-align: right; font-size: 12px; white-space: nowrap; }
-        .t-sched-score.win  { color: #4aab6d; font-weight: 800; }
-        .t-sched-score.loss { color: #c94060; font-weight: 800; }
+        .t-sched-score.win  { color: var(--pos); font-weight: 800; }
+        .t-sched-score.loss { color: var(--neg); font-weight: 800; }
         .t-sched-live-badge {
             display: inline-flex;
             align-items: center;
             gap: 5px;
             font-size: 11px;
-            color: #ff4444;
+            color: var(--live);
             font-weight: 700;
         }
         .t-sched-live-dot {
             width: 6px; height: 6px;
             border-radius: 50%;
-            background: #ff4444;
+            background: var(--live);
             flex-shrink: 0;
             animation: sched-pulse 1.2s ease-in-out infinite;
         }
@@ -576,19 +579,18 @@
         .t-schedule-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
     </style>
 </head>
-<body>
+<body class="theme-broadcast">
 
 <header>
-    <h1>NBA <em>Player</em> Stats</h1>
-    <div class="last-updated" id="last-updated"></div>
-    <div class="hamburger-wrap" id="hamburger-wrap">
-        <button class="hamburger-btn" id="hamburger-btn" aria-label="Menu">
-            <span></span><span></span><span></span>
-        </button>
-        <nav class="hamburger-menu">
-            <a href="nba-daily.html" target="_blank">Daily</a>
-            <a href="nba-playoff.html" target="_blank">Playoffs</a>
-        </nav>
+    <a class="site-logo" href="nba-daily.html">NBA <em>Daily</em></a>
+    <nav class="site-nav" aria-label="Pages">
+        <a href="nba-daily.html">Daily</a>
+        <a class="on" href="nba-player.html" aria-current="page">Players</a>
+        <a href="nba-playoff.html">Playoffs</a>
+        <a href="nba-salary.html">Salary</a>
+    </nav>
+    <div class="header-right">
+        <div class="last-updated" id="last-updated"></div>
     </div>
 </header>
 
@@ -633,7 +635,6 @@
                 <!-- Season stats -->
                 <div class="lc-block">
                     <div class="section-header">
-                        <div class="section-bar"></div>
                         <h2>Season Stats</h2>
                         <span id="season-badge" class="badge"></span>
                     </div>
@@ -644,7 +645,6 @@
                 <!-- Recent Stats -->
                 <div class="lc-block">
                     <div class="section-header">
-                        <div class="section-bar"></div>
                         <h2>Recent Stats</h2>
                     </div>
                     <div id="chart-wrap">
@@ -671,7 +671,6 @@
                 <!-- Season Stats -->
                 <div class="lc-block">
                     <div class="section-header">
-                        <div class="section-bar"></div>
                         <h2>Season Stats</h2>
                         <span id="t-season-badge" class="badge"></span>
                     </div>
@@ -682,7 +681,6 @@
                 <!-- Roster Stats -->
                 <div class="lc-block">
                     <div class="section-header">
-                        <div class="section-bar"></div>
                         <h2>Roster Stats</h2>
                         <span id="t-roster-season-badge" class="badge"></span>
                     </div>
@@ -692,7 +690,6 @@
                 <!-- Schedule -->
                 <div class="lc-block" id="t-schedule-block" hidden>
                     <div class="section-header">
-                        <div class="section-bar"></div>
                         <h2>Schedule</h2>
                         <span id="t-schedule-season-badge" class="badge"></span>
                     </div>
@@ -708,7 +705,6 @@
             <div class="sl-panel">
                 <div class="sl-header">
                     <div class="sl-title-row">
-                        <div class="section-bar"></div>
                         <h2 class="sl-title">Stats Leaders</h2>
                         <span class="sl-season-badge" id="sl-season-badge">2024-25</span>
                     </div>
@@ -751,11 +747,22 @@ async function buildIndex() {
     );
 
     const players = [];
+    const teams   = [];
     for (const r of results) {
         if (r.status !== 'fulfilled') continue;
         const data = r.value;
         const teamName  = data.team?.displayName  || '';
         const teamAbbr  = data.team?.abbreviation || '';
+        if (data.team?.id) {
+            teams.push({
+                id:           String(data.team.id),
+                displayName:  teamName,
+                abbreviation: teamAbbr,
+                location:     data.team.location || '',
+                nickname:     data.team.name || data.team.shortDisplayName || '',
+                logo:         data.team.logo || data.team.logos?.[0]?.href || '',
+            });
+        }
         for (const p of (data.athletes || [])) {
             players.push({
                 id:          String(p.id),
@@ -771,37 +778,15 @@ async function buildIndex() {
     }
 
     playerIndex = players.sort((a, b) => a.displayName.localeCompare(b.displayName));
+    teamIndex   = teams.sort((a, b) => a.displayName.localeCompare(b.displayName));
     indexReady  = true;
     qEl.placeholder = 'Search player (e.g. LeBron James)';
     qEl.disabled = false;
 }
 
-buildIndex();
-buildTeamIndexFromApi();
-
-/* ─── Build team index (logos + names from ESPN teams list API) ─── */
-async function buildTeamIndexFromApi() {
-    try {
-        const data = await fetch(`${ESPN_ROSTER}?limit=40`).then(r => r.json());
-        const entries = data.sports?.[0]?.leagues?.[0]?.teams || [];
-        teamIndex = entries
-            .map(e => {
-                const t = e.team || e;
-                return {
-                    id:           String(t.id || ''),
-                    displayName:  t.displayName || '',
-                    abbreviation: t.abbreviation || '',
-                    location:     t.location || '',
-                    nickname:     t.name || t.shortDisplayName || '',
-                    logo:         t.logos?.[0]?.href || '',
-                };
-            })
-            .filter(t => t.id)
-            .sort((a, b) => a.displayName.localeCompare(b.displayName));
-    } catch(e) {
-        console.warn('team index build failed:', e);
-    }
-}
+// チーム一覧もロスター取得の結果から作る
+// （ESPNの /teams 一覧APIはCORSヘッダーを返さず、ブラウザからは取得できないため）
+const teamIndexReady = buildIndex();
 
 /* ─── Mode toggle ─── */
 function setMode(mode) {
@@ -824,8 +809,18 @@ tqEl.addEventListener('input', () => {
     clearTimeout(teamSrchTimer);
     const q = tqEl.value.trim();
     if (q.length < 1) { clearTeamSugg(); return; }
-    if (!indexReady || teamIndex.length === 0) {
+    if (teamIndex.length === 0) {
         teamSuggEl.innerHTML = '<li><span style="color:var(--muted);font-size:13px">Loading teams<span class="spinner"></span></span></li>';
+        // 読み込み完了後、その時点の入力内容で検索し直す
+        teamIndexReady.then(() => {
+            const cur = tqEl.value.trim();
+            if (!cur) return;
+            if (teamIndex.length === 0) {
+                teamSuggEl.innerHTML = '<li><span style="color:var(--muted);font-size:13px">Failed to load teams. Please reload the page.</span></li>';
+                return;
+            }
+            doTeamSearch(cur);
+        });
         return;
     }
     teamSrchTimer = setTimeout(() => doTeamSearch(q), 150);

@@ -146,3 +146,105 @@ header h1 em { font-style: normal; color: var(--red); }
     .tab-btn { padding: 9px 18px; font-size: 13px; white-space: nowrap; }
     .main-wrap { padding: 0 12px 32px; }
 }
+
+/* ═══════════════════════════════════════════════
+   Broadcast theme（body.theme-broadcast を付けたページのみ）
+   ═══════════════════════════════════════════════ */
+body.theme-broadcast {
+    --bg: #0a0a0c;
+    --surface: #141418;
+    --surface2: #1d1d22;
+    --surface-deep: #0f0f12;
+    --border: #26262d;
+    --line-soft: #1f1f25;
+    --text: #f2f2f4;
+    --text-dim: #c9c9d1;
+    --muted: #8b8b95;
+    --accent: #F5B700;
+    --on-accent: #141000;
+    --live: #ff4d42;
+    --pos: #3ddc84;
+    --neg: #ff6b61;
+    --warn: #ffb547;
+    /* 旧トークンも新パレットに寄せる（未移行の箇所の保険） */
+    --blue: #F5B700;
+    --red: #ff4d42;
+    --gold: #F5B700;
+    --font-score: 'Oswald', 'Arial Narrow', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Segoe UI', Roboto, sans-serif;
+}
+
+/* ─── Header + site nav ─── */
+.theme-broadcast header {
+    display: flex; align-items: center; gap: 22px;
+    height: 54px; padding: 0 20px;
+    background: #111114; text-align: left;
+    border-bottom: 1px solid var(--border);
+}
+.theme-broadcast .site-logo {
+    font-family: var(--font-score); font-weight: 700; font-size: 21px; letter-spacing: 2px;
+    text-transform: uppercase; color: var(--text); text-decoration: none; white-space: nowrap;
+}
+.theme-broadcast .site-logo em { font-style: normal; color: var(--accent); }
+.theme-broadcast .site-nav { display: flex; gap: 20px; }
+.theme-broadcast .site-nav a {
+    color: var(--muted); text-decoration: none; font-size: 13px; font-weight: 600;
+    padding: 17px 0 15px; border-bottom: 2px solid transparent; transition: color .15s;
+}
+.theme-broadcast .site-nav a:hover { color: var(--text); }
+.theme-broadcast .site-nav a.on { color: var(--text); border-bottom-color: var(--accent); }
+.theme-broadcast .site-nav a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.theme-broadcast .header-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.theme-broadcast .last-updated { margin-top: 0; color: var(--muted); font-size: 11px; }
+
+/* ─── Main tabs（下線タブ） ─── */
+.theme-broadcast .tabs-nav {
+    background: none; border: none; border-bottom: 1px solid var(--border);
+    border-radius: 0; padding: 0; gap: 22px; width: auto; margin: 16px 0 22px;
+}
+.theme-broadcast .tab-btn {
+    padding: 10px 0 9px; border-radius: 0; font-size: 13.5px;
+    border-bottom: 2px solid transparent; margin-bottom: -1px;
+}
+.theme-broadcast .tab-btn:hover { color: var(--text); }
+.theme-broadcast .tab-btn.active { background: none; color: var(--text); border-bottom-color: var(--accent); }
+
+.theme-broadcast .msg.error { color: var(--neg); }
+
+/* ─── Shared components（各ページ共通のクラス） ─── */
+.theme-broadcast .section-bar { display: none; }
+.theme-broadcast .section-header { align-items: baseline; }
+.theme-broadcast .section-header h2 {
+    font-family: var(--font-score); font-size: 17px; font-weight: 600;
+    letter-spacing: 1.5px; text-transform: uppercase;
+}
+.theme-broadcast .stat-box .val,
+.theme-broadcast .t-stat-val {
+    font-family: var(--font-score); font-weight: 600; font-variant-numeric: tabular-nums;
+}
+.theme-broadcast .spinner { border-top-color: var(--accent); }
+
+/* ─── Mobile: サイトナビは画面下のタブバーへ ─── */
+@media (max-width: 768px) {
+    body.theme-broadcast { padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px)); }
+    .theme-broadcast header { height: 48px; padding: 0 14px; gap: 12px; }
+    .theme-broadcast .site-logo { font-size: 18px; }
+    .theme-broadcast .site-nav {
+        position: fixed; left: 0; right: 0; bottom: 0; z-index: 150;
+        display: grid; grid-template-columns: repeat(4, 1fr); gap: 0;
+        background: #111114; border-top: 1px solid var(--border);
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    .theme-broadcast .site-nav a {
+        text-align: center; font-size: 11px; padding: 0; height: 56px;
+        display: flex; align-items: center; justify-content: center;
+        border-bottom: none; border-top: 2px solid transparent;
+    }
+    .theme-broadcast .site-nav a.on { border-top-color: var(--accent); color: var(--accent); }
+}
+@media (max-width: 480px) {
+    .theme-broadcast header { padding: 0 12px; }
+    .theme-broadcast .site-logo { font-size: 17px; letter-spacing: 1.5px; }
+    .theme-broadcast .tabs-nav { gap: 18px; margin: 12px 0 18px; }
+    .theme-broadcast .tab-btn { padding: 10px 0 9px; font-size: 13px; }
+}

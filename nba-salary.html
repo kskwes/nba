@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NBA Salary Cap Tracker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&display=swap">
+    <link rel="stylesheet" href="nba-common.css">
+    <style>
+        /* ─── Salary page overrides ─── */
+        .section {
+            max-width: 1300px;
+            margin: 28px auto;
+            padding: 0 20px;
+        }
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .section-header h2 { font-size: 18px; font-weight: 800; }
+        .section-sub { font-size: 12px; color: var(--muted); margin-left: auto; }
+        .section-sub a { color: var(--muted); }
+
+        .main-wrap { max-width: 1300px; }
+
+        /* ── Stat box (same component shape used across the other nba-*.html pages) ── */
+        .stat-box {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 14px 10px;
+            text-align: center;
+        }
+        .stat-box .val { font-size: 22px; font-weight: 900; line-height: 1.1; }
+        .stat-box .lbl { font-size: 10px; color: var(--muted); margin-top: 5px; text-transform: uppercase; letter-spacing: .5px; }
+
+        .cap-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
+
+        /* ── Distance-to-threshold grid ── */
+        .t-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+        }
+        .t-stat-cell {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px 8px;
+            text-align: center;
+        }
+        .t-stat-lbl {
+            font-size: 10px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 3px;
+        }
+        .t-stat-val { font-size: 18px; font-weight: 900; line-height: 1.1; }
+
+        /* ── Roster table ── */
+        .t-roster-wrap {
+            overflow-x: auto;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+        }
+        .t-roster-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+        .t-roster-table th {
+            background: var(--surface2);
+            color: var(--muted);
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 9px 8px;
+            text-align: center;
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+        }
+        .t-roster-table th.player-col { text-align: left; padding-left: 14px; min-width: 160px; }
+        .t-roster-table td {
+            padding: 7px 8px;
+            text-align: center;
+            border-bottom: 1px solid var(--line-soft);
+            font-weight: 600;
+            font-size: 11px;
+        }
+        .t-roster-table tr:last-child td { border-bottom: none; }
+        .t-roster-table tbody tr:hover td { background: rgba(255,255,255,0.03); }
+        .t-roster-player-cell {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding-left: 6px;
+            white-space: nowrap;
+        }
+        .t-roster-photo {
+            width: 30px; height: 30px;
+            border-radius: 50%;
+            object-fit: cover;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+        .t-roster-name-row { display: flex; align-items: baseline; gap: 6px; }
+        .t-roster-name { font-size: 12px; font-weight: 700; }
+        .t-roster-pos  { font-size: 10px; color: var(--muted); }
+
+        /* ── League-wide salary bar chart ── */
+        /* Desktop: fluid, fills the container, never scrolls.
+           Tablet/mobile: widen the bars back out and let the strip scroll instead of squeezing them. */
+        .league-chart-scroll { margin-top: 14px; }
+        .league-chart { width: 100%; }
+        @media (max-width: 900px) {
+            .league-chart-scroll { overflow-x: auto; }
+            .league-chart { min-width: 760px; }
+        }
+        .chart-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px 18px;
+            margin-bottom: 12px;
+            font-size: 11px;
+            color: var(--muted);
+        }
+        .chart-legend-item { display: flex; align-items: center; gap: 6px; }
+        .chart-legend-swatch { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+        .chart-plot {
+            position: relative;
+            height: 320px;
+            margin-left: 34px;
+        }
+        .chart-refline {
+            position: absolute;
+            left: 0; right: 0;
+            height: 1px;
+            background: var(--border);
+        }
+        .chart-refline-label {
+            position: absolute;
+            left: -34px;
+            transform: translateY(-50%);
+            font-size: 9px;
+            color: var(--muted);
+            white-space: nowrap;
+        }
+        .chart-bars {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: flex-end;
+        }
+        .chart-bar-col {
+            flex: 1 1 0;
+            min-width: 0;
+            height: 100%;
+            position: relative;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+        }
+        .chart-bar {
+            width: 60%;
+            max-width: 22px;
+            border-radius: 4px 4px 0 0;
+            cursor: pointer;
+            transition: filter 0.15s ease;
+        }
+        .chart-bar:hover { filter: brightness(1.25); }
+        .chart-xaxis {
+            display: flex;
+            margin-left: 34px;
+            margin-top: 4px;
+            height: 14px;
+        }
+        .chart-xlabel {
+            flex: 1 1 0;
+            min-width: 0;
+            display: flex;
+            justify-content: center;
+            cursor: pointer;
+        }
+        .chart-xlabel span {
+            font-size: 9px;
+            color: var(--muted);
+            white-space: nowrap;
+        }
+        .chart-xlabel:hover span { color: var(--text); }
+
+        /* ── Instant hover tooltip for the league chart ── */
+        .chart-tooltip {
+            position: fixed;
+            z-index: 500;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 6px 11px;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text);
+            white-space: nowrap;
+            pointer-events: none;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+        }
+        .chart-tooltip[hidden] { display: none; }
+
+        /* ── Zone pill (status color, always paired with text) ── */
+        .zone-pill {
+            font-size: 10px;
+            font-weight: 800;
+            padding: 2px 9px;
+            border-radius: 20px;
+            display: inline-block;
+            margin-top: 5px;
+            white-space: nowrap;
+        }
+
+        /* ── Team select ── */
+        .team-select-wrap { max-width: 460px; margin-bottom: 8px; }
+        #team-select {
+            width: 100%;
+            background: var(--surface);
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            padding: 13px 16px;
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text);
+            outline: none;
+            cursor: pointer;
+        }
+        #team-select:focus { border-color: var(--blue); }
+
+        /* ── Team header ── */
+        .t-head {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 22px;
+        }
+        .t-head img { width: 56px; height: 56px; object-fit: contain; background: rgba(255,255,255,0.08); border-radius: 10px; padding: 6px; flex-shrink: 0; }
+        .t-head-name { font-family: var(--font-score); font-size: 26px; font-weight: 600; letter-spacing: .5px; }
+        .t-head-total { font-size: 13px; color: var(--muted); margin-top: 2px; }
+        .t-head-total strong { color: var(--text); font-size: 15px; }
+
+        /* ── Cap bars: one fixed bar per threshold, team total inserted by rank ── */
+        .cap-bars {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin: 6px 0 24px;
+        }
+        .cap-bar-row {
+            display: grid;
+            grid-template-columns: 100px 1fr 90px;
+            align-items: center;
+            gap: 12px;
+        }
+        .cap-bar-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            min-width: 0;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--muted);
+        }
+        .cap-bar-label span {
+            min-width: 0;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+        .cap-bar-row.is-team .cap-bar-label { color: var(--text); }
+        .cap-bar-logo { width: 18px; height: 18px; object-fit: contain; flex-shrink: 0; }
+        .cap-bar-track {
+            position: relative;
+            height: 20px;
+            background: var(--surface2);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        .cap-bar-fill {
+            position: absolute;
+            top: 0; left: 0; height: 100%;
+            border-radius: 0 4px 4px 0;
+            transition: width 0.5s ease;
+        }
+        .cap-bar-row.is-team .cap-bar-track { box-shadow: 0 0 0 1px rgba(255,255,255,0.12) inset; }
+        .cap-bar-value {
+            font-size: 12px;
+            font-weight: 800;
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+        }
+        @media (max-width: 480px) {
+            .cap-bar-row { grid-template-columns: 72px 1fr 76px; gap: 8px; }
+            .cap-bar-label { font-size: 11px; }
+        }
+
+        /* ── Roster table (reuses t-roster-table) ── */
+        .sal-roster-table th.sal-val-col, .sal-roster-table td.sal-val-col { text-align: right; padding-right: 16px; }
+
+        /* ── Salary detail layout: pie chart (left) + roster table (right) ── */
+        .sal-detail-grid {
+            display: grid;
+            grid-template-columns: 7fr 3fr;
+            gap: 20px;
+            align-items: start;
+        }
+        .sal-pie-wrap {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 18px;
+            display: flex;
+            align-items: center;
+            gap: 28px;
+            flex-wrap: wrap;
+        }
+        .sal-pie-svg-wrap { position: relative; width: 100%; max-width: 260px; flex-shrink: 0; margin: 0 auto; }
+        .sal-pie-center {
+            position: absolute; inset: 0;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            text-align: center;
+            pointer-events: none;
+        }
+        .sal-pie-center .val { font-family: var(--font-score); font-size: 22px; font-weight: 600; }
+        .sal-pie-center .lbl { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; margin-top: 2px; }
+        .sal-pie-slice { cursor: pointer; transition: opacity 0.15s ease; }
+        .sal-pie-slice:hover { opacity: 0.8; }
+        .sal-pie-legend {
+            flex: 1 1 220px;
+            min-width: 220px;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px 20px;
+        }
+        .sal-pie-legend-item { display: flex; align-items: center; gap: 8px; font-size: 11px; }
+        .sal-pie-legend-swatch { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+        .sal-pie-legend-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); font-weight: 600; }
+        .sal-pie-legend-val { color: var(--muted); font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+        @media (max-width: 800px) {
+            .sal-detail-grid { grid-template-columns: 1fr; }
+            .sal-pie-wrap { flex-direction: column; align-items: stretch; }
+            .sal-pie-svg-wrap { max-width: 220px; }
+            .sal-pie-legend { grid-template-columns: 1fr 1fr; min-width: 0; }
+        }
+        @media (max-width: 480px) {
+            .sal-pie-legend { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 700px) {
+            .cap-stats-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 480px) {
+            .main-wrap { padding: 16px 12px 32px; }
+            .section { padding: 0 12px; }
+            .t-head img { width: 44px; height: 44px; }
+            .t-head-name { font-size: 18px; }
+        }
+    </style>
+</head>
+<body class="theme-broadcast">
+
+<header>
+    <a class="site-logo" href="nba-daily.html">NBA <em>Daily</em></a>
+    <nav class="site-nav" aria-label="Pages">
+        <a href="nba-daily.html">Daily</a>
+        <a href="nba-player.html">Players</a>
+        <a href="nba-playoff.html">Playoffs</a>
+        <a class="on" href="nba-salary.html" aria-current="page">Salary</a>
+    </nav>
+    <div class="header-right">
+        <div class="last-updated" id="last-updated"></div>
+    </div>
+</header>
+
+<main>
+    <div class="main-wrap">
+
+        <!-- ── League Overview ── -->
+        <div class="section" style="margin-top:24px">
+            <div class="section-header">
+                <h2>全体サマリー</h2>
+                <span class="section-sub" id="cap-source-note"></span>
+            </div>
+            <div id="cap-stats" class="cap-stats-grid">
+                <div class="stat-box"><div class="val">-</div><div class="lbl">Salary Cap<br><span style="opacity:.7;font-size:9px">サラリーキャップ</span></div></div>
+                <div class="stat-box"><div class="val">-</div><div class="lbl">Tax Line<br><span style="opacity:.7;font-size:9px">タックスライン</span></div></div>
+                <div class="stat-box"><div class="val">-</div><div class="lbl">1st Apron<br><span style="opacity:.7;font-size:9px">1stエプロン</span></div></div>
+                <div class="stat-box"><div class="val">-</div><div class="lbl">2nd Apron<br><span style="opacity:.7;font-size:9px">2ndエプロン</span></div></div>
+            </div>
+
+            <div id="league-chart-wrap">
+                <div class="msg">全30チームのサラリーを集計中<span class="spinner"></span></div>
+            </div>
+        </div>
+
+        <!-- ── Team Detail ── -->
+        <div class="section">
+            <div class="section-header">
+                <h2>チーム別サラリー状況</h2>
+            </div>
+
+            <div class="team-select-wrap">
+                <select id="team-select" disabled>
+                    <option>チームデータを読み込み中...</option>
+                </select>
+            </div>
+
+            <div id="team-detail">
+                <div class="msg">プルダウンからチームを選択してください</div>
+            </div>
+        </div>
+
+    </div>
+</main>
+
+<script>
+/* ─── Config ─── */
+const ESPN_ROSTER = 'https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams';
+const TEAM_IDS    = [1,2,17,30,4,5,6,7,8,9,10,11,12,13,29,14,15,16,3,18,25,19,20,21,22,23,24,28,26,27];
+const FALLBACK_IMG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='78'%3E%F0%9F%8F%80%3C/text%3E%3C/svg%3E";
+
+// Official NBA.com figures, effective 2026-07-01 (2026-27 season)
+const CAP_DATA = {
+    seasonLabel: '2026-27',
+    cap:    164961000,
+    tax:    200428000,
+    apron1: 209015000,
+    apron2: 221686000,
+    sourceUrl:   'https://www.nba.com/news/nba-salary-cap-2026-27-season',
+    sourceLabel: 'NBA.com',
+};
+
+// Status palette — fixed roles, never re-themed (good < tax < 1st apron < 2nd apron < critical)
+const ZONES = {
+    good:     { bg: '#0ca30c', fg: '#ffffff', label: 'タックスライン以下' },
+    warning:  { bg: '#fab219', fg: '#1a1200', label: 'ラグジュアリータックス課税中' },
+    serious:  { bg: '#ec835a', fg: '#1a1200', label: '1stエプロン超過' },
+    critical: { bg: '#d03b3b', fg: '#ffffff', label: '2ndエプロン超過' },
+};
+
+// Categorical palette (dark-surface steps) for the per-team salary pie — fixed
+// order, never cycled. "Other" (players outside the top slice count) uses the
+// neutral muted tone rather than a 9th categorical hue.
+const PIE_COLORS = ['#3987e5', '#d95926', '#199e70', '#c98500', '#d55181', '#008300', '#9085e9', '#e66767'];
+const PIE_OTHER_COLOR = '#8b8b95';
+const PIE_TOP_N = 7;
+
+// League year that just took effect (NBA league year runs Jul 1 – Jun 30)
+const _now = new Date();
+const CAP_SEASON_YEAR = _now.getMonth() >= 6 ? _now.getFullYear() + 1 : _now.getFullYear();
+
+let teamIndex   = [];   // [{id, displayName, abbreviation, location, nickname, logo}]
+let teamPayroll = {};   // id -> { total, players: [{name, position, headshot, salary}] }
+let dataReady   = false;
+
+/* ─── Utility ─── */
+function esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function fmtUSD(n) {
+    if (n == null || isNaN(n)) return '-';
+    const sign = n < 0 ? '-' : '';
+    return sign + '$' + (Math.abs(n) / 1e6).toFixed(2) + 'M';
+}
+function classifyZone(total) {
+    if (total < CAP_DATA.tax)    return 'good';
+    if (total < CAP_DATA.apron1) return 'warning';
+    if (total < CAP_DATA.apron2) return 'serious';
+    return 'critical';
+}
+
+// Four fixed threshold bars (neutral color, own row each) with the team's total
+// salary inserted as a 5th bar, ranked by value rather than overlaid on one bar.
+const CAP_BAR_NEUTRAL = '#8b8b95'; // == var(--muted), inlined for direct use in generated style attrs
+function renderCapBars(total, teamColor, teamLabel, teamLogo) {
+    const scaleMax = CAP_DATA.apron2 * 1.12;
+    const rows = [
+        { label: 'Cap',       value: CAP_DATA.cap,    isTeam: false },
+        { label: 'Tax',       value: CAP_DATA.tax,    isTeam: false },
+        { label: '1st Apron', value: CAP_DATA.apron1, isTeam: false },
+        { label: '2nd Apron', value: CAP_DATA.apron2, isTeam: false },
+        { label: teamLabel,   value: total,           isTeam: true  },
+    ];
+    rows.sort((a, b) => a.value - b.value);
+
+    return rows.map(r => {
+        const pct = Math.min(100, (r.value / scaleMax) * 100);
+        const fillColor = r.isTeam ? teamColor : CAP_BAR_NEUTRAL;
+        const logoHtml = r.isTeam && teamLogo
+            ? `<img class="cap-bar-logo" src="${esc(teamLogo)}" alt="" onerror="this.style.display='none'">`
+            : '';
+        return `<div class="cap-bar-row${r.isTeam ? ' is-team' : ''}">
+            <div class="cap-bar-label">${logoHtml}<span>${esc(r.label)}</span></div>
+            <div class="cap-bar-track"><div class="cap-bar-fill" style="width:${pct}%;background:${fillColor}"></div></div>
+            <div class="cap-bar-value">${fmtUSD(r.value)}</div>
+        </div>`;
+    }).join('');
+}
+
+// Donut-style salary breakdown for a team's roster: top earners get their own
+// slice (fixed categorical order), everyone else folds into a single "Other"
+// slice so the chart never grows an unbounded number of hues.
+function renderSalaryPie(payroll, total) {
+    const paid = payroll.players.filter(p => p.salary != null && p.salary > 0);
+    if (!paid.length || !total) {
+        return '<div class="sal-pie-wrap"><div class="msg" style="padding:30px 6px;font-size:12px">サラリー内訳データがありません</div></div>';
+    }
+
+    const sorted = [...paid].sort((a, b) => b.salary - a.salary);
+    const top = sorted.slice(0, PIE_TOP_N);
+    const rest = sorted.slice(PIE_TOP_N);
+    const restTotal = rest.reduce((sum, p) => sum + p.salary, 0);
+
+    const slices = top.map((p, i) => ({ label: p.name, value: p.salary, color: PIE_COLORS[i] }));
+    if (restTotal > 0) {
+        slices.push({ label: `その他 (${rest.length}名)`, value: restTotal, color: PIE_OTHER_COLOR });
+    }
+
+    const R = 70, SW = 34, CIRC = 2 * Math.PI * R;
+    let cumulative = 0;
+    const arcsHtml = slices.map(s => {
+        const pct = s.value / total;
+        const len = pct * CIRC;
+        const dashoffset = -cumulative;
+        cumulative += len;
+        const tip = `${s.label}: ${fmtUSD(s.value)} (${(pct * 100).toFixed(1)}%)`;
+        return `<circle class="sal-pie-slice" cx="100" cy="100" r="${R}" fill="none"
+            stroke="${s.color}" stroke-width="${SW}"
+            stroke-dasharray="${len.toFixed(2)} ${(CIRC - len).toFixed(2)}"
+            stroke-dashoffset="${dashoffset.toFixed(2)}"
+            data-tooltip="${esc(tip)}"></circle>`;
+    }).join('');
+
+    const legendHtml = slices.map(s => `
+        <div class="sal-pie-legend-item">
+            <span class="sal-pie-legend-swatch" style="background:${s.color}"></span>
+            <span class="sal-pie-legend-name">${esc(s.label)}</span>
+            <span class="sal-pie-legend-val">${fmtUSD(s.value)}</span>
+        </div>`).join('');
+
+    return `
+        <div class="sal-pie-wrap">
+            <div class="sal-pie-svg-wrap">
+                <svg viewBox="0 0 200 200" width="100%" height="100%">
+                    <g transform="rotate(-90 100 100)">${arcsHtml}</g>
+                </svg>
+                <div class="sal-pie-center">
+                    <div class="val">${fmtUSD(total)}</div>
+                    <div class="lbl">合計</div>
+                </div>
+            </div>
+            <div class="sal-pie-legend">${legendHtml}</div>
+        </div>`;
+}
+
+/* ─── Render league overview stat boxes (static thresholds) ─── */
+function renderCapStats() {
+    const defs = [
+        { key: 'cap',    line1: 'Salary Cap',  line2: 'サラリーキャップ' },
+        { key: 'tax',    line1: 'Tax Line',    line2: 'タックスライン' },
+        { key: 'apron1', line1: '1st Apron',   line2: '1stエプロン' },
+        { key: 'apron2', line1: '2nd Apron',   line2: '2ndエプロン' },
+    ];
+    document.getElementById('cap-stats').innerHTML = defs.map(d => `
+        <div class="stat-box">
+            <div class="val">${fmtUSD(CAP_DATA[d.key])}</div>
+            <div class="lbl">${d.line1}<br><span style="opacity:.7;font-size:9px">${d.line2}</span></div>
+        </div>`).join('');
+    document.getElementById('cap-source-note').innerHTML =
+        `${CAP_DATA.seasonLabel}シーズン ・ 出典: <a href="${CAP_DATA.sourceUrl}" target="_blank" rel="noopener">${esc(CAP_DATA.sourceLabel)}</a>`;
+}
+
+/* ─── Per-player salary lookup for a given season year ───
+   Returns null when the feed has no contract data for that year at all
+   (distinct from a real $0 salary), so the UI can show "-" instead of "$0.00M". */
+function salaryForYear(athlete, year) {
+    const arr = athlete.contracts || [];
+    const hit = arr.find(c => c.season?.year === year);
+    if (hit) return hit.salary ?? null;
+    if (athlete.contract?.season?.year === year) return athlete.contract.salary ?? null;
+    return null;
+}
+
+/* ─── Fetch all 30 rosters and compute team payrolls ─── */
+async function fetchAllPayrolls() {
+    const results = await Promise.allSettled(
+        TEAM_IDS.map(id => fetch(`${ESPN_ROSTER}/${id}/roster`).then(r => r.json()))
+    );
+
+    for (const r of results) {
+        if (r.status !== 'fulfilled') continue;
+        const data = r.value;
+        const teamId = String(data.team?.id || '');
+        if (!teamId) continue;
+
+        // Team metadata comes from this same roster response — the standalone
+        // teams-list endpoint doesn't send CORS headers and gets blocked in-browser.
+        teamIndex.push({
+            id:           teamId,
+            displayName:  data.team?.displayName  || '',
+            abbreviation: data.team?.abbreviation || '',
+            logo:         data.team?.logo || '',
+        });
+
+        // salary is null when the feed simply has no contract entry for this season yet —
+        // kept distinct from a real $0 so the roster table can show "-" instead of misreporting
+        // established players (e.g. an expiring vet-min deal not yet re-signed) as making nothing.
+        const players = (data.athletes || []).map(a => ({
+            name:     a.fullName || a.displayName || '',
+            position: a.position?.abbreviation || '',
+            headshot: a.headshot?.href || '',
+            salary:   salaryForYear(a, CAP_SEASON_YEAR),
+        }));
+        players.sort((a, b) => (b.salary ?? -1) - (a.salary ?? -1));
+
+        teamPayroll[teamId] = {
+            total: players.reduce((sum, p) => sum + (p.salary || 0), 0),
+            missingCount: players.filter(p => p.salary == null).length,
+            players,
+        };
+    }
+    teamIndex.sort((a, b) => a.displayName.localeCompare(b.displayName));
+    dataReady = true;
+}
+
+/* ─── Render league-wide salary bar chart (sorted ascending, Cap/Tax/Apron reference lines) ─── */
+function renderLeagueChart() {
+    const wrap = document.getElementById('league-chart-wrap');
+    const entries = teamIndex
+        .map(t => ({ team: t, total: teamPayroll[t.id]?.total || 0 }))
+        .filter(e => e.total > 0);
+
+    if (!entries.length) {
+        wrap.innerHTML = '<div class="msg error">サラリーデータを取得できませんでした</div>';
+        return;
+    }
+
+    entries.sort((a, b) => a.total - b.total); // ascending: least first
+
+    const scaleMax = CAP_DATA.apron2 * 1.12;
+    const refLines = [
+        { key: 'cap',    label: 'Cap' },
+        { key: 'tax',    label: 'Tax' },
+        { key: 'apron1', label: '1st' },
+        { key: 'apron2', label: '2nd' },
+    ];
+    const reflineHtml = refLines.map(r => {
+        const pct = (CAP_DATA[r.key] / scaleMax) * 100;
+        return `<div class="chart-refline" style="bottom:${pct}%"></div><div class="chart-refline-label" style="bottom:${pct}%">${r.label}</div>`;
+    }).join('');
+
+    const legendHtml = ['good', 'warning', 'serious', 'critical'].map(k => `
+        <div class="chart-legend-item"><span class="chart-legend-swatch" style="background:${ZONES[k].bg}"></span>${esc(ZONES[k].label)}</div>
+    `).join('');
+
+    const barsHtml = entries.map(e => {
+        const pct = Math.min(100, (e.total / scaleMax) * 100);
+        const color = ZONES[classifyZone(e.total)].bg;
+        const tip = `${e.team.displayName}: ${fmtUSD(e.total)}`;
+        return `<div class="chart-bar-col">
+            <div class="chart-bar" style="height:${pct}%;background:${color}" data-team-id="${esc(e.team.id)}" data-tooltip="${esc(tip)}"></div>
+        </div>`;
+    }).join('');
+
+    const xlabelsHtml = entries.map(e =>
+        `<div class="chart-xlabel" data-team-id="${esc(e.team.id)}"><span>${esc(e.team.abbreviation)}</span></div>`
+    ).join('');
+
+    wrap.innerHTML = `
+        <div class="chart-legend">${legendHtml}</div>
+        <div class="league-chart-scroll">
+            <div class="league-chart">
+                <div class="chart-plot">
+                    ${reflineHtml}
+                    <div class="chart-bars">${barsHtml}</div>
+                </div>
+                <div class="chart-xaxis">${xlabelsHtml}</div>
+            </div>
+        </div>
+        <div id="chart-tooltip" class="chart-tooltip" hidden></div>
+    `;
+
+    wrap.querySelectorAll('[data-team-id]').forEach(el => {
+        el.addEventListener('click', () => {
+            const id = el.getAttribute('data-team-id');
+            document.getElementById('team-select').value = id;
+            selectTeam(id, true);
+        });
+    });
+
+    const tooltip = wrap.querySelector('#chart-tooltip');
+    wrap.querySelectorAll('.chart-bar').forEach(bar => {
+        bar.addEventListener('mouseenter', () => {
+            tooltip.textContent = bar.getAttribute('data-tooltip');
+            tooltip.hidden = false;
+        });
+        bar.addEventListener('mousemove', (ev) => {
+            const tw = tooltip.offsetWidth;
+            let left = ev.clientX + 14;
+            if (left + tw > window.innerWidth - 8) left = ev.clientX - tw - 14;
+            tooltip.style.left = left + 'px';
+            tooltip.style.top  = (ev.clientY - 30) + 'px';
+        });
+        bar.addEventListener('mouseleave', () => { tooltip.hidden = true; });
+    });
+}
+
+/* ─── Team select ─── */
+function populateTeamSelect() {
+    const sel = document.getElementById('team-select');
+    sel.disabled = false;
+    sel.innerHTML = '<option value="">-- チームを選択 --</option>' +
+        teamIndex.map(t => `<option value="${esc(t.id)}">${esc(t.displayName)}</option>`).join('');
+    sel.addEventListener('change', () => {
+        selectTeam(sel.value, true);
+    });
+
+    // Deep link: ?team=ABBR
+    const qAbbr = new URLSearchParams(location.search).get('team');
+    if (qAbbr) {
+        const match = teamIndex.find(t => t.abbreviation.toLowerCase() === qAbbr.toLowerCase());
+        if (match) {
+            sel.value = match.id;
+            selectTeam(match.id, false);
+        }
+    }
+}
+
+function selectTeam(teamId, pushUrl) {
+    const t = teamIndex.find(x => x.id === teamId);
+    if (!t) {
+        document.getElementById('team-detail').innerHTML = '<div class="msg">プルダウンからチームを選択してください</div>';
+        if (pushUrl) setUrlTeam(null);
+        return;
+    }
+    renderTeamDetail(t);
+    if (pushUrl) setUrlTeam(t.abbreviation);
+}
+
+function setUrlTeam(abbr) {
+    const url = new URL(window.location.href);
+    if (abbr) url.searchParams.set('team', abbr);
+    else url.searchParams.delete('team');
+    history.pushState({ team: abbr }, '', url);
+}
+
+window.addEventListener('popstate', () => {
+    const sel = document.getElementById('team-select');
+    const qAbbr = new URLSearchParams(location.search).get('team');
+    const match = qAbbr && teamIndex.find(t => t.abbreviation.toLowerCase() === qAbbr.toLowerCase());
+    sel.value = match ? match.id : '';
+    selectTeam(match ? match.id : '', false);
+});
+
+/* ─── Team detail render (meter + legend + delta grid + roster table) ─── */
+function renderTeamDetail(team) {
+    const payroll = teamPayroll[team.id];
+    const wrap = document.getElementById('team-detail');
+
+    if (!payroll) {
+        wrap.innerHTML = '<div class="msg error">このチームのサラリーデータを取得できませんでした</div>';
+        return;
+    }
+
+    const total = payroll.total;
+    const zoneKey = classifyZone(total);
+    const zone = ZONES[zoneKey];
+
+    const capBarsHtml = renderCapBars(total, zone.bg, team.displayName, team.logo);
+
+    const deltaDefs = [
+        { key: 'cap',    label: 'Cap' },
+        { key: 'tax',    label: 'Tax' },
+        { key: 'apron1', label: '1st Apron' },
+        { key: 'apron2', label: '2nd Apron' },
+    ];
+    const deltaHtml = deltaDefs.map(d => {
+        const diff = CAP_DATA[d.key] - total; // positive = room remaining, negative = amount over
+        const over = diff < 0;
+        const color = over ? '#d03b3b' : '#0ca30c';
+        const text = over ? `${fmtUSD(Math.abs(diff))} 超過` : `${fmtUSD(diff)} 余裕`;
+        return `<div class="t-stat-cell">
+            <div class="t-stat-lbl">${d.label}</div>
+            <div class="t-stat-val" style="font-size:14px;color:${color}">${text}</div>
+        </div>`;
+    }).join('');
+
+    const rosterRows = payroll.players.map(p => {
+        const photo = p.headshot
+            ? `<img class="t-roster-photo" src="${esc(p.headshot)}" alt="" onerror="this.src='${FALLBACK_IMG}'">`
+            : `<img class="t-roster-photo" src="${FALLBACK_IMG}" alt="">`;
+        return `<tr>
+            <td>
+                <div class="t-roster-player-cell">
+                    ${photo}
+                    <div class="t-roster-name-row"><span class="t-roster-name">${esc(p.name)}</span><span class="t-roster-pos">${esc(p.position)}</span></div>
+                </div>
+            </td>
+            <td class="sal-val-col">${fmtUSD(p.salary)}</td>
+        </tr>`;
+    }).join('');
+
+    const pieHtml = renderSalaryPie(payroll, total);
+
+    wrap.innerHTML = `
+        <div class="t-head">
+            <img src="${esc(team.logo || FALLBACK_IMG)}" alt="" onerror="this.src='${FALLBACK_IMG}'">
+            <div>
+                <div class="t-head-name">${esc(team.displayName)}</div>
+                <div class="t-head-total">${CAP_DATA.seasonLabel}シーズン 合計サラリー: <strong>${fmtUSD(total)}</strong></div>
+            </div>
+            <span class="zone-pill" style="background:${zone.bg};color:${zone.fg};margin-left:auto;font-size:12px;padding:5px 14px">${esc(zone.label)}</span>
+        </div>
+
+        <div class="cap-bars">${capBarsHtml}</div>
+
+        <div class="t-stats-grid" style="margin-bottom:24px">${deltaHtml}</div>
+
+        <div class="section-header" style="margin-top:0">
+            <h2 style="font-size:15px">ロースター別サラリー</h2>
+        </div>
+        <div class="sal-detail-grid">
+            ${pieHtml}
+            <div class="t-roster-wrap">
+                <table class="t-roster-table sal-roster-table">
+                    <thead><tr><th class="player-col">Player</th><th class="sal-val-col">${CAP_DATA.seasonLabel} Salary</th></tr></thead>
+                    <tbody>${rosterRows}</tbody>
+                </table>
+            </div>
+        </div>
+        <div class="chart-tooltip" id="pie-tooltip" hidden></div>
+        <div class="msg" style="text-align:left;padding:14px 2px 0;font-size:11px">
+            ※ ESPN公開APIの契約データに基づく概算値です。直近のFA署名・トレード・ノンギャランティード契約の扱いにより、実際の値と差異が生じる場合があります。<br>
+            ※ このAPIは翌シーズン以降の契約額を公開していないため、複数年での表示はできません（現シーズンの金額のみ）。<br>
+            ※「-」は本当に$0なのではなく、このAPIに${CAP_DATA.seasonLabel}シーズンの契約データがまだ登録されていない選手です（合計サラリーにも含めていません）。${payroll.missingCount ? `このチームは${payroll.missingCount}名が該当します。` : ''}
+        </div>
+    `;
+
+    const pieTooltip = wrap.querySelector('#pie-tooltip');
+    wrap.querySelectorAll('.sal-pie-slice').forEach(slice => {
+        slice.addEventListener('mouseenter', () => {
+            pieTooltip.textContent = slice.getAttribute('data-tooltip');
+            pieTooltip.hidden = false;
+        });
+        slice.addEventListener('mousemove', (ev) => {
+            const tw = pieTooltip.offsetWidth;
+            let left = ev.clientX + 14;
+            if (left + tw > window.innerWidth - 8) left = ev.clientX - tw - 14;
+            pieTooltip.style.left = left + 'px';
+            pieTooltip.style.top  = (ev.clientY - 30) + 'px';
+        });
+        slice.addEventListener('mouseleave', () => { pieTooltip.hidden = true; });
+    });
+}
+
+/* ─── Init ─── */
+async function init() {
+    renderCapStats();
+    await fetchAllPayrolls();
+    renderLeagueChart();
+    populateTeamSelect();
+}
+
+init();
+
+document.getElementById('last-updated').textContent =
+    new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' });
+</script>
+<script src="nba-common.js"></script>
+</body>
+</html>

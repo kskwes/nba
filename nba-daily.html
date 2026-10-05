@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NBA Daily</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&display=swap">
     <link rel="stylesheet" href="nba-common.css">
     <style>
         /* ─── Refresh button ─── */
@@ -32,118 +35,125 @@
             line-height: 1;
         }
 
-        .refresh-btn:hover:not(:disabled) { color: #fff; border-color: var(--blue); }
+        .refresh-btn:hover:not(:disabled) { color: var(--text); border-color: var(--accent); }
         .refresh-btn:disabled { opacity: 0.4; cursor: not-allowed; }
         .refresh-btn.spinning { animation: spin 0.8s linear infinite; }
 
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        /* ─── Section (game results) ─── */
-        .section { margin-bottom: 36px; }
+        /* ─── Section ─── */
+        .section { margin-bottom: 32px; }
 
         .section-header {
             display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 18px;
+            align-items: baseline;
+            gap: 10px;
+            margin-bottom: 12px;
         }
 
-        .section-bar { width: 4px; height: 26px; background: var(--red); border-radius: 2px; flex-shrink: 0; }
-
-        .section-header h2 { font-size: 18px; font-weight: 800; }
+        .section-header h2 {
+            font-family: var(--font-score); font-size: 17px; font-weight: 600;
+            letter-spacing: 1.5px; text-transform: uppercase;
+        }
 
         .date-badge {
-            font-size: 10px;
-            color: var(--muted);
-            background: var(--surface2);
-            padding: 3px 12px;
-            border-radius: 20px;
-            border: 1px solid var(--border);
+            font-family: var(--font-score); font-size: 12px; letter-spacing: 1px;
+            color: var(--muted); text-transform: uppercase;
         }
 
-        /* ─── Game Grid / Card ─── */
+        /* ─── Game Grid / Card（放送スコアボード風） ─── */
         .games-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
-            gap: 14px;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 10px;
         }
 
         .card {
-            display: block;
-            text-decoration: none;
-            color: inherit;
             background: var(--surface);
-            border-radius: 16px;
-            padding: 18px 20px 20px;
             border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
             transition: transform 0.15s, border-color 0.15s;
-            cursor: pointer;
+        }
+        .card.clickable { cursor: pointer; }
+        .card.clickable:hover { transform: translateY(-2px); border-color: #3a3a44; }
+        .card.clickable:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+        .card.live {
+            border-color: var(--live);
+            box-shadow: 0 0 0 1px rgba(255,77,66,.35), 0 0 18px rgba(255,77,66,.18);
         }
 
-        .card { cursor: default; }
-        .card.clickable { cursor: pointer; }
-        .card.clickable:hover { transform: translateY(-2px); border-color: var(--blue); }
-        .card.clickable:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+        .g-team { display: flex; align-items: center; gap: 10px; padding-right: 12px; min-height: 48px; }
+        .g-team + .g-team { border-top: 1px solid var(--line-soft); }
+        .g-team.lose { opacity: .45; }
 
+        /* --tc / --tc2 / --tc-text は JS でチームカラーから設定 */
+        .g-chip {
+            width: 48px; align-self: stretch; flex-shrink: 0;
+            display: grid; place-items: center;
+            background: var(--tc, var(--surface2));
+            box-shadow: inset 0 -3px 0 var(--tc2, transparent);
+            color: var(--tc-text, #fff);
+            font-family: var(--font-score); font-weight: 600; font-size: 13px; letter-spacing: .5px;
+        }
+
+        .g-info { flex: 1; min-width: 0; padding: 6px 0; }
+        .g-name { font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .g-meta {
+            display: flex; flex-wrap: wrap; gap: 0 5px;
+            font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums;
+        }
+        .g-dot { color: var(--border); }
+        .streak { font-weight: 700; }
+        .streak.w { color: var(--pos); }
+        .streak.l { color: var(--neg); }
+
+        .g-score {
+            font-family: var(--font-score); font-weight: 600; font-size: 28px; line-height: 1;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .g-series {
+            padding: 4px 12px; font-size: 10.5px; color: var(--muted);
+            border-top: 1px solid var(--line-soft);
+        }
+
+        .g-foot {
+            display: flex; justify-content: space-between; align-items: center; gap: 8px;
+            padding: 5px 12px; background: var(--surface-deep); border-top: 1px solid var(--line-soft);
+            font-family: var(--font-score); font-size: 11.5px; letter-spacing: 1px;
+            text-transform: uppercase; color: var(--muted); white-space: pre;
+        }
+        .g-status.final { color: var(--text-dim); }
+        .g-status.live { color: var(--live); }
+        .g-status.live::before {
+            content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+            background: var(--live); margin-right: 6px; vertical-align: 2px;
+            animation: pulse 1.4s ease-in-out infinite;
+        }
+        .g-box { transition: color .15s; }
+        .card.clickable:hover .g-box { color: var(--accent); }
+
+        @keyframes pulse { 50% { opacity: .25; } }
+        @media (prefers-reduced-motion: reduce) {
+            .g-status.live::before { animation: none; }
+            .card.clickable:hover { transform: none; }
+        }
+
+        /* ステータス帯（ボックススコアのモーダルで使用） */
         .status {
             text-align: center;
-            font-size: 11px;
-            font-weight: 700;
-            letter-spacing: 1.2px;
+            font-family: var(--font-score);
+            font-size: 12px;
+            letter-spacing: 1.5px;
             text-transform: uppercase;
-            padding: 4px 0;
-            border-radius: 6px;
-            margin-bottom: 16px;
+            padding: 3px 0;
+            border-radius: 4px;
+            margin-bottom: 14px;
+            white-space: pre;
         }
-
-        .status-final { background: rgba(201,8,42,.15); color: var(--red); }
-        .status-live  { background: rgba(76,175,80,.15); color: #4caf50; animation: blink 1.6s ease-in-out infinite; }
-        .status-sched { background: rgba(122,133,163,.1); color: var(--muted); }
-
-        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.5} }
-
-        .matchup { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
-
-        .team { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; text-align: center; }
-
-        .logo { width: 60px; height: 60px; object-fit: contain; filter: drop-shadow(0 2px 6px rgba(0,0,0,.6)); }
-
-        .team-name { font-size: 12.5px; font-weight: 700; line-height: 1.3; color: #cdd5ef; }
-        .team.winner .team-name { color: #fff; }
-        .team-record { font-size: 11.5px; color: var(--muted); }
-        .team-rank {
-            font-size: 11px; font-weight: 700; color: var(--red);
-            background: rgba(201,8,42,.12); padding: 1px 8px; border-radius: 10px;
-        }
-        .team-l10-row {
-            display: flex; align-items: center; gap: 5px; margin-top: 2px;
-        }
-        .team-l10 {
-            font-size: 10.5px; color: var(--muted);
-        }
-        .team-streak-badge {
-            font-size: 8px; line-height: 1;
-        }
-
-        .center {
-            display: flex; align-items: center; gap: 4px;
-            min-width: 96px; justify-content: center; flex-shrink: 0; align-self: center;
-        }
-
-        .score { font-size: 28px; font-weight: 900; color: var(--muted); min-width: 38px; text-align: center; line-height: 1; }
-        .score.win { color: #fff; }
-        .dash { font-size: 20px; color: #4a5270; font-weight: 300; }
-        .vs { font-size: 16px; font-weight: 800; color: var(--muted); letter-spacing: 2px; }
-
-        .series-note {
-            text-align: center;
-            font-size: 10.5px;
-            color: var(--muted);
-            font-weight: 600;
-            letter-spacing: 0.3px;
-            margin-top: 8px;
-        }
-
+        .status-final { background: var(--surface2); color: var(--text-dim); }
+        .status-live  { background: rgba(255,77,66,.14); color: var(--live); }
 
         /* ─── Conf sub-tabs ─── */
         .conf-tabs { display: flex; gap: 8px; margin-bottom: 20px; }
@@ -152,14 +162,14 @@
             padding: 6px 22px;
             background: var(--surface2);
             border: 1px solid var(--border);
-            border-radius: 20px;
+            border-radius: 6px;
             color: var(--muted);
             font-size: 13px; font-weight: 700;
             cursor: pointer; transition: all 0.15s;
             text-decoration: none;
         }
 
-        .conf-btn.active { background: var(--red); color: #fff; border-color: var(--red); }
+        .conf-btn.active { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 
         .conf-panel { display: none; }
         .conf-panel.active { display: block; }
@@ -179,7 +189,7 @@
 
         .st-table td {
             padding: 8px 10px; text-align: right;
-            border-bottom: 1px solid rgba(37,45,74,0.5);
+            border-bottom: 1px solid var(--line-soft);
         }
 
         .st-table td:nth-child(1) { text-align: center; color: var(--muted); font-size: 11px; }
@@ -191,8 +201,8 @@
 
         .st-abbr { font-weight: 700; }
 
-.st-table tr.edge-playoff td { border-bottom: 2px solid var(--red); }
-        .st-table tr.edge-playin td  { border-bottom: 1px dashed rgba(122,133,163,0.35); }
+        .st-table tr.edge-playoff td { border-bottom: 2px solid var(--accent); }
+        .st-table tr.edge-playin td  { border-bottom: 1px dashed var(--border); }
 
         /* ─── Standings + Lottery side-by-side ─── */
         .standings-lottery-wrap {
@@ -209,7 +219,10 @@
             min-width: 0;
         }
 
-        .lottery-section h3 { font-size: 18px; font-weight: 800; margin-bottom: 20px; }
+        .lottery-section h3 {
+            font-family: var(--font-score); font-size: 17px; font-weight: 600;
+            letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 20px;
+        }
 
         .lottery-sub { font-size: 11px; color: var(--muted); margin-top: 12px; }
 
@@ -225,13 +238,13 @@
 
         .lt-table td {
             padding: 8px 10px; text-align: right;
-            border-bottom: 1px solid rgba(37,45,74,0.5);
+            border-bottom: 1px solid var(--line-soft);
         }
 
         .lt-table td:nth-child(1) { text-align: center; color: var(--muted); font-size: 11px; }
         .lt-table td:nth-child(2) { text-align: left; }
 
-        .lt-odds { color: #4caf50; font-weight: 700; }
+        .lt-odds { color: var(--pos); font-weight: 700; }
         .lt-odds-dim { color: var(--muted); font-weight: 600; }
         .playin-mark { color: var(--muted); font-size: 10px; margin-left: 2px; }
         .lottery-note { font-size: 10.5px; color: var(--muted); margin-top: 12px; line-height: 1.6; }
@@ -257,11 +270,6 @@
 
         @media (max-width: 480px) {
             .games-grid { grid-template-columns: 1fr; }
-            header h1 { font-size: 22px; }
-            .logo { width: 48px; height: 48px; }
-            .score { font-size: 22px; }
-            .team-name { font-size: 11px; }
-            .center { min-width: 76px; }
             .tab-btn { padding: 9px 14px; font-size: 13px; }
             .conf-btn { font-size: 12px; padding: 5px 14px; }
         }
@@ -280,28 +288,17 @@
             grid-template-columns: repeat(3, minmax(0, 1fr));
         }
 
-        /* カードを3列幅に合わせてスケールダウン */
-        .games-main .card { padding: 12px 10px 14px; }
-        .games-main .logo { width: 44px; height: 44px; }
-        .games-main .score { font-size: 22px; min-width: 30px; }
-        .games-main .center { min-width: 76px; }
-        .games-main .team-name { font-size: 11px; }
-        .games-main .team-record { font-size: 10px; }
-        .games-main .team-rank { font-size: 10px; padding: 1px 5px; }
-        .games-main .team-l10 { font-size: 10px; }
-        .games-main .matchup { gap: 4px; }
-
         .top-players-col {
             background: var(--surface);
             border: 1px solid var(--border);
-            border-radius: 16px;
+            border-radius: 8px;
             overflow: hidden;
         }
 
         .tp-subtitle {
             font-size: 10px;
             color: var(--muted);
-            background: rgba(122,133,163,0.1);
+            background: var(--surface2);
             padding: 2px 8px;
             border-radius: 10px;
             border: 1px solid var(--border);
@@ -312,7 +309,8 @@
             align-items: flex-start;
             gap: 9px;
             padding: 10px 14px;
-            border-bottom: 1px solid rgba(37,45,74,0.5);
+            border-bottom: 1px solid var(--line-soft);
+            box-shadow: inset 3px 0 0 var(--tc, transparent);
         }
 
         .tp-item:last-child { border-bottom: none; }
@@ -326,13 +324,14 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 10px;
-            font-weight: 800;
+            font-family: var(--font-score);
+            font-size: 11px;
+            font-weight: 600;
             color: var(--muted);
             margin-top: 3px;
         }
 
-        .tp-item:nth-child(-n+3) .tp-rank { background: var(--blue); color: #fff; }
+        .tp-item:nth-child(-n+3) .tp-rank { background: var(--accent); color: var(--on-accent); }
 
         .tp-photo {
             width: 34px;
@@ -385,18 +384,17 @@
             margin-bottom: 5px;
         }
 
-        .tp-pts-val { font-size: 14px; font-weight: 900; color: #fff; }
-        .tp-reb-val { font-size: 12px; font-weight: 700; color: #64b5f6; }
-        .tp-ast-val { font-size: 12px; font-weight: 700; color: #81c784; }
-        .tp-stat-sep { font-size: 10px; color: #4a5270; margin: 0 1px; }
+        .tp-pts-val { font-family: var(--font-score); font-size: 19px; font-weight: 600; line-height: 1; color: var(--accent); }
+        .tp-reb-val, .tp-ast-val { font-family: var(--font-score); font-size: 14px; font-weight: 500; color: var(--text); }
+        .tp-stat-sep { font-size: 10px; color: var(--border); margin: 0 2px; }
         .tp-stat-lbl { font-size: 9px; color: var(--muted); }
 
         .tp-total-badge {
             margin-left: 5px;
             font-size: 10px;
             font-weight: 700;
-            color: var(--red);
-            background: rgba(201,8,42,0.12);
+            color: var(--accent);
+            background: rgba(245,183,0,0.12);
             padding: 1px 6px;
             border-radius: 8px;
         }
@@ -406,18 +404,18 @@
         .tp-chip {
             font-size: 9.5px;
             color: var(--muted);
-            background: rgba(37,45,74,0.8);
+            background: var(--surface2);
             padding: 1px 5px;
             border-radius: 4px;
             white-space: nowrap;
         }
 
-        .tp-chip strong { color: #c8cfe8; }
+        .tp-chip strong { color: var(--text-dim); }
 
         .injury-players-col {
             background: var(--surface);
             border: 1px solid var(--border);
-            border-radius: 16px;
+            border-radius: 8px;
             overflow: hidden;
         }
 
@@ -426,7 +424,7 @@
             align-items: center;
             gap: 9px;
             padding: 8px 14px;
-            border-bottom: 1px solid rgba(37,45,74,0.5);
+            border-bottom: 1px solid var(--line-soft);
         }
         .ip-item:last-child { border-bottom: none; }
 
@@ -456,7 +454,7 @@
             flex-shrink: 0; font-size: 10px; font-weight: 800;
             padding: 2px 6px; border-radius: 5px; letter-spacing: 0.5px;
         }
-        .ip-out  { background: rgba(201,8,42,0.15);   color: var(--red); }
+        .ip-out  { background: rgba(255,77,66,0.14);  color: var(--live); }
         .ip-q    { background: rgba(255,193,7,0.15);   color: #ffc107; }
         .ip-d    { background: rgba(255,152,0,0.15);   color: #ff9800; }
         .ip-dtd  { background: rgba(122,133,163,0.15); color: var(--muted); }
@@ -498,7 +496,7 @@
         .box-modal-dialog {
             position: relative; width: 100%; max-width: 760px; max-height: 90vh;
             overflow-y: auto; background: var(--surface);
-            border: 1px solid var(--border); border-radius: 16px;
+            border: 1px solid var(--border); border-radius: 10px;
             padding: 20px 20px 24px;
         }
         .box-modal-close {
@@ -512,8 +510,8 @@
         .box-team { display: flex; flex-direction: column; align-items: center; gap: 4px; opacity: .6; }
         .box-team.winner, .box-modal .status-live ~ .box-scoreline .box-team { opacity: 1; }
         .box-team img { width: 52px; height: 52px; object-fit: contain; }
-        .box-team-abbr { font-size: 13px; font-weight: 800; letter-spacing: 1px; }
-        .box-score { font-size: 30px; font-weight: 900; display: flex; gap: 10px; }
+        .box-team-abbr { font-family: var(--font-score); font-size: 14px; font-weight: 600; letter-spacing: 1px; }
+        .box-score { font-family: var(--font-score); font-size: 34px; font-weight: 600; display: flex; gap: 10px; font-variant-numeric: tabular-nums; }
         .box-score span { color: var(--muted); font-weight: 400; }
         .box-team-tabs { margin: 18px 0 10px; }
         .box-team-panel { display: none; }
@@ -527,7 +525,7 @@
             font-weight: 600; min-width: 120px;
         }
         .box-pos { color: var(--muted); font-size: 10px; margin-left: 4px; font-weight: 400; }
-        .box-pts { font-weight: 800; color: var(--gold); }
+        .box-pts { font-weight: 800; color: var(--accent); }
         .box-sep td {
             text-align: left; color: var(--muted); font-size: 10px; font-weight: 700;
             letter-spacing: 1px; text-transform: uppercase; background: var(--surface2);
@@ -548,23 +546,19 @@
         }
     </style>
 </head>
-<body>
+<body class="theme-broadcast">
 
 <header>
-    <h1>NBA <em>Daily</em></h1>
+    <a class="site-logo" href="nba-daily.html">NBA <em>Daily</em></a>
+    <nav class="site-nav" aria-label="Pages">
+        <a class="on" href="nba-daily.html" aria-current="page">Daily</a>
+        <a href="nba-player.html">Players</a>
+        <a href="nba-playoff.html">Playoffs</a>
+        <a href="nba-salary.html">Salary</a>
+    </nav>
     <div class="header-right">
         <div class="last-updated" id="last-updated"></div>
         <button class="refresh-btn" id="refresh-btn" aria-label="Refresh">↻</button>
-    </div>
-    <div class="hamburger-wrap" id="hamburger-wrap">
-        <button class="hamburger-btn" id="hamburger-btn" aria-label="Menu">
-            <span></span><span></span><span></span>
-        </button>
-        <nav class="hamburger-menu">
-            <a href="nba-playoff.html" target="_blank">Playoffs</a>
-            <a href="nba-player.html" target="_blank">Player Stats</a>
-            <a href="nba-salary.html" target="_blank">Salary</a>
-        </nav>
     </div>
 </header>
 
@@ -584,7 +578,6 @@
             <div class="games-main">
                 <section class="section">
                     <div class="section-header">
-                        <div class="section-bar"></div>
                         <h2>Today's Games</h2>
                         <span class="date-badge" id="today-date"></span>
                     </div>
@@ -594,7 +587,6 @@
                 </section>
                 <section class="section">
                     <div class="section-header">
-                        <div class="section-bar"></div>
                         <h2>Tomorrow's Schedule</h2>
                         <span class="date-badge" id="tomorrow-date"></span>
                     </div>
@@ -604,7 +596,6 @@
                 </section>
                 <section class="section">
                     <div class="section-header">
-                        <div class="section-bar"></div>
                         <h2>Yesterday's Games</h2>
                         <span class="date-badge" id="yesterday-date"></span>
                     </div>
@@ -616,7 +607,6 @@
             <aside class="games-side">
                 <section class="section top-players-wrap">
                     <div class="section-header">
-                        <div class="section-bar"></div>
                         <h2>Top 10 Players</h2>
                         <span class="date-badge" id="top-players-date"></span>
                     </div>
@@ -628,7 +618,6 @@
                 </section>
                 <section class="section injury-players-wrap">
                     <div class="section-header">
-                        <div class="section-bar"></div>
                         <h2>Today's Injury Report</h2>
                         <span class="date-badge" id="injury-date"></span>
                     </div>
@@ -910,10 +899,17 @@ function streakBadge(streak) {
     if (!streak) return '';
     const m = streak.match(/^([WL])\s*(\d+)/);
     if (!m) return '';
-    const type = m[1], count = parseInt(m[2]);
-    if (type === 'W' && count >= 1) return `<span class="team-streak-badge">[${count}] 🔥</span>`;
-    if (type === 'L' && count >= 1) return `<span class="team-streak-badge">[${count}] 🥶</span>`;
-    return '';
+    return `<span class="streak ${m[1] === 'W' ? 'w' : 'l'}">${m[1]}${m[2]}</span>`;
+}
+
+// ESPNのチームカラー（"1d428a" 形式）→ カード用CSS変数
+function teamColorVars(color, alt) {
+    const hex = c => /^[0-9a-f]{6}$/i.test(c || '') ? `#${c}` : null;
+    const c1 = hex(color) || '#2a2a31';
+    const c2 = hex(alt) || c1;
+    const n = parseInt(c1.slice(1), 16);
+    const lum = (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
+    return `--tc:${c1};--tc2:${c2};--tc-text:${lum > 0.6 ? '#111' : '#fff'}`;
 }
 
 /* ── Game render ── */
@@ -965,36 +961,34 @@ function buildCard(event) {
     let statusLabel, statusClass;
     if (isOver) {
         statusLabel = (isPlayoffMode && gameNumber) ? `FINAL  •  ${gameNumber}` : 'FINAL';
-        statusClass = 'status-final';
+        statusClass = 'final';
     } else if (isLive) {
         const tag = (isPlayoffMode && gameNumber) ? `  •  ${gameNumber}` : '';
-        statusLabel = `● LIVE  Q${st.period}  ${st.displayClock}${tag}`;
-        statusClass = 'status-live';
+        statusLabel = `LIVE  Q${st.period}  ${st.displayClock}${tag}`;
+        statusClass = 'live';
     } else {
         const timeStr = new Date(event.date).toLocaleTimeString('en-US', {
             hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Tokyo'
         });
         const tag = (isPlayoffMode && gameNumber) ? `  •  ${gameNumber}` : '';
         statusLabel = `${timeStr} JST${tag}`;
-        statusClass = 'status-sched';
+        statusClass = 'sched';
     }
 
     function info(t, myWins, oppWins) {
         const rk  = rankMap[t.team.id];
         const rec = t.records?.find(r => r.type === 'total') ?? t.records?.[0];
+        const base = {
+            abbr:  normAbbr(t.team.abbreviation) || t.team.displayName,
+            short: t.team.shortDisplayName || t.team.name || t.team.displayName,
+            color: t.team.color,
+            alt:   t.team.alternateColor
+        };
         if (isPlayoffMode && series) {
-            return {
-                logo:   t.team.logo || '',
-                name:   normAbbr(t.team.abbreviation) || t.team.displayName,
-                record: `${myWins}-${oppWins}`,
-                rank:   rk ? `#${rk.rank} Seed` : '',
-                l10:    '',
-                streak: ''
-            };
+            return { ...base, record: `${myWins}-${oppWins}`, rank: rk ? `#${rk.rank} Seed` : '', l10: '', streak: '' };
         }
         return {
-            logo:   t.team.logo || '',
-            name:   normAbbr(t.team.abbreviation) || t.team.displayName,
+            ...base,
             record: rec?.summary || '',
             rank:   rk ? `${rk.conf} #${rk.rank}` : '',
             l10:    rk?.l10 || '',
@@ -1004,34 +998,25 @@ function buildCard(event) {
 
     const aw = info(away, awaySeriesWins, homeSeriesWins);
     const hw = info(home, homeSeriesWins, awaySeriesWins);
+    const showScore = isOver || isLive;
 
-    const centerHTML = (isOver || isLive)
-        ? `<div class="score ${awayWon ? 'win' : ''}">${awayScore || '-'}</div>
-           <div class="dash">-</div>
-           <div class="score ${homeWon ? 'win' : ''}">${homeScore || '-'}</div>`
-        : `<div class="vs">VS</div>`;
-
-    function teamBlock(d, won) {
-        const l10Row = (d.l10 || d.streak)
-            ? `<div class="team-l10-row">
-                   ${d.l10 ? `<span class="team-l10">L10: ${d.l10}</span>` : ''}
-                   ${streakBadge(d.streak)}
-               </div>`
-            : '';
+    function teamRow(d, score, lose) {
+        const meta = [d.record, d.rank, d.l10 ? `L10 ${d.l10}` : '', streakBadge(d.streak)]
+            .filter(Boolean).join('<span class="g-dot">·</span>');
         return `
-        <div class="team ${won ? 'winner' : ''}">
-            <img class="logo" src="${d.logo}" alt="${d.name}"
-                 onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2278%22>🏀</text></svg>'">
-            <div class="team-name">${d.name}</div>
-            <div class="team-record">${d.record}</div>
-            ${d.rank ? `<div class="team-rank">${d.rank}</div>` : ''}
-            ${l10Row}
+        <div class="g-team ${lose ? 'lose' : ''}" style="${teamColorVars(d.color, d.alt)}">
+            <span class="g-chip">${d.abbr}</span>
+            <div class="g-info">
+                <div class="g-name">${d.short}</div>
+                ${meta ? `<div class="g-meta">${meta}</div>` : ''}
+            </div>
+            ${showScore ? `<span class="g-score">${score || '-'}</span>` : ''}
         </div>`;
     }
 
     const card = document.createElement('div');
-    card.className = 'card';
-    if (isOver || isLive) {
+    card.className = 'card' + (isLive ? ' live' : '');
+    if (showScore) {
         card.classList.add('clickable');
         card.tabIndex = 0;
         card.setAttribute('role', 'button');
@@ -1041,13 +1026,13 @@ function buildCard(event) {
         });
     }
     card.innerHTML = `
-        <div class="status ${statusClass}">${statusLabel}</div>
-        <div class="matchup">
-            ${teamBlock(aw, awayWon)}
-            <div class="center">${centerHTML}</div>
-            ${teamBlock(hw, homeWon)}
-        </div>
-        ${(isPlayoffMode && seriesNote) ? `<div class="series-note">${seriesNote}</div>` : ''}`;
+        ${teamRow(aw, awayScore, homeWon)}
+        ${teamRow(hw, homeScore, awayWon)}
+        ${(isPlayoffMode && seriesNote) ? `<div class="g-series">${seriesNote}</div>` : ''}
+        <div class="g-foot">
+            <span class="g-status ${statusClass}">${statusLabel}</span>
+            ${showScore ? '<span class="g-box">Box Score ›</span>' : ''}
+        </div>`;
     return card;
 }
 
@@ -1244,6 +1229,7 @@ async function extractTopPlayers(events) {
                         name:   a.athlete?.displayName || '—',
                         photo:  a.athlete?.headshot?.href || '',
                         team:   teamAbbr,
+                        teamColor: teamData.team?.color || '',
                         pts, reb, ast,
                         total:  pts + reb + ast,
                         fg:     get(iFG),
@@ -1285,7 +1271,7 @@ function renderTopPlayers(players) {
             : `<div class="tp-photo-placeholder">${p.name.charAt(0)}</div>`;
 
         return `
-        <div class="tp-item">
+        <div class="tp-item" style="${/^[0-9a-f]{6}$/i.test(p.teamColor) ? `--tc:#${p.teamColor}` : ''}">
             <div class="tp-rank">${i + 1}</div>
             ${photoEl}
             <div class="tp-body">
