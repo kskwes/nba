@@ -506,7 +506,8 @@
         }
         .box-modal-close:hover { color: var(--text); }
         .box-modal .status { margin: 0 36px 16px; }
-        .box-scoreline { display: flex; align-items: center; justify-content: center; gap: 24px; margin-bottom: 18px; }
+        .box-scoreline { display: flex; align-items: center; justify-content: center; gap: 24px; margin-bottom: 18px; color: inherit; text-decoration: none; }
+        .box-scoreline:hover .box-score { color: var(--accent); }
         .box-team { display: flex; flex-direction: column; align-items: center; gap: 4px; opacity: .6; }
         .box-team.winner, .box-modal .status-live ~ .box-scoreline .box-team { opacity: 1; }
         .box-team img { width: 52px; height: 52px; object-fit: contain; }
@@ -524,6 +525,8 @@
             text-align: left; position: sticky; left: 0; background: var(--surface);
             font-weight: 600; min-width: 120px;
         }
+        .box-player-link { color: inherit; text-decoration: none; }
+        .box-player-link:hover { color: var(--accent); text-decoration: underline; }
         .box-pos { color: var(--muted); font-size: 10px; margin-left: 4px; font-weight: 400; }
         .box-pts { font-weight: 800; color: var(--accent); }
         .box-sep td {
@@ -1078,6 +1081,12 @@ function switchBoxTeam(idx) {
     document.querySelectorAll('.box-team-panel').forEach(p => p.classList.toggle('active', +p.dataset.idx === idx));
 }
 
+// ESPN の links 配列から rel に指定キーを含む href を取り出す
+const espnLink = (links, rel) => (links || []).find(l => l.rel?.includes(rel))?.href || '';
+const espnGameUrl = event => espnLink(event.links, 'summary') || `https://www.espn.com/nba/game/_/gameId/${event.id}`;
+const espnPlayerUrl = athlete => espnLink(athlete?.links, 'playercard')
+    || (athlete?.id ? `https://www.espn.com/nba/player/_/id/${athlete.id}` : '');
+
 function boxTeamTable(teamData) {
     const sg = teamData.statistics?.[0];
     if (!sg?.athletes?.length) return '<div class="msg">No stats available</div>';
@@ -1087,7 +1096,9 @@ function boxTeamTable(teamData) {
 
     const row = a => {
         const pos = a.athlete?.position?.abbreviation || '';
-        const nameCell = `<td class="box-name">${a.athlete?.shortName || a.athlete?.displayName || '—'}
+        const name = a.athlete?.shortName || a.athlete?.displayName || '—';
+        const url  = espnPlayerUrl(a.athlete);
+        const nameCell = `<td class="box-name">${url ? `<a class="box-player-link" href="${url}" target="_blank" rel="noopener">${name}</a>` : name}
             ${pos ? `<span class="box-pos">${pos}</span>` : ''}</td>`;
         if (a.didNotPlay || !a.stats?.length) {
             return `<tr class="box-dnp">${nameCell}<td colspan="${BOX_COLS.length}">${a.reason || 'DNP'}</td></tr>`;
@@ -1144,11 +1155,11 @@ async function openBoxScoreModal(event) {
 
     body.innerHTML = `
         <div class="status ${isOver ? 'status-final' : 'status-live'}">${statusText}</div>
-        <div class="box-scoreline">
+        <a class="box-scoreline" href="${espnGameUrl(event)}" target="_blank" rel="noopener">
             ${teamHead(away, isOver && awayNum > homeNum)}
             <div class="box-score">${away.score ?? '-'}<span>-</span>${home.score ?? '-'}</div>
             ${teamHead(home, isOver && homeNum > awayNum)}
-        </div>
+        </a>
         ${lineHTML}
         <div id="box-players"><div class="msg">Loading box score...</div></div>`;
 
