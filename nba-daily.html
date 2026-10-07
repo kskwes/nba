@@ -304,6 +304,9 @@
             border: 1px solid var(--border);
         }
 
+        .tp-filter { gap: 6px; margin: 0 14px 10px; flex-wrap: wrap; }
+        .tp-filter .conf-btn { padding: 4px 12px; font-size: 12px; }
+
         .tp-item {
             display: flex;
             align-items: flex-start;
@@ -527,6 +530,39 @@
         }
         .box-player-link { color: inherit; text-decoration: none; }
         .box-player-link:hover { color: var(--accent); text-decoration: underline; }
+        /* Team Stats: away(青) / home(橙) の比率バー */
+        .box-modal { --ts-away: #3987e5; --ts-home: #d95926; }
+        .ts-legend { display: flex; justify-content: space-between; margin: 4px 2px 12px; font-size: 12px; font-weight: 700; color: var(--text-dim); }
+        .ts-legend span { display: inline-flex; align-items: center; gap: 6px; }
+        .ts-sw { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+        .ts-sw.a, .ts-a { background: var(--ts-away); }
+        .ts-sw.h, .ts-h { background: var(--ts-home); }
+        .ts-group { color: var(--text-dim); font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+            margin: 14px 0 2px; padding-bottom: 4px; border-bottom: 1px solid var(--border); }
+        .ts-legend + .ts-group { margin-top: 0; }
+        .ts-group small { color: var(--muted); font-weight: 400; letter-spacing: 0; text-transform: none; margin-left: 6px; }
+        .ts-row { padding: 7px 2px; border-bottom: 1px solid var(--line-soft); }
+        .ts-head { display: grid; grid-template-columns: 1fr auto 1fr; align-items: baseline; gap: 8px; }
+        .ts-row .ts-head + * { margin-top: 5px; }
+        .ts-lbl { color: var(--muted); font-size: 10.5px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; text-align: center; }
+        .ts-val { font-family: var(--font-score); font-size: 15px; color: var(--text-dim); font-variant-numeric: tabular-nums; }
+        .ts-val.right { text-align: right; }
+        .ts-val.lead { color: var(--text); font-weight: 600; }
+        .ts-val small { font-family: inherit; font-size: 11px; color: var(--muted); margin: 0 4px; }
+        /* 件数: 両チームの比率を1本のバーで */
+        .ts-bar { display: flex; gap: 2px; height: 6px; }
+        .ts-bar span { min-width: 0; }
+        .ts-bar .ts-a { border-radius: 4px 0 0 4px; }
+        .ts-bar .ts-h { border-radius: 0 4px 4px 0; }
+        .ts-bar.empty span { opacity: .3; }
+        /* 率: 中央から左右に 0〜100% の物差しで */
+        .ts-rate { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; height: 6px; }
+        .ts-track { background: var(--surface2); display: flex; }
+        .ts-track:first-child { justify-content: flex-end; border-radius: 4px 0 0 4px; }
+        .ts-track:last-child { border-radius: 0 4px 4px 0; }
+        .ts-rate .ts-a { border-radius: 4px 0 0 4px; }
+        .ts-rate .ts-h { border-radius: 0 4px 4px 0; }
+        .box-table th.box-adv { color: var(--accent); }
         .box-pos { color: var(--muted); font-size: 10px; margin-left: 4px; font-weight: 400; }
         .box-pts { font-weight: 800; color: var(--accent); }
         .box-sep td {
@@ -612,6 +648,12 @@
                     <div class="section-header">
                         <h2>Top 10 Players</h2>
                         <span class="date-badge" id="top-players-date"></span>
+                    </div>
+                    <div class="conf-tabs tp-filter">
+                        <button class="conf-btn active" data-exp="all">All</button>
+                        <button class="conf-btn" data-exp="rookie">Rookie</button>
+                        <button class="conf-btn" data-exp="sophomore">Sophomore</button>
+                        <button class="conf-btn" data-exp="veteran">Veteran</button>
                     </div>
                     <div class="top-players-col">
                         <div id="top-players">
@@ -1071,6 +1113,151 @@ const BOX_COLS = [
     ['+/-', '+/-', 'plusMinus'],
 ];
 
+// 追加指標（ボックススコアの数値から算出）
+const ADV_COLS = ['TS%', 'eFG%', 'USG%', 'PIE'];
+const BOX_RAW = {
+    min: ['MIN', 'minutes'], pts: ['PTS', 'points'],
+    fg: ['FG', 'fieldGoalsMade-fieldGoalsAttempted'],
+    tp: ['3PT', 'threePointFieldGoalsMade-threePointFieldGoalsAttempted'],
+    ft: ['FT', 'freeThrowsMade-freeThrowsAttempted'],
+    oreb: ['OREB', 'offensiveRebounds'], dreb: ['DREB', 'defensiveRebounds'],
+    ast: ['AST', 'assists'], stl: ['STL', 'steals'], blk: ['BLK', 'blocks'],
+    to: ['TO', 'turnovers', 'TOV'], pf: ['PF', 'fouls'],
+};
+
+// 選手1行を数値に変換（出場していなければ null）
+function parseBoxLine(sg, a) {
+    if (a.didNotPlay || !a.stats?.length) return null;
+    const names = sg.names || [], keys = sg.keys || [];
+    const raw = k => { const i = getStatIdx(names, keys, ...BOX_RAW[k]); return i >= 0 ? String(a.stats[i] ?? '') : ''; };
+    const num = v => parseInt(v) || 0;
+    const pair = v => { const [m, x] = v.split('-'); return [num(m), num(x)]; };
+    const [fgm, fga] = pair(raw('fg')), [tpm, tpa] = pair(raw('tp')), [ftm, fta] = pair(raw('ft'));
+    return {
+        min: num(raw('min')), pts: num(raw('pts')), fgm, fga, tpm, tpa, ftm, fta,
+        oreb: num(raw('oreb')), dreb: num(raw('dreb')), ast: num(raw('ast')),
+        stl: num(raw('stl')), blk: num(raw('blk')), to: num(raw('to')), pf: num(raw('pf')),
+    };
+}
+
+const sumBoxLines = lines => lines.reduce((t, l) => {
+    Object.keys(l).forEach(k => { t[k] = (t[k] || 0) + l[k]; });
+    return t;
+}, {});
+
+const teamBoxTotals = teamData => {
+    const sg = teamData.statistics?.[0];
+    return sumBoxLines((sg?.athletes || []).map(a => parseBoxLine(sg, a)).filter(Boolean));
+};
+
+const pieNum = l => l.pts + l.fgm + l.ftm - l.fga - l.fta + l.dreb + 0.5 * l.oreb
+    + l.ast + l.stl + 0.5 * l.blk - l.pf - l.to;
+
+// tm: 自チーム合計 / game: 両チーム合計。分母が 0 の指標は null
+function advStats(l, tm, game) {
+    const pct = (n, d) => d > 0 ? (100 * n / d).toFixed(1) : null;
+    const tsa = l.fga + 0.44 * l.fta;
+    const tmPoss = tm.fga + 0.44 * tm.fta + tm.to;
+    const gamePie = pieNum(game);
+    return [
+        pct(l.pts, 2 * tsa),
+        pct(l.fgm + 0.5 * l.tpm, l.fga),
+        l.min > 0 ? pct((tsa + l.to) * (tm.min / 5), l.min * tmPoss) : null,
+        gamePie ? (100 * pieNum(l) / gamePie).toFixed(1) : null,
+    ];
+}
+
+// Team Stats（boxscore.teams の statistics から）
+// m: 自チーム / o: 相手チームの値を返す関数（数値は n, 表示用文字列は v）
+// type: split = 件数を1本のバーで比率表示 / rate = 0〜100% の率 / plain = 数値のみ / shared = 両チーム共通の値
+const tsPct = (n, d) => d > 0 ? 100 * n / d : null;
+const tsFmt = x => x == null ? '-' : `${x.toFixed(1)}%`;
+const TEAM_STATS = [
+    ['Shooting', '', [
+        { label: 'FG',  type: 'rate', num: m => m.n('fieldGoalPct'), val: m => m.v('fieldGoalsMade-fieldGoalsAttempted'), sub: m => `${m.v('fieldGoalPct')}%` },
+        { label: '3PT', type: 'rate', num: m => m.n('threePointFieldGoalPct'), val: m => m.v('threePointFieldGoalsMade-threePointFieldGoalsAttempted'), sub: m => `${m.v('threePointFieldGoalPct')}%` },
+        { label: 'FT',  type: 'rate', num: m => m.n('freeThrowPct'), val: m => m.v('freeThrowsMade-freeThrowsAttempted'), sub: m => `${m.v('freeThrowPct')}%` },
+    ]],
+    ['Rebounding', '', [
+        { label: 'REB', type: 'split', num: m => m.n('totalRebounds'), val: m => m.v('totalRebounds'),
+          sub: (m, o) => tsFmt(tsPct(m.n('totalRebounds'), m.n('totalRebounds') + o.n('totalRebounds'))) },
+        { label: 'OREB%', type: 'rate', num: (m, o) => tsPct(m.n('offensiveRebounds'), m.n('offensiveRebounds') + o.n('defensiveRebounds')),
+          val: (m, o) => tsFmt(tsPct(m.n('offensiveRebounds'), m.n('offensiveRebounds') + o.n('defensiveRebounds'))), sub: m => `OR ${m.v('offensiveRebounds')}` },
+        { label: 'DREB%', type: 'rate', num: (m, o) => tsPct(m.n('defensiveRebounds'), m.n('defensiveRebounds') + o.n('offensiveRebounds')),
+          val: (m, o) => tsFmt(tsPct(m.n('defensiveRebounds'), m.n('defensiveRebounds') + o.n('offensiveRebounds'))), sub: m => `DR ${m.v('defensiveRebounds')}` },
+    ]],
+    ['Ball Control', '', [
+        { label: 'AST', type: 'split', num: m => m.n('assists') },
+        { label: 'STL', type: 'split', num: m => m.n('steals') },
+        { label: 'BLK', type: 'split', num: m => m.n('blocks') },
+        { label: 'TO',  type: 'plain', num: m => m.n('turnovers'), lowerBetter: true },
+        { label: 'PF',  type: 'plain', num: m => m.n('fouls'), lowerBetter: true },
+    ]],
+    ['Scoring', '', [
+        { label: 'Paint Pts',  type: 'split', num: m => m.n('pointsInPaint') },
+        { label: 'Fast Break', type: 'split', num: m => m.n('fastBreakPoints') },
+        // ESPN の turnoverPoints は「自チームのTOから失った点」なので相手側の値を使う
+        { label: 'Pts off TO', type: 'split', num: (m, o) => o.n('turnoverPoints'), has: (m, o) => o.v('turnoverPoints') !== '' },
+    ]],
+    ['Game Flow', '', [
+        { label: 'Largest Lead', type: 'split', num: m => m.n('largestLead') },
+        { label: 'Lead Changes', type: 'shared', num: m => m.n('leadChanges'), has: m => m.v('leadChanges') !== '' },
+    ]],
+];
+
+function boxTeamStats(awayTeam, homeTeam) {
+    if (!awayTeam?.statistics?.length || !homeTeam?.statistics?.length) return '<div class="msg">No team stats available</div>';
+    const acc = t => {
+        const v = name => t.statistics.find(x => x.name === name)?.displayValue ?? '';
+        return { v, n: name => parseFloat(v(name)) || 0 };
+    };
+    const A = acc(awayTeam), H = acc(homeTeam);
+    const abA = normAbbr(awayTeam.team?.abbreviation || ''), abH = normAbbr(homeTeam.team?.abbreviation || '');
+
+    const row = r => {
+        const nA = r.num(A, H), nH = r.num(H, A);
+        const vA = r.val ? r.val(A, H) : String(nA), vH = r.val ? r.val(H, A) : String(nH);
+        const subA = r.sub ? r.sub(A, H) : '', subH = r.sub ? r.sub(H, A) : '';
+        const tip = `${r.label}: ${abA} ${vA}${subA ? ` (${subA})` : ''} / ${abH} ${vH}${subH ? ` (${subH})` : ''}`;
+        if (r.type === 'shared') {
+            return `<div class="ts-row" title="${tip}"><div class="ts-head">
+                <span></span><span class="ts-lbl">${r.label} <span class="ts-val lead">${vA}</span></span><span></span>
+            </div></div>`;
+        }
+        const leadA = nA != null && nH != null && (r.lowerBetter ? nA < nH : nA > nH);
+        const leadH = nA != null && nH != null && (r.lowerBetter ? nH < nA : nH > nA);
+        let chart = '';
+        if (r.type === 'split') {
+            const empty = !(nA + nH > 0);
+            chart = `<div class="ts-bar ${empty ? 'empty' : ''}">
+                <span class="ts-a" style="flex:${empty ? 1 : nA} 1 0"></span><span class="ts-h" style="flex:${empty ? 1 : nH} 1 0"></span>
+            </div>`;
+        } else if (r.type === 'rate') {
+            const w = x => Math.max(0, Math.min(100, x ?? 0));
+            chart = `<div class="ts-rate">
+                <div class="ts-track"><span class="ts-a" style="width:${w(nA)}%"></span></div>
+                <div class="ts-track"><span class="ts-h" style="width:${w(nH)}%"></span></div>
+            </div>`;
+        }
+        return `<div class="ts-row" title="${tip}">
+            <div class="ts-head">
+                <span class="ts-val ${leadA ? 'lead' : ''}">${vA}${subA ? `<small>${subA}</small>` : ''}</span>
+                <span class="ts-lbl">${r.label}</span>
+                <span class="ts-val right ${leadH ? 'lead' : ''}">${subH ? `<small>${subH}</small>` : ''}${vH}</span>
+            </div>${chart}
+        </div>`;
+    };
+
+    const groups = TEAM_STATS.map(([title, note, rows]) => {
+        const html = rows.filter(r => r.has ? r.has(A, H) : true).map(row).join('');
+        return html ? `<div class="ts-group">${title}${note ? `<small>${note}</small>` : ''}</div>${html}` : '';
+    }).join('');
+
+    return `<div class="ts-legend">
+        <span><i class="ts-sw a"></i>${abA}</span><span>${abH}<i class="ts-sw h"></i></span>
+    </div>${groups}`;
+}
+
 function closeBoxScoreModal() {
     document.getElementById('box-modal').classList.remove('open');
     document.body.style.overflow = '';
@@ -1087,9 +1274,11 @@ const espnGameUrl = event => espnLink(event.links, 'summary') || `https://www.es
 const espnPlayerUrl = athlete => espnLink(athlete?.links, 'playercard')
     || (athlete?.id ? `https://www.espn.com/nba/player/_/id/${athlete.id}` : '');
 
-function boxTeamTable(teamData) {
+function boxTeamTable(teamData, gameTot) {
     const sg = teamData.statistics?.[0];
     if (!sg?.athletes?.length) return '<div class="msg">No stats available</div>';
+    const tmTot = teamBoxTotals(teamData);
+    const nCols = BOX_COLS.length + ADV_COLS.length;
     const names = sg.names || [];
     const keys  = sg.keys  || [];
     const idx = BOX_COLS.map(([, ...cands]) => getStatIdx(names, keys, ...cands));
@@ -1101,19 +1290,20 @@ function boxTeamTable(teamData) {
         const nameCell = `<td class="box-name">${url ? `<a class="box-player-link" href="${url}" target="_blank" rel="noopener">${name}</a>` : name}
             ${pos ? `<span class="box-pos">${pos}</span>` : ''}</td>`;
         if (a.didNotPlay || !a.stats?.length) {
-            return `<tr class="box-dnp">${nameCell}<td colspan="${BOX_COLS.length}">${a.reason || 'DNP'}</td></tr>`;
+            return `<tr class="box-dnp">${nameCell}<td colspan="${nCols}">${a.reason || 'DNP'}</td></tr>`;
         }
         const cells = idx.map((i, c) => {
             const v = i >= 0 ? (a.stats[i] ?? '-') : '-';
             return `<td class="${BOX_COLS[c][0] === 'PTS' ? 'box-pts' : ''}">${v}</td>`;
         }).join('');
-        return `<tr>${nameCell}${cells}</tr>`;
+        const adv = advStats(parseBoxLine(sg, a), tmTot, gameTot).map(v => `<td>${v ?? '-'}</td>`).join('');
+        return `<tr>${nameCell}${cells}${adv}</tr>`;
     };
 
     const starters = sg.athletes.filter(a => a.starter);
     const bench    = sg.athletes.filter(a => !a.starter);
-    const head = `<tr><th class="box-name">Player</th>${BOX_COLS.map(c => `<th>${c[0]}</th>`).join('')}</tr>`;
-    const sep  = label => `<tr class="box-sep"><td colspan="${BOX_COLS.length + 1}">${label}</td></tr>`;
+    const head = `<tr><th class="box-name">Player</th>${BOX_COLS.map(c => `<th>${c[0]}</th>`).join('')}${ADV_COLS.map(c => `<th class="box-adv">${c}</th>`).join('')}</tr>`;
+    const sep  = label => `<tr class="box-sep"><td colspan="${nCols + 1}">${label}</td></tr>`;
 
     return `<div class="box-table-wrap"><table class="box-table">
         <thead>${head}</thead>
@@ -1175,12 +1365,16 @@ async function openBoxScoreModal(event) {
     // away → home の順に並べる
     const order = [away.team.id, home.team.id];
     teams.sort((a, b) => order.indexOf(a.team?.id) - order.indexOf(b.team?.id));
+    const teamTotals = id => data.boxscore.teams?.find(x => x.team?.id === id);
+    const gameTot = sumBoxLines(teams.map(teamBoxTotals));
 
     el.innerHTML = `
         <div class="conf-tabs box-team-tabs">
-            ${teams.map((t, i) => `<button class="conf-btn box-team-btn" data-idx="${i}" onclick="switchBoxTeam(${i})">${normAbbr(t.team?.abbreviation || '')}</button>`).join('')}
+            <button class="conf-btn box-team-btn" data-idx="0" onclick="switchBoxTeam(0)">Team Stats</button>
+            ${teams.map((t, i) => `<button class="conf-btn box-team-btn" data-idx="${i + 1}" onclick="switchBoxTeam(${i + 1})">${normAbbr(t.team?.abbreviation || '')}</button>`).join('')}
         </div>
-        ${teams.map((t, i) => `<div class="box-team-panel" data-idx="${i}">${boxTeamTable(t)}</div>`).join('')}`;
+        <div class="box-team-panel" data-idx="0">${boxTeamStats(teamTotals(away.team.id), teamTotals(home.team.id))}</div>
+        ${teams.map((t, i) => `<div class="box-team-panel" data-idx="${i + 1}">${boxTeamTable(t, gameTot)}</div>`).join('')}`;
     switchBoxTeam(0);
 }
 
@@ -1197,6 +1391,27 @@ function getStatIdx(names, keys, ...candidates) {
     return -1;
 }
 
+// チームロスターから選手ごとの NBA 経験年数を取得（athleteId → years）
+const rosterExpCache = new Map();
+function fetchTeamExperience(teamId) {
+    if (!rosterExpCache.has(teamId)) {
+        rosterExpCache.set(teamId, fetch(`https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams/${teamId}/roster`)
+            .then(res => res.ok ? res.json() : Promise.reject())
+            .then(d => new Map((d.athletes || [])
+                .filter(a => a.experience?.years != null)
+                .map(a => [String(a.id), a.experience.years])))
+            .catch(() => { rosterExpCache.delete(teamId); return new Map(); }));
+    }
+    return rosterExpCache.get(teamId);
+}
+
+// 新人は years が 0 または 1 で返るため両方 Rookie 扱い
+const expClass = years => years == null ? null
+    : years <= 1 ? 'rookie' : years === 2 ? 'sophomore' : 'veteran';
+
+let topPlayersAll = [];
+let topPlayersFilter = 'all';
+
 async function extractTopPlayers(events) {
     const completed = events.filter(e =>
         e.status.type.completed || e.status.type.state === 'post'
@@ -1204,12 +1419,15 @@ async function extractTopPlayers(events) {
     if (!completed.length) return [];
 
     const summaries = await Promise.all(completed.map(e => fetchBoxScore(e.id)));
+    const teamIds = [...new Set(summaries.flatMap(d => (d?.boxscore?.players || []).map(t => t.team?.id)).filter(Boolean))];
+    const expMaps = new Map(await Promise.all(teamIds.map(async id => [id, await fetchTeamExperience(id)])));
     const players = [];
 
     summaries.forEach(data => {
         if (!data?.boxscore?.players) return;
         data.boxscore.players.forEach(teamData => {
             const teamAbbr = normAbbr(teamData.team?.abbreviation || '');
+            const expMap = expMaps.get(teamData.team?.id);
             (teamData.statistics || []).forEach(sg => {
                 const names = sg.names || [];
                 const keys  = sg.keys  || [];
@@ -1241,6 +1459,7 @@ async function extractTopPlayers(events) {
                         photo:  a.athlete?.headshot?.href || '',
                         team:   teamAbbr,
                         teamColor: teamData.team?.color || '',
+                        exp:    expClass(expMap?.get(String(a.athlete?.id))),
                         pts, reb, ast,
                         total:  pts + reb + ast,
                         fg:     get(iFG),
@@ -1258,12 +1477,28 @@ async function extractTopPlayers(events) {
         });
     });
 
-    return players.sort((a, b) => b.total - a.total).slice(0, 10);
+    return players.sort((a, b) => b.total - a.total);
 }
 
-function renderTopPlayers(players) {
+function setTopPlayers(players) {
+    topPlayersAll = players;
+    renderTopPlayers();
+}
+
+document.querySelectorAll('.tp-filter .conf-btn').forEach(btn =>
+    btn.addEventListener('click', () => {
+        topPlayersFilter = btn.dataset.exp;
+        document.querySelectorAll('.tp-filter .conf-btn').forEach(b => b.classList.toggle('active', b === btn));
+        renderTopPlayers();
+    })
+);
+
+function renderTopPlayers() {
     const el = document.getElementById('top-players');
     if (!el) return;
+    const players = topPlayersAll
+        .filter(p => topPlayersFilter === 'all' || p.exp === topPlayersFilter)
+        .slice(0, 10);
     if (!players.length) {
         el.innerHTML = '<div class="msg">No data</div>';
         return;
@@ -1445,7 +1680,7 @@ async function init() {
         renderGames(resultsEvents,  'today-games');
         renderGames(scheduleEvents, 'tomorrow-games');
         renderGames(yesterdayEvents, 'yesterday-games');
-        extractTopPlayers(topPlayerEvents).then(renderTopPlayers);
+        extractTopPlayers(topPlayerEvents).then(setTopPlayers);
         fetchInjuryPlayers(todayEvents).then(renderInjuryPlayers);
 
     } catch (err) {
