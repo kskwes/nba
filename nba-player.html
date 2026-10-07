@@ -148,6 +148,29 @@
             border-radius: 8px;
             overflow: hidden;
         }
+        /* 選手の Season Stats: PTS を大きく、REB/AST/STL/BLK を2段に */
+        .stats-big.stats-hero { grid-template-columns: 1.6fr 1fr 1fr; grid-template-rows: auto auto; }
+        .stats-hero .stat-box { display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 12px 8px; }
+        .stats-hero .stat-box.hero { grid-row: span 2; }
+        .stats-hero .stat-box .val { font-size: 24px; }
+        .stats-hero .stat-box.hero .val { font-size: 48px; }
+        .stats-hero .stat-box.hero .lbl { font-size: 11px; }
+        .stat-delta { font-size: 10.5px; color: var(--muted); margin-top: 4px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+        .stat-delta .up { color: var(--pos); font-weight: 700; }
+        .stat-delta .down { color: var(--neg); font-weight: 700; }
+        .stat-box.hero .stat-delta { font-size: 12px; margin-top: 8px; }
+
+        /* Season Stats の詳細: テーマ別ミニタイル */
+        .stats-detail.sd { background: none; border: none; display: grid; gap: 12px; overflow: visible; }
+        .sd-title { color: var(--muted); font-size: 10.5px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px; }
+        .sd-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+        .sd-tile { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 10px; text-align: center; }
+        .sd-val { font-family: var(--font-score); font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.1; }
+        .sd-sub { color: var(--muted); font-size: 10.5px; margin-top: 2px; font-variant-numeric: tabular-nums; }
+        .sd-bar { height: 4px; background: var(--surface2); border-radius: 4px; margin-top: 7px; overflow: hidden; }
+        .sd-bar span { display: block; height: 100%; background: var(--accent); border-radius: 4px; }
+        .sd-lbl { color: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: .5px; margin-top: 6px; }
+
         .stats-row {
             display: grid;
             gap: 2px;
@@ -214,6 +237,9 @@
             .p-name { font-size: 20px; }
             .p-photo { width: 72px; height: 72px; }
             .stat-box .val { font-size: 22px; }
+            .stats-big.stats-hero { grid-template-columns: 1.4fr 1fr 1fr; }
+            .stats-hero .stat-box .val { font-size: 20px; }
+            .stats-hero .stat-box.hero .val { font-size: 40px; }
             header h1 { font-size: 20px; }
         }
 
@@ -225,7 +251,7 @@
 
         @media (max-width: 380px) {
             .stats-big { grid-template-columns: repeat(2, 1fr); }
-            .t-stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .stats-big.stats-hero { grid-template-columns: 1.3fr 1fr 1fr; }
         }
 
         /* ── Two-column main layout ── */
@@ -444,31 +470,6 @@
         .rank-badge.top10 { background: rgba(245,183,0,0.14); color: var(--accent); }
         .rank-badge.other { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }
 
-        /* ── Team detail stats grid ── */
-        .t-stats-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 8px;
-        }
-        .t-stat-cell {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 10px 8px;
-            text-align: center;
-        }
-        .t-stat-lbl {
-            font-size: 10px;
-            color: var(--muted);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 3px;
-        }
-        .t-stat-val { font-size: 18px; font-weight: 900; line-height: 1.1; }
-        @media (max-width: 600px) {
-            .t-stats-grid { grid-template-columns: repeat(3, 1fr); }
-        }
-
         /* ── Roster Stats Table ── */
         .t-roster-wrap {
             overflow-x: auto;
@@ -638,14 +639,15 @@
                         <h2>Season Stats</h2>
                         <span id="season-badge" class="badge"></span>
                     </div>
-                    <div id="stats-big" class="stats-big"></div>
-                    <div id="stats-detail" class="stats-detail"></div>
+                    <div id="stats-big" class="stats-big stats-hero"></div>
+                    <div id="stats-detail" class="stats-detail sd"></div>
                 </div>
 
                 <!-- Recent Stats -->
                 <div class="lc-block">
                     <div class="section-header">
                         <h2>Recent Stats</h2>
+                        <span id="recent-season-badge" class="badge"></span>
                     </div>
                     <div id="chart-wrap">
                         <div class="msg">Select a player to view stats</div>
@@ -674,8 +676,8 @@
                         <h2>Season Stats</h2>
                         <span id="t-season-badge" class="badge"></span>
                     </div>
-                    <div id="t-stats-big" class="stats-big"></div>
-                    <div id="t-stats-detail"></div>
+                    <div id="t-stats-big" class="stats-big stats-hero"></div>
+                    <div id="t-stats-detail" class="stats-detail sd"></div>
                 </div>
 
                 <!-- Roster Stats -->
@@ -706,7 +708,7 @@
                 <div class="sl-header">
                     <div class="sl-title-row">
                         <h2 class="sl-title">Stats Leaders</h2>
-                        <span class="sl-season-badge" id="sl-season-badge">2024-25</span>
+                        <span class="sl-season-badge" id="sl-season-badge"></span>
                     </div>
                     <div class="sl-tabs" id="sl-tabs"></div>
                 </div>
@@ -946,42 +948,139 @@ async function loadTeamStandingsInfo(teamId, abbreviation) {
     }
 }
 
-/* ─── Team Stats (ESPN core API: /seasons/{year}/types/2/teams/{id}/statistics) ─── */
-let teamStatsCache = null;
+/* ─── Advanced stats (TS% / eFG% / USG% / PIE) ─── */
+// l: { pts, fgm, fga, tpm, fta, to, min }（1試合 or シーズン平均）
+const advPct = (n, d) => d > 0 ? 100 * n / d : null;
+const calcTS  = l => advPct(l.pts, 2 * (l.fga + 0.44 * l.fta));
+const calcEFG = l => advPct(l.fgm + 0.5 * l.tpm, l.fga);
+// tm: チームの { fga, fta, to, min }
+const calcUSG = (l, tm) => tm && l.min > 0
+    ? advPct((l.fga + 0.44 * l.fta + l.to) * (tm.min / 5), l.min * (tm.fga + 0.44 * tm.fta + tm.to))
+    : null;
 
-async function fetchAllTeamStats() {
-    if (teamStatsCache) return teamStatsCache;
-    const results = await Promise.allSettled(
-        TEAM_IDS.map(id =>
-            fetch(`${CORE_STATS_BASE}/${SL_YEAR}/types/2/teams/${id}/statistics`).then(r => r.json())
-        )
-    );
-    const cache = {};
-    for (let i = 0; i < results.length; i++) {
-        const r = results[i];
-        if (r.status !== 'fulfilled') continue;
-        const d = r.value;
-        // Extract team ID from $ref URL: ".../teams/13?..."
-        const refUrl = d.team?.['$ref'] || '';
-        const idMatch = refUrl.match(/\/teams\/(\d+)/);
-        const teamId = idMatch ? idMatch[1] : String(TEAM_IDS[i]);
-        // Build flat stats map from all categories
-        const statsMap = {};
-        for (const cat of (d.splits?.categories || [])) {
-            for (const s of (cat.stats || [])) {
-                if (s.name != null) statsMap[s.name] = s.value ?? null;
-            }
-        }
-        cache[teamId] = { stats: statsMap };
+// シーズン平均（"7.3-16.0" 形式を含む）から計算用の値を作る
+function seasonLine(S) {
+    const pair = v => String(v || '0-0').split('-').map(x => parseFloat(x) || 0);
+    const [fgm, fga] = pair(S.FG), [tpm] = pair(S['3PT']), [, fta] = pair(S.FT);
+    return { pts: parseFloat(S.PTS) || 0, fgm, fga, tpm, fta, to: parseFloat(S.TO) || 0, min: parseFloat(S.MIN) || 0 };
+}
+
+function addSeasonAdv(S, teamAvg) {
+    const l = seasonLine(S);
+    S['TS%']  = calcTS(l);
+    S['eFG%'] = calcEFG(l);
+    S['USG%'] = calcUSG(l, teamAvg);
+}
+
+// 1チーム・1シーズン分の統計（statName → value）。取れなければ null
+const teamStatsMapCache = new Map();
+function fetchTeamStatsMap(teamId, year) {
+    const key = `${teamId}-${year}`;
+    if (!teamStatsMapCache.has(key)) {
+        teamStatsMapCache.set(key, fetch(`${CORE_STATS_BASE}/${year}/types/2/teams/${teamId}/statistics`)
+            .then(r => r.ok ? r.json() : Promise.reject())
+            .then(d => {
+                const m = {};
+                (d.splits?.categories || []).forEach(c => (c.stats || []).forEach(x => { m[x.name] = x.value; }));
+                return m;
+            })
+            .catch(() => { teamStatsMapCache.delete(key); return null; }));
     }
-    teamStatsCache = cache;
-    return cache;
+    return teamStatsMapCache.get(key);
+}
+
+// チームの1試合平均（USG% 用）。チームの出場時間は API が返さないため 240 分固定
+async function fetchTeamSeasonAvg(teamId, year) {
+    const m = await fetchTeamStatsMap(teamId, year);
+    if (!m?.avgFieldGoalsAttempted) return null;
+    return { fga: m.avgFieldGoalsAttempted, fta: m.avgFreeThrowsAttempted || 0, to: m.avgTurnovers || 0, min: 240 };
+}
+
+// 昨季比の表示（▲/▼ と色で増減の向きを示す）
+const shortSeason = year => `${String(year - 1).slice(2)}-${String(year).slice(2)}`;
+function deltaHtml(cur, old, prevLabel) {
+    cur = parseFloat(cur); old = parseFloat(old);
+    if (isNaN(cur) || isNaN(old)) return '';
+    const d = Math.round((cur - old) * 10) / 10;
+    const txt = d > 0 ? `<span class="up">▲ ${d.toFixed(1)}</span>` : d < 0 ? `<span class="down">▼ ${Math.abs(d).toFixed(1)}</span>` : '±0.0';
+    return `<div class="stat-delta">${txt} vs ${esc(prevLabel)}</div>`;
+}
+
+// 試合の summary API から、その選手の USG% と PIE を計算
+const boxSummaryCache = new Map();
+function fetchBoxSummary(eventId) {
+    if (!boxSummaryCache.has(eventId)) {
+        boxSummaryCache.set(eventId, fetch(`https://site.api.espn.com/apis/site/v2/sports/basketball/nba/summary?event=${eventId}`)
+            .then(r => r.ok ? r.json() : Promise.reject())
+            .catch(() => { boxSummaryCache.delete(eventId); return null; }));
+    }
+    return boxSummaryCache.get(eventId);
+}
+
+function boxAdvForPlayer(summary, athleteId) {
+    const teams = summary?.boxscore?.players;
+    if (!teams?.length) return null;
+    const num = v => parseInt(v) || 0;
+    const parse = (sg, a) => {
+        if (a.didNotPlay || !a.stats?.length) return null;
+        const idx = (...c) => { for (const k of c) { const i = (sg.keys || []).indexOf(k); if (i >= 0) return i; const j = (sg.names || []).indexOf(k); if (j >= 0) return j; } return -1; };
+        const raw = (...c) => { const i = idx(...c); return i >= 0 ? String(a.stats[i] ?? '') : ''; };
+        const pair = v => v.split('-').map(num);
+        const [fgm, fga] = pair(raw('fieldGoalsMade-fieldGoalsAttempted', 'FG'));
+        const [tpm] = pair(raw('threePointFieldGoalsMade-threePointFieldGoalsAttempted', '3PT'));
+        const [ftm, fta] = pair(raw('freeThrowsMade-freeThrowsAttempted', 'FT'));
+        return {
+            min: num(raw('minutes', 'MIN')), pts: num(raw('points', 'PTS')), fgm, fga, tpm, ftm, fta,
+            oreb: num(raw('offensiveRebounds', 'OREB')), dreb: num(raw('defensiveRebounds', 'DREB')),
+            ast: num(raw('assists', 'AST')), stl: num(raw('steals', 'STL')), blk: num(raw('blocks', 'BLK')),
+            to: num(raw('turnovers', 'TO')), pf: num(raw('fouls', 'PF')),
+        };
+    };
+    const sum = lines => lines.reduce((t, l) => { Object.keys(l).forEach(k => { t[k] = (t[k] || 0) + l[k]; }); return t; }, {});
+    const pieNum = l => l.pts + l.fgm + l.ftm - l.fga - l.fta + l.dreb + 0.5 * l.oreb + l.ast + l.stl + 0.5 * l.blk - l.pf - l.to;
+
+    let me = null, myTeam = null;
+    const teamTotals = teams.map(t => {
+        const sg = t.statistics?.[0];
+        const lines = (sg?.athletes || []).map(a => {
+            const l = parse(sg, a);
+            if (l && String(a.athlete?.id) === String(athleteId)) me = l;
+            return l;
+        }).filter(Boolean);
+        const tot = sum(lines);
+        if (me && !myTeam) myTeam = tot;
+        return tot;
+    });
+    if (!me) return null;
+    const gamePie = pieNum(sum(teamTotals));
+    return { usg: calcUSG(me, myTeam), pie: gamePie ? 100 * pieNum(me) / gamePie : null };
+}
+
+/* ─── Team Stats (ESPN core API: /seasons/{year}/types/2/teams/{id}/statistics) ─── */
+// 全30チーム分の統計（順位計算用）。シーズンごとにキャッシュ
+const allTeamStatsCache = new Map();
+function fetchAllTeamStats(year) {
+    if (!allTeamStatsCache.has(year)) {
+        allTeamStatsCache.set(year, Promise.all(TEAM_IDS.map(id => fetchTeamStatsMap(id, year))).then(maps => {
+            const cache = {};
+            maps.forEach((m, i) => { if (m && Object.keys(m).length) cache[String(TEAM_IDS[i])] = { stats: m }; });
+            return cache;
+        }));
+    }
+    return allTeamStatsCache.get(year);
 }
 
 async function loadTeamStats(teamId) {
     try {
-        const cache = await fetchAllTeamStats();
-        renderTeamStats(cache, teamId);
+        // 今季のデータがまだない（プレシーズンなど）ときは前のシーズンを表示
+        let year  = SL_YEAR;
+        let cache = await fetchAllTeamStats(year);
+        if (!Object.keys(cache).length) {
+            year  = SL_YEAR - 1;
+            cache = await fetchAllTeamStats(year);
+        }
+        const prevStats = await fetchTeamStatsMap(teamId, year - 1);
+        renderTeamStats(cache, teamId, prevStats, year);
     } catch(e) {
         document.getElementById('t-stats-big').innerHTML =
             '<div class="msg error" style="grid-column:1/-1">Failed to load stats</div>';
@@ -995,7 +1094,7 @@ function rankBadge(rank) {
     return `<span class="rank-badge ${cls}">#${rank}</span>`;
 }
 
-function renderTeamStats(cache, teamId) {
+function renderTeamStats(cache, teamId, prevStats, year) {
     const teamData = cache[String(teamId)];
     if (!teamData) {
         document.getElementById('t-stats-big').innerHTML =
@@ -1017,7 +1116,7 @@ function renderTeamStats(cache, teamId) {
     }
 
     document.getElementById('t-season-badge').textContent =
-        `${SL_YEAR - 1}-${String(SL_YEAR).slice(2)} Season`;
+        `${year - 1}-${String(year).slice(2)} Regular Season`;
 
     // ── Big 5 ── (core API stat names confirmed)
     const bigStats = [
@@ -1028,45 +1127,53 @@ function renderTeamStats(cache, teamId) {
         { statName: 'avgBlocks',   line1: 'Blocks',   line2: 'BPG' },
     ];
 
-    document.getElementById('t-stats-big').innerHTML = bigStats.map(d => {
+    const delta = statName => prevStats ? deltaHtml(getVal(statName), prevStats[statName], shortSeason(year - 1)) : '';
+
+    document.getElementById('t-stats-big').innerHTML = bigStats.map((d, i) => {
         const val  = getVal(d.statName);
         const rank = getRank(d.statName);
         const v    = val != null ? val.toFixed(1) : '-';
-        return `<div class="stat-box">
+        return `<div class="stat-box ${i === 0 ? 'hero' : ''}">
             <div class="val">${v}</div>
             <div class="lbl">${d.line1}<br><span style="opacity:.7;font-size:9px">${d.line2}</span></div>
             ${rankBadge(rank)}
+            ${delta(d.statName)}
         </div>`;
     }).join('');
 
-    // ── Detail stats grid ── (stat names from core API confirmed)
-    const detailStats = [
-        { lbl: 'FGM',  statName: 'avgFieldGoalsMade',                  fmt: 'n' },
-        { lbl: 'FGA',  statName: 'avgFieldGoalsAttempted',             fmt: 'n' },
-        { lbl: 'FG%',  statName: 'fieldGoalPct',                       fmt: 'p' },
-        { lbl: '3PM',  statName: 'avgThreePointFieldGoalsMade',        fmt: 'n' },
-        { lbl: '3PA',  statName: 'avgThreePointFieldGoalsAttempted',   fmt: 'n' },
-        { lbl: '3P%',  statName: 'threePointFieldGoalPct',             fmt: 'p' },
-        { lbl: 'OREB', statName: 'avgOffensiveRebounds',               fmt: 'n' },
-        { lbl: 'DREB', statName: 'avgDefensiveRebounds',               fmt: 'n' },
-        { lbl: 'FTM',  statName: 'avgFreeThrowsMade',                  fmt: 'n' },
-        { lbl: 'FTA',  statName: 'avgFreeThrowsAttempted',             fmt: 'n' },
-        { lbl: 'FT%',  statName: 'freeThrowPct',                       fmt: 'p' },
-        { lbl: 'TO',   statName: 'avgTurnovers', fmt: 'n', lowerIsBetter: true },
-        { lbl: 'PF',   statName: 'avgFouls',     fmt: 'n', lowerIsBetter: true },
+    // ── Detail: テーマ別ミニタイル（rate は 0〜100% のバー付き、sub は成功数-試投数）
+    const n1 = statName => { const v = getVal(statName); return v == null ? '' : v.toFixed(1); };
+    const detGroups = [
+        ['Shooting', [
+            { lbl: 'FG%',  statName: 'fieldGoalPct',           sub: () => `${n1('avgFieldGoalsMade')}-${n1('avgFieldGoalsAttempted')}` },
+            { lbl: '3P%',  statName: 'threePointFieldGoalPct', sub: () => `${n1('avgThreePointFieldGoalsMade')}-${n1('avgThreePointFieldGoalsAttempted')}` },
+            { lbl: 'FT%',  statName: 'freeThrowPct',           sub: () => `${n1('avgFreeThrowsMade')}-${n1('avgFreeThrowsAttempted')}` },
+            { lbl: 'TS%',  statName: 'trueShootingPct' },
+            { lbl: 'eFG%', statName: 'effectiveFGPct' },
+        ], true],
+        ['Rebounding', [
+            { lbl: 'OREB', statName: 'avgOffensiveRebounds' },
+            { lbl: 'DREB', statName: 'avgDefensiveRebounds' },
+        ]],
+        ['Ball Security', [
+            { lbl: 'TO', statName: 'avgTurnovers', lowerIsBetter: true },
+            { lbl: 'PF', statName: 'avgFouls',     lowerIsBetter: true },
+        ]],
     ];
-
-    document.getElementById('t-stats-detail').innerHTML = '<div class="t-stats-grid">' +
-        detailStats.map(d => {
-            const val  = getVal(d.statName);
-            const rank = getRank(d.statName, d.lowerIsBetter || false);
-            const v    = val == null ? '-' : d.fmt === 'p' ? val.toFixed(1) + '%' : val.toFixed(1);
-            return `<div class="t-stat-cell">
-                <div class="t-stat-lbl">${d.lbl}</div>
-                <div class="t-stat-val">${v}</div>
-                ${rankBadge(rank)}
-            </div>`;
-        }).join('') + '</div>';
+    const tile = (d, rate) => {
+        const val = getVal(d.statName);
+        const v   = val == null ? '-' : rate ? val.toFixed(1) + '%' : val.toFixed(1);
+        const sub = rate ? `<div class="sd-sub">${d.sub && val != null ? d.sub() : '&nbsp;'}</div>` : '';
+        const bar = rate && val != null ? `<div class="sd-bar"><span style="width:${Math.max(0, Math.min(100, val))}%"></span></div>` : '';
+        return `<div class="sd-tile">
+            <div class="sd-val">${v}</div>${sub}${bar}
+            <div class="sd-lbl">${d.lbl}</div>
+            ${rankBadge(getRank(d.statName, d.lowerIsBetter || false))}
+        </div>`;
+    };
+    document.getElementById('t-stats-detail').innerHTML = detGroups.map(([title, tiles, rate]) =>
+        `<div class="sd-group"><div class="sd-title">${title}</div><div class="sd-grid">${tiles.map(d => tile(d, rate)).join('')}</div></div>`
+    ).join('');
 }
 
 /* ─── Roster Stats ─── */
@@ -1094,7 +1201,11 @@ async function loadTeamRosterStats(teamId) {
         rows.push({ player: p, stats: parsed });
     }
 
-    if (seasonName) document.getElementById('t-roster-season-badge').textContent = seasonName;
+    if (seasonName) document.getElementById('t-roster-season-badge').textContent = seasonName + ' Regular Season';
+
+    const seasonYear = rows.find(r => r.stats._seasonYear)?.stats._seasonYear;
+    const teamAvg = seasonYear ? await fetchTeamSeasonAvg(teamId, seasonYear) : null;
+    rows.forEach(r => addSeasonAdv(r.stats, teamAvg));
 
     rows.sort((a, b) => (parseFloat(b.stats.PTS) || 0) - (parseFloat(a.stats.PTS) || 0));
     renderRosterTable(rows, wrap);
@@ -1110,7 +1221,7 @@ function parsePlayerSeasonStats(data) {
         if ((s.season?.year || 0) > maxYear) { maxYear = s.season.year; entry = s; }
     }
     if (!entry) return null;
-    const S = { _seasonName: entry.season?.displayName || '' };
+    const S = { _seasonName: entry.season?.displayName || '', _seasonYear: entry.season?.year };
     labels.forEach((l, i) => { S[l] = entry.stats?.[i]; });
     return S;
 }
@@ -1137,6 +1248,9 @@ function renderRosterTable(rows, wrap) {
         { key: 'FT',  label: 'FT'  },
         { key: 'TO',  label: 'TO'  },
         { key: 'PF',  label: 'PF'  },
+        { key: 'TS%',  label: 'TS%'  },
+        { key: 'eFG%', label: 'eFG%' },
+        { key: 'USG%', label: 'USG%' },
     ];
 
     const thead = `<thead><tr>
@@ -1227,17 +1341,20 @@ async function selectPlayer(a) {
     document.getElementById('stats-big').innerHTML    = '<div class="msg" style="grid-column:1/-1">Loading<span class="spinner"></span></div>';
     document.getElementById('stats-detail').innerHTML = '';
     document.getElementById('season-badge').textContent = '';
+    document.getElementById('recent-season-badge').textContent = '';
     chartWrap.innerHTML = '<div class="msg">Loading<span class="spinner"></span></div>';
     currentGames = [];
 
-    await Promise.all([loadStats(a.id), loadGamelog(a.id, a.teamId)]);
+    await Promise.all([loadStats(a.id, a.teamId), loadGamelog(a.id, a.teamId)]);
 }
 
 /* ─── Stats ─── */
-async function loadStats(id) {
+async function loadStats(id, teamId) {
     try {
         const data = await fetch(`${ESPN_BASE}/${id}/stats`).then(r => r.json());
-        renderStats(data);
+        const year = parsePlayerSeasonStats(data)?._seasonYear;
+        const teamAvg = year && teamId ? await fetchTeamSeasonAvg(teamId, year) : null;
+        renderStats(data, teamAvg);
     } catch(e) {
         document.getElementById('stats-big').innerHTML =
             '<div class="msg error" style="grid-column:1/-1">Failed to load stats</div>';
@@ -1245,7 +1362,7 @@ async function loadStats(id) {
     }
 }
 
-function renderStats(data) {
+function renderStats(data, teamAvg) {
     // API structure: data.categories[] with name="averages"
     // Each category.statistics[] has per-season entries with season.year and stats[]
     const categories = data.categories || [];
@@ -1264,17 +1381,24 @@ function renderStats(data) {
     for (const s of (avgCat.statistics || [])) {
         if ((s.season?.year || 0) > maxYear) { maxYear = s.season.year; entry = s; }
     }
+    // 昨季比用: 今季より前で最も新しいシーズン
+    let prev = null;
+    for (const s of (avgCat.statistics || [])) {
+        const y = s.season?.year || 0;
+        if (y < maxYear && y > (prev?.season?.year || 0)) prev = s;
+    }
     if (!entry) {
         bigEl.innerHTML = '<div class="msg" style="grid-column:1/-1">No stats found</div>';
         return;
     }
 
     const seasonName = entry.season?.displayName || '';
-    if (seasonName) document.getElementById('season-badge').textContent = seasonName + ' Season';
+    if (seasonName) document.getElementById('season-badge').textContent = seasonName + ' Regular Season';
 
     // Build stat map  (labels: GP GS MIN FG FG% 3PT 3P% FT FT% OR DR REB AST BLK STL PF TO PTS)
     const S = {};
     labels.forEach((l, i) => { S[l] = entry.stats?.[i]; });
+    addSeasonAdv(S, teamAvg);
 
     const bigDefs = [
         { key: 'PTS', label: 'Points\nPPG' },
@@ -1284,24 +1408,40 @@ function renderStats(data) {
         { key: 'BLK', label: 'Blocks\nBPG' },
     ];
 
-    bigEl.innerHTML = bigDefs.map(d => {
+    const P = {};
+    if (prev) labels.forEach((l, i) => { P[l] = prev.stats?.[i]; });
+    const delta = key => prev ? deltaHtml(S[key], P[key], shortSeason(prev.season.year)) : '';
+
+    bigEl.innerHTML = bigDefs.map((d, i) => {
         const lines = d.label.split('\n');
-        return `<div class="stat-box">
+        return `<div class="stat-box ${i === 0 ? 'hero' : ''}">
             <div class="val">${fmt(d.key, S[d.key])}</div>
             <div class="lbl">${lines[0]}<br><span style="opacity:.7;font-size:9px">${lines[1] || ''}</span></div>
+            ${delta(d.key)}
         </div>`;
     }).join('');
 
-    // Detail rows — use actual API label names
-    const detRows = [
-        ['GP', 'MIN', 'FG%', '3P%', 'FT%'],
-        ['FG',  '3PT', 'FT',  'TO',  'PF' ],
+    // 詳細: テーマ別ミニタイル（rate は 0〜100% のバー付き、sub は成功数-試投数）
+    const detGroups = [
+        ['Shooting', [
+            { key: 'FG%', sub: 'FG', rate: true }, { key: '3P%', sub: '3PT', rate: true }, { key: 'FT%', sub: 'FT', rate: true },
+            { key: 'TS%', rate: true }, { key: 'eFG%', rate: true },
+        ]],
+        ['Role', [{ key: 'GP' }, { key: 'MIN' }, { key: 'USG%' }]],
+        ['Ball Security', [{ key: 'TO' }, { key: 'PF' }]],
     ];
-    const cols = detRows[0].length;
-    const detEl = document.getElementById('stats-detail');
-    detEl.innerHTML = detRows.map(row =>
-        `<div class="stats-row hd" style="grid-template-columns:repeat(${cols},1fr)">${row.map(k => `<div>${k}</div>`).join('')}</div>` +
-        `<div class="stats-row dt" style="grid-template-columns:repeat(${cols},1fr)">${row.map(k => `<div>${fmt(k, S[k])}</div>`).join('')}</div>`
+    const tile = t => {
+        const n = parseFloat(S[t.key]);
+        const bar = t.rate && !isNaN(n) ? `<div class="sd-bar"><span style="width:${Math.max(0, Math.min(100, n))}%"></span></div>` : '';
+        // rate タイルは sub がなくても高さをそろえる
+        const sub = t.sub && S[t.sub] ? `<div class="sd-sub">${esc(String(S[t.sub]))}</div>` : (t.rate ? '<div class="sd-sub">&nbsp;</div>' : '');
+        return `<div class="sd-tile">
+            <div class="sd-val">${fmt(t.key, S[t.key])}</div>${sub}${bar}
+            <div class="sd-lbl">${t.key}</div>
+        </div>`;
+    };
+    document.getElementById('stats-detail').innerHTML = detGroups.map(([title, tiles]) =>
+        `<div class="sd-group"><div class="sd-title">${title}</div><div class="sd-grid">${tiles.map(tile).join('')}</div></div>`
     ).join('');
 }
 
@@ -1310,7 +1450,7 @@ function fmt(key, val) {
     // FG / 3PT / FT come as "made-attempted" strings e.g. "8.1-16.2"
     if (['FG', '3PT', 'FT'].includes(key)) return val || '-';
     // Percentages are already 0-100 (e.g. 49.9), not 0-1
-    if (['FG%', '3P%', 'FT%'].includes(key)) {
+    if (['FG%', '3P%', 'FT%', 'TS%', 'eFG%', 'USG%'].includes(key)) {
         const n = parseFloat(val);
         return isNaN(n) ? '-' : n.toFixed(1) + '%';
     }
@@ -1327,7 +1467,11 @@ async function loadGamelog(id, teamId) {
             loadTeamSchedule(teamId),
         ]);
         currentGames = parseGamelog(gamelogData, teamGames);
+        // parseGamelog は seasonTypes[0]（最新のシーズン区分）だけを使う
+        const glSeason = gamelogData.seasonTypes?.[0]?.displayName || '';
+        document.getElementById('recent-season-badge').textContent = glSeason && currentGames.length ? `${glSeason} · Last 10` : '';
         renderTrendTable();
+        loadGameAdv(id, currentGames);
     } catch(e) {
         chartWrap.innerHTML = '<div class="msg error">Failed to load game log</div>';
         console.error('gamelog:', e);
@@ -1418,6 +1562,7 @@ function parseGamelog(data, teamGames = []) {
                 if (isNaN(stats['PTS'])) continue;
                 const dk = normDate(ev.gameDate || '');
                 if (dk) playerByDate[dk] = {
+                    eventId  : eid,
                     gameDate : ev.gameDate || '',
                     opponent : ev.opponent?.abbreviation || '?',
                     atVs     : ev.atVs || 'vs',
@@ -1429,12 +1574,16 @@ function parseGamelog(data, teamGames = []) {
         }
     }
 
-    if (teamGames.length > 0) {
+    // チーム日程が選手の gamelog と1試合も重ならないとき（新シーズンのプレシーズン開始直後など）は
+    // 日程を使うと全試合 DNP になるため、選手の試合だけで表を作る
+    const overlaps = teamGames.some(tg => playerByDate[normDate(tg.gameDate)]);
+    if (teamGames.length > 0 && overlaps) {
         // Use team schedule as x-axis; stats = null when player didn't play
         return teamGames.map(tg => {
             const dk = normDate(tg.gameDate);
             const pg = dk ? playerByDate[dk] : null;
             return {
+                eventId  : pg?.eventId,
                 gameDate : tg.gameDate,
                 opponent : pg?.opponent ?? tg.opponent,
                 atVs     : pg?.atVs     ?? tg.atVs,
@@ -1449,6 +1598,17 @@ function parseGamelog(data, teamGames = []) {
     const games = Object.values(playerByDate);
     games.sort((a, b) => new Date(a.gameDate) - new Date(b.gameDate));
     return games;
+}
+
+// 直近10試合の USG% / PIE を summary API から取得して表を描き直す
+let gameAdvSeq = 0;
+async function loadGameAdv(athleteId, games) {
+    const seq = ++gameAdvSeq;
+    const targets = games.slice(-10).filter(g => g.stats && g.eventId);
+    await Promise.all(targets.map(async g => {
+        g.adv = boxAdvForPlayer(await fetchBoxSummary(g.eventId), athleteId);
+    }));
+    if (seq === gameAdvSeq && games === currentGames) renderTrendTable();
 }
 
 /* ─── Trend Table ─── */
@@ -1493,12 +1653,20 @@ function renderTrendTable() {
         { key: 'TO',   label: 'TO'  },
         { key: 'PF',   label: 'PF'  },
     ];
+    const advCols = ['TS%', 'eFG%', 'USG%', 'PIE'];
+    const advVals = g => {
+        const s = g.stats;
+        const l = { pts: s.PTS || 0, fgm: s.FGM || 0, fga: s.FGA || 0, tpm: s['3PM'] || 0, fta: s.FTA || 0 };
+        const pct = x => x == null ? '-' : x.toFixed(1) + '%';
+        return [pct(calcTS(l)), pct(calcEFG(l)), pct(g.adv?.usg), g.adv?.pie == null ? '-' : g.adv.pie.toFixed(1)];
+    };
 
     const thead = `<thead><tr>
         <th class="left-col">Date</th>
         <th class="left-col">Opp</th>
         <th>Result</th>
         ${statCols.map(c => `<th>${c.label}</th>`).join('')}
+        ${advCols.map(c => `<th>${c}</th>`).join('')}
     </tr></thead>`;
 
     const tbody = '<tbody>' + games.map(g => {
@@ -1511,8 +1679,9 @@ function renderTrendTable() {
         const resCls = result === 'W' ? 'res-w' : result === 'L' ? 'res-l' : '';
         const resTxt = score ? esc(score) : (result || '-');
         const statCells = dnp
-            ? `<td colspan="${statCols.length}" style="color:var(--muted);font-style:italic">DNP</td>`
-            : statCols.map(c => `<td>${fmtGameVal(c.key, g.stats?.[c.key])}</td>`).join('');
+            ? `<td colspan="${statCols.length + advCols.length}" style="color:var(--muted);font-style:italic">DNP</td>`
+            : statCols.map(c => `<td>${fmtGameVal(c.key, g.stats?.[c.key])}</td>`).join('')
+              + advVals(g).map(v => `<td>${v}</td>`).join('');
         return `<tr class="${dnp ? 'dnp' : ''}">
             <td class="left-col">${esc(dateLbl)}</td>
             <td class="left-col">${oppLbl}</td>
@@ -1532,7 +1701,7 @@ async function loadTeamScheduleFull(teamId) {
         const data = await fetch(`${ESPN_ROSTER}/${teamId}/schedule?seasontype=2`).then(r => r.json());
 
         const seasonName = data.season?.displayName || '';
-        if (seasonName) document.getElementById('t-schedule-season-badge').textContent = seasonName;
+        if (seasonName) document.getElementById('t-schedule-season-badge').textContent = seasonName + ' Regular Season';
 
         const now = Date.now();
         const games = [];
@@ -1711,15 +1880,22 @@ function fmtSlVal(val, tab) {
     return val.toFixed(1);
 }
 
+// 今季のランキングがまだない（プレシーズンなど）ときは前のシーズンに切り替える
+let slYear = SL_YEAR;
 async function fetchSlLeaders(tab) {
     const limit = tab.isPRA ? 50 : 10;
-    const url = `${SL_API}?season=${SL_YEAR}&seasontype=${SL_TYPE}&limit=${limit}&qualified=true&sort=${encodeURIComponent(tab.sort)}`;
-    const data = await fetch(url).then(r => r.json());
+    const load = year => fetch(`${SL_API}?season=${year}&seasontype=${SL_TYPE}&limit=${limit}&qualified=true&sort=${encodeURIComponent(tab.sort)}`).then(r => r.json());
+    let data = await load(slYear);
+    if (!data.athletes?.length && slYear === SL_YEAR) {
+        slYear = SL_YEAR - 1;
+        data = await load(slYear);
+    }
     if (!slCatMap && data.categories) {
         slCatMap = buildSlCatMap(data.categories);
     }
-    if (data.requestedSeason?.displayName) {
-        document.getElementById('sl-season-badge').textContent = data.requestedSeason.displayName;
+    const rs = data.requestedSeason;
+    if (rs?.displayName) {
+        document.getElementById('sl-season-badge').textContent = `${rs.displayName} ${rs.type?.name || 'Regular Season'}`;
     }
     let athletes = data.athletes || [];
     if (tab.isPRA) {
