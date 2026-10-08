@@ -305,6 +305,8 @@
         }
 
         .tp-filter { gap: 6px; margin: 0 14px 10px; flex-wrap: wrap; }
+        .off-nights-wrap .tp-item:nth-child(-n+3) .tp-rank { background: var(--surface2); color: var(--muted); }
+        .off-pie { font-family: var(--font-score); font-size: 15px; font-weight: 600; color: var(--text); }
         .tp-filter .conf-btn { padding: 4px 12px; font-size: 12px; }
 
         .tp-item {
@@ -485,8 +487,13 @@
             #tab-games[data-view="games"] .games-side,
             #tab-games[data-view="top"] .games-main,
             #tab-games[data-view="top"] .injury-players-wrap,
+            #tab-games[data-view="top"] .off-nights-wrap,
+            #tab-games[data-view="off"] .games-main,
+            #tab-games[data-view="off"] .top-players-wrap,
+            #tab-games[data-view="off"] .injury-players-wrap,
             #tab-games[data-view="injury"] .games-main,
-            #tab-games[data-view="injury"] .top-players-wrap { display: none; }
+            #tab-games[data-view="injury"] .top-players-wrap,
+            #tab-games[data-view="injury"] .off-nights-wrap { display: none; }
         }
 
         /* ─── Box score modal ─── */
@@ -608,6 +615,7 @@
         <button class="tab-btn active" data-tab="games">Games</button>
         <button class="tab-btn" data-tab="standings">Standings</button>
         <button class="tab-btn mobile-only" data-tab="top">Top 10</button>
+        <button class="tab-btn mobile-only" data-tab="off">Off Nights</button>
         <button class="tab-btn mobile-only" data-tab="injury">Injury</button>
     </div>
 
@@ -649,7 +657,7 @@
                         <h2>Top 10 Players</h2>
                         <span class="date-badge" id="top-players-date"></span>
                     </div>
-                    <div class="conf-tabs tp-filter">
+                    <div class="conf-tabs tp-filter" data-list="top">
                         <button class="conf-btn active" data-exp="all">All</button>
                         <button class="conf-btn" data-exp="rookie">Rookie</button>
                         <button class="conf-btn" data-exp="sophomore">Sophomore</button>
@@ -657,6 +665,24 @@
                     </div>
                     <div class="top-players-col">
                         <div id="top-players">
+                            <div class="msg">Loading<span class="spinner"></span></div>
+                        </div>
+                    </div>
+                </section>
+                <section class="section off-nights-wrap">
+                    <div class="section-header">
+                        <h2>Off Nights</h2>
+                        <span class="date-badge" id="off-nights-date"></span>
+                    </div>
+                    <div class="tp-subtitle" style="margin: -6px 14px 10px">20分以上出場した選手のうち PIE が低い順</div>
+                    <div class="conf-tabs tp-filter" data-list="off">
+                        <button class="conf-btn active" data-exp="all">All</button>
+                        <button class="conf-btn" data-exp="rookie">Rookie</button>
+                        <button class="conf-btn" data-exp="sophomore">Sophomore</button>
+                        <button class="conf-btn" data-exp="veteran">Veteran</button>
+                    </div>
+                    <div class="top-players-col">
+                        <div id="off-nights">
                             <div class="msg">Loading<span class="spinner"></span></div>
                         </div>
                     </div>
@@ -773,8 +799,8 @@ function fmtJstDate(utcDate) {
 
 /* ── Tab / conf switching ── */
 function switchTab(tab) {
-    // Top 10 / Injury はスマホ用タブ。中身は Games パネル内の右カラムを表示切替する
-    const panel = (tab === 'top' || tab === 'injury') ? 'games' : tab;
+    // Top 10 / Off Nights / Injury はスマホ用タブ。中身は Games パネル内の右カラムを表示切替する
+    const panel = ['top', 'off', 'injury'].includes(tab) ? 'games' : tab;
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === `tab-${panel}`));
     document.getElementById('tab-games').dataset.view = tab;
@@ -791,7 +817,7 @@ document.querySelectorAll('.tab-btn').forEach(btn =>
 // PC幅に戻ったらスマホ専用タブは存在しないので Games に戻す
 window.matchMedia('(min-width: 769px)').addEventListener('change', e => {
     const view = document.getElementById('tab-games').dataset.view;
-    if (e.matches && (view === 'top' || view === 'injury')) switchTab('games');
+    if (e.matches && ['top', 'off', 'injury'].includes(view)) switchTab('games');
 });
 document.querySelectorAll('.conf-btn[data-conf]').forEach(btn =>
     btn.addEventListener('click', () => switchConf(btn.dataset.conf)));
@@ -1410,7 +1436,9 @@ const expClass = years => years == null ? null
     : years <= 1 ? 'rookie' : years === 2 ? 'sophomore' : 'veteran';
 
 let topPlayersAll = [];
-let topPlayersFilter = 'all';
+// 経験年数の絞り込み状態（Top 10 / Off Nights で別々に持つ）
+const playerListFilter = { top: 'all', off: 'all' };
+const OFF_NIGHTS_MIN = 20;
 
 async function extractTopPlayers(events) {
     const completed = events.filter(e =>
@@ -1425,6 +1453,7 @@ async function extractTopPlayers(events) {
 
     summaries.forEach(data => {
         if (!data?.boxscore?.players) return;
+        const gamePie = pieNum(sumBoxLines(data.boxscore.players.map(teamBoxTotals)));
         data.boxscore.players.forEach(teamData => {
             const teamAbbr = normAbbr(teamData.team?.abbreviation || '');
             const expMap = expMaps.get(teamData.team?.id);
@@ -1452,7 +1481,7 @@ async function extractTopPlayers(events) {
                     const pts = parseInt(get(iP)) || 0;
                     const reb = parseInt(get(iR)) || 0;
                     const ast = parseInt(get(iA)) || 0;
-                    if (pts + reb + ast === 0) return;
+                    const line = parseBoxLine(sg, a);
 
                     players.push({
                         name:   a.athlete?.displayName || '—',
@@ -1471,6 +1500,8 @@ async function extractTopPlayers(events) {
                         tov:    get(iTO),
                         pf:     get(iPF),
                         pm:     get(iPM),
+                        min:    line?.min ?? 0,
+                        pie:    line && gamePie ? 100 * pieNum(line) / gamePie : null,
                     });
                 });
             });
@@ -1482,23 +1513,38 @@ async function extractTopPlayers(events) {
 
 function setTopPlayers(players) {
     topPlayersAll = players;
-    renderTopPlayers();
+    renderPlayerLists();
 }
 
-document.querySelectorAll('.tp-filter .conf-btn').forEach(btn =>
-    btn.addEventListener('click', () => {
-        topPlayersFilter = btn.dataset.exp;
-        document.querySelectorAll('.tp-filter .conf-btn').forEach(b => b.classList.toggle('active', b === btn));
-        renderTopPlayers();
-    })
+document.querySelectorAll('.tp-filter').forEach(group =>
+    group.querySelectorAll('.conf-btn').forEach(btn =>
+        btn.addEventListener('click', () => {
+            playerListFilter[group.dataset.list] = btn.dataset.exp;
+            group.querySelectorAll('.conf-btn').forEach(b => b.classList.toggle('active', b === btn));
+            renderPlayerLists();
+        })
+    )
 );
 
-function renderTopPlayers() {
-    const el = document.getElementById('top-players');
+const byExp = list => p => playerListFilter[list] === 'all' || p.exp === playerListFilter[list];
+
+function renderPlayerLists() {
+    // Top 10: PTS+REB+AST の多い順（スタッツなしの選手は除外）
+    renderPlayerList('top-players', topPlayersAll
+        .filter(p => p.total > 0)
+        .filter(byExp('top'))
+        .slice(0, 10), 'top');
+    // Off Nights: 20分以上出場した選手を PIE の低い順
+    renderPlayerList('off-nights', topPlayersAll
+        .filter(p => p.min >= OFF_NIGHTS_MIN && p.pie != null)
+        .filter(byExp('off'))
+        .sort((a, b) => a.pie - b.pie)
+        .slice(0, 10), 'off');
+}
+
+function renderPlayerList(elId, players, mode) {
+    const el = document.getElementById(elId);
     if (!el) return;
-    const players = topPlayersAll
-        .filter(p => topPlayersFilter === 'all' || p.exp === topPlayersFilter)
-        .slice(0, 10);
     if (!players.length) {
         el.innerHTML = '<div class="msg">No data</div>';
         return;
@@ -1516,6 +1562,33 @@ function renderTopPlayers() {
             ? `<img class="tp-photo" src="${p.photo}" alt="${p.name}" onerror="this.style.display='none'">`
             : `<div class="tp-photo-placeholder">${p.name.charAt(0)}</div>`;
 
+        // Off Nights は PIE と出場時間を主役に、低評価の理由になる数字をチップで添える
+        const mainStats = mode === 'off'
+            ? `<span class="tp-stat-lbl">PIE</span> <span class="off-pie">${p.pie.toFixed(1)}</span>
+                    <span class="tp-stat-sep">/</span>
+                    <span class="tp-stat-lbl">${p.min} min</span>
+                    <span class="tp-stat-sep">/</span>
+                    <span class="tp-stat-lbl">${p.pts} pts · ${p.reb} reb · ${p.ast} ast</span>`
+            : `<span class="tp-pts-val">${p.pts}</span><span class="tp-stat-lbl">pts</span>
+                    <span class="tp-stat-sep">/</span>
+                    <span class="tp-reb-val">${p.reb}</span><span class="tp-stat-lbl">reb</span>
+                    <span class="tp-stat-sep">/</span>
+                    <span class="tp-ast-val">${p.ast}</span><span class="tp-stat-lbl">ast</span>`;
+        const chips = mode === 'off'
+            ? `<span class="tp-chip"><strong>${fgFmt}</strong> FG</span>
+                    <span class="tp-chip"><strong>${threeFmt}</strong> 3P</span>
+                    <span class="tp-chip">TOV <strong>${p.tov}</strong></span>
+                    <span class="tp-chip">PF <strong>${p.pf}</strong></span>
+                    <span class="tp-chip"><strong>${pmFmt}</strong></span>`
+            : `<span class="tp-chip"><strong>${fgFmt}</strong> FG</span>
+                    <span class="tp-chip"><strong>${threeFmt}</strong> 3P</span>
+                    <span class="tp-chip">REB <strong>${rebDetail}</strong></span>
+                    <span class="tp-chip">STL <strong>${p.stl}</strong></span>
+                    <span class="tp-chip">BLK <strong>${p.blk}</strong></span>
+                    <span class="tp-chip">TOV <strong>${p.tov}</strong></span>
+                    <span class="tp-chip">PF <strong>${p.pf}</strong></span>
+                    <span class="tp-chip"><strong>${pmFmt}</strong></span>`;
+
         return `
         <div class="tp-item" style="${/^[0-9a-f]{6}$/i.test(p.teamColor) ? `--tc:#${p.teamColor}` : ''}">
             <div class="tp-rank">${i + 1}</div>
@@ -1526,21 +1599,10 @@ function renderTopPlayers() {
                     <span class="tp-team">${p.team}</span>
                 </div>
                 <div class="tp-main-stats">
-                    <span class="tp-pts-val">${p.pts}</span><span class="tp-stat-lbl">pts</span>
-                    <span class="tp-stat-sep">/</span>
-                    <span class="tp-reb-val">${p.reb}</span><span class="tp-stat-lbl">reb</span>
-                    <span class="tp-stat-sep">/</span>
-                    <span class="tp-ast-val">${p.ast}</span><span class="tp-stat-lbl">ast</span>
+                    ${mainStats}
                 </div>
                 <div class="tp-detail-row">
-                    <span class="tp-chip"><strong>${fgFmt}</strong> FG</span>
-                    <span class="tp-chip"><strong>${threeFmt}</strong> 3P</span>
-                    <span class="tp-chip">REB <strong>${rebDetail}</strong></span>
-                    <span class="tp-chip">STL <strong>${p.stl}</strong></span>
-                    <span class="tp-chip">BLK <strong>${p.blk}</strong></span>
-                    <span class="tp-chip">TOV <strong>${p.tov}</strong></span>
-                    <span class="tp-chip">PF <strong>${p.pf}</strong></span>
-                    <span class="tp-chip"><strong>${pmFmt}</strong></span>
+                    ${chips}
                 </div>
             </div>
         </div>`;
@@ -1676,6 +1738,7 @@ async function init() {
         document.getElementById('tomorrow-date').textContent    = scheduleEvents.length ? fmtJstDate(new Date(scheduleEvents[0].date)) : fmtJstDate(new Date(now.getTime() + 86400000));
         document.getElementById('yesterday-date').textContent   = yesterdayEvents.length ? fmtJstDate(new Date(yesterdayEvents[0].date)) : fmtJstDate(new Date(now.getTime() - 86400000));
         document.getElementById('top-players-date').textContent = fmtJstDate(topPlayersDate);
+        document.getElementById('off-nights-date').textContent  = fmtJstDate(topPlayersDate);
         document.getElementById('injury-date').textContent      = todayEvents.length    ? fmtJstDate(new Date(todayEvents[0].date))    : fmtJstDate(now);
         renderGames(resultsEvents,  'today-games');
         renderGames(scheduleEvents, 'tomorrow-games');
