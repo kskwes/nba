@@ -472,9 +472,6 @@ let teamPayroll = {};   // id -> { total, players: [{name, jersey, position, hea
 let dataReady   = false;
 
 /* ─── Utility ─── */
-// 選手名の後ろに背番号を付ける（例: Rui Hachimura #28）。背番号がなければ名前のみ
-const withJersey = (name, jersey) => jersey ? `${name} #${jersey}` : name;
-
 function esc(s) {
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
@@ -815,7 +812,7 @@ function renderTeamDetail(team) {
             <td>
                 <div class="t-roster-player-cell">
                     ${photo}
-                    <div class="t-roster-name-row"><span class="t-roster-name">${esc(withJersey(p.name, p.jersey))}</span><span class="t-roster-pos">${esc(p.position)}</span></div>
+                    <div class="t-roster-name-row"><span class="t-roster-name">${esc(p.name)}</span>${p.jersey ? `<span class="t-roster-pos">#${esc(p.jersey)}</span>` : ''}<span class="t-roster-pos">${esc(p.position)}</span></div>
                 </div>
             </td>
             <td class="sal-val-col">${fmtUSD(p.salary)}</td>

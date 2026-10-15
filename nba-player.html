@@ -170,6 +170,43 @@
         .sd-bar { height: 4px; background: var(--surface2); border-radius: 4px; margin-top: 7px; overflow: hidden; }
         .sd-bar span { display: block; height: 100%; background: var(--accent); border-radius: 4px; }
         .sd-lbl { color: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: .5px; margin-top: 6px; }
+        /* Season Stats の詳細（選手・チーム共通）: グループを横に並べ、幅をタイル数に比例させる。
+           折り返してもタイルが伸びて埋めるので空きができない */
+        .stats-detail.sd-row { display: flex; flex-wrap: wrap; }
+        .sd-row .sd-group { flex: var(--n) 1 calc(var(--n) * 60px + (var(--n) - 1) * 8px); min-width: 0; }
+        .sd-row .sd-grid { display: flex; flex-wrap: wrap; }
+        .sd-row .sd-tile { flex: 1 1 60px; min-width: 0; padding: 10px 4px; }
+        /* 同じ行のグループはタイルの高さをそろえ、中身は縦中央に置く */
+        .sd-row .sd-group { display: flex; flex-direction: column; }
+        .sd-row .sd-grid { flex: 1; }
+        .sd-row .sd-tile { display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .sd-row .sd-bar { align-self: stretch; }
+
+        /* ── Team List（Team タブの初期表示） ── */
+        .team-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; }
+        .team-list[hidden] { display: none; }  /* display: grid が hidden 属性を打ち消すため */
+        .tl-div + .tl-div { margin-top: 14px; }
+        .tl-teams { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+        .tl-team {
+            display: flex; align-items: center; gap: 10px; width: 100%;
+            padding: 8px 12px; background: none; border: none; border-bottom: 1px solid var(--border);
+            color: inherit; font: inherit; font-size: 13px; font-weight: 600; text-align: left; cursor: pointer;
+            transition: background 0.1s;
+        }
+        .tl-team:last-child { border-bottom: none; }
+        .tl-team:hover { background: rgba(255,255,255,0.06); }
+        .tl-logo { width: 28px; height: 28px; object-fit: contain; flex-shrink: 0; }
+
+        /* ── Rookie List（Player タブの初期表示） ── */
+        /* 段組みで詰めて並べ、チームごとの人数差で隙間ができないようにする */
+        .rl-grid { columns: 240px; column-gap: 14px; }
+        .rl-team { break-inside: avoid; margin-bottom: 14px; }
+        .rl-team-head { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+        .rl-team-head .tl-logo { width: 18px; height: 18px; }
+        .rl-team-head .sd-title { margin-bottom: 0; }
+        .rl-photo { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; background: var(--surface2); flex-shrink: 0; }
+        .rl-team .t-roster-name-row { min-width: 0; }
+        .rl-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
         .stats-row {
             display: grid;
@@ -462,6 +499,15 @@
             background: var(--surface2);
             color: var(--text);
         }
+        /* PC 幅では Stats Leaders を右カラムに常に出すので、Leaders タブは不要 */
+        #mode-leaders { display: none; }
+        @media (max-width: 960px) {
+            /* 1カラムになる幅では Stats Leaders を3つ目のタブに切り替える */
+            #mode-leaders { display: inline-block; }
+            .main-wrap:not(.leaders-mode) .right-col { display: none; }
+            .main-wrap.leaders-mode { gap: 0; }
+            .main-wrap.leaders-mode .left-col > :not(.mode-toggle) { display: none; }
+        }
 
         /* ── Rank badge ── */
         .rank-badge {
@@ -529,6 +575,7 @@
             border: 1px solid var(--border);
             flex-shrink: 0;
         }
+        .t-roster-name-row { display: flex; align-items: baseline; gap: 6px; }
         .t-roster-name { font-size: 12px; font-weight: 700; }
         .t-roster-pos  { font-size: 10px; color: var(--muted); }
 
@@ -603,7 +650,7 @@
 </header>
 
 <main>
-    <div class="main-wrap">
+    <div class="main-wrap" id="main-wrap">
 
         <!-- ── Left: Search + Player Detail ── -->
         <div class="left-col">
@@ -611,6 +658,7 @@
             <div class="mode-toggle">
                 <button class="mode-btn active" id="mode-player" onclick="setMode('player')">Player</button>
                 <button class="mode-btn" id="mode-team" onclick="setMode('team')">Team</button>
+                <button class="mode-btn" id="mode-leaders" onclick="setMode('leaders')">Leaders</button>
             </div>
 
             <div class="lc-search" id="player-search-wrap">
@@ -620,12 +668,22 @@
                 </div>
             </div>
 
+            <div id="rookie-list" class="lc-block">
+                <div class="section-header">
+                    <h2>Rookies</h2>
+                    <span id="rookie-count" class="badge"></span>
+                </div>
+                <div id="rookie-list-body" class="rl-grid"><div class="msg">Loading<span class="spinner"></span></div></div>
+            </div>
+
             <div class="lc-search" id="team-search-wrap" hidden>
                 <div class="search-wrap">
                     <input type="text" id="tq" placeholder="Search team (e.g. Lakers)">
                     <ul id="team-suggestions" class="suggestions"></ul>
                 </div>
             </div>
+
+            <div id="team-list" class="team-list lc-block" hidden></div>
 
             <div id="player-section" hidden>
 
@@ -647,7 +705,7 @@
                         <span id="season-badge" class="badge"></span>
                     </div>
                     <div id="stats-big" class="stats-big stats-hero"></div>
-                    <div id="stats-detail" class="stats-detail sd"></div>
+                    <div id="stats-detail" class="stats-detail sd sd-row"></div>
                 </div>
 
                 <!-- Recent Stats -->
@@ -684,7 +742,7 @@
                         <span id="t-season-badge" class="badge"></span>
                     </div>
                     <div id="t-stats-big" class="stats-big stats-hero"></div>
-                    <div id="t-stats-detail" class="stats-detail sd"></div>
+                    <div id="t-stats-detail" class="stats-detail sd sd-row"></div>
                 </div>
 
                 <!-- Roster Stats -->
@@ -799,15 +857,33 @@ async function buildIndex() {
 const teamIndexReady = buildIndex();
 
 /* ─── Mode toggle ─── */
+const mainWrap = document.getElementById('main-wrap');
+let leftMode = 'player';  // 左カラムに出している方（player / team）
+
 function setMode(mode) {
+    const fromLeaders = mainWrap.classList.contains('leaders-mode');
+    mainWrap.classList.toggle('leaders-mode', mode === 'leaders');
+    ['player', 'team', 'leaders'].forEach(m =>
+        document.getElementById('mode-' + m).classList.toggle('active', m === mode));
+    // Leaders は表示を切り替えるだけ。元のタブに戻ったときは選択中の選手・チームをそのまま残す
+    if (mode === 'leaders' || (fromLeaders && mode === leftMode)) return;
+    leftMode = mode;
+
     const isTeam = mode === 'team';
-    document.getElementById('mode-player').classList.toggle('active', !isTeam);
-    document.getElementById('mode-team').classList.toggle('active', isTeam);
     document.getElementById('player-search-wrap').hidden = isTeam;
     playerSec.hidden = true;
+    rookieListEl.hidden = isTeam;
+    qEl.value = '';
     document.getElementById('team-search-wrap').hidden = !isTeam;
     document.getElementById('team-section').hidden = true;
+    teamListEl.hidden = !isTeam;
+    tqEl.value = '';  // 一覧に戻るので、前に選んだ選手名・チーム名を残さない
 }
+
+// Leaders タブ表示中に PC 幅へ広げたら、タブが消えるので元のタブに戻す
+matchMedia('(max-width: 960px)').addEventListener('change', e => {
+    if (!e.matches && mainWrap.classList.contains('leaders-mode')) setMode(leftMode);
+});
 
 /* ─── Team Search ─── */
 const tqEl       = document.getElementById('tq');
@@ -818,7 +894,7 @@ let teamSrchTimer = null;
 tqEl.addEventListener('input', () => {
     clearTimeout(teamSrchTimer);
     const q = tqEl.value.trim();
-    if (q.length < 1) { clearTeamSugg(); return; }
+    if (q.length < 1) { clearTeamSugg(); showTeamList(); return; }
     if (teamIndex.length === 0) {
         teamSuggEl.innerHTML = '<li><span style="color:var(--muted);font-size:13px">Loading teams<span class="spinner"></span></span></li>';
         // 読み込み完了後、その時点の入力内容で検索し直す
@@ -839,6 +915,60 @@ tqEl.addEventListener('keydown', e => { if (e.key === 'Escape') clearTeamSugg();
 document.addEventListener('click', e => { if (!e.target.closest('#team-search-wrap')) clearTeamSugg(); });
 
 function clearTeamSugg() { teamSuggEl.innerHTML = ''; }
+
+/* ─── Team List（カンファレンス → ディビジョンごとの全チーム） ─── */
+// ディビジョン編成は ESPN の standings API から取れるが、固定なのでチームIDで直書きする
+const TEAM_DIVISIONS = [
+    ['Eastern Conference', [
+        ['Atlantic',  [2, 17, 18, 20, 28]],
+        ['Central',   [4, 5, 8, 11, 15]],
+        ['Southeast', [1, 14, 19, 27, 30]],
+    ]],
+    ['Western Conference', [
+        ['Northwest', [7, 16, 22, 25, 26]],
+        ['Pacific',   [9, 12, 13, 21, 23]],
+        ['Southwest', [3, 6, 10, 24, 29]],
+    ]],
+];
+const teamListEl = document.getElementById('team-list');
+
+function renderTeamList() {
+    if (!teamIndex.length) {
+        teamListEl.innerHTML = '<div class="msg">Failed to load teams. Please reload the page.</div>';
+        return;
+    }
+    const byId = new Map(teamIndex.map(t => [t.id, t]));
+    teamListEl.innerHTML = TEAM_DIVISIONS.map(([conf, divs]) => `
+        <div>
+            <div class="section-header"><h2>${conf}</h2></div>
+            ${divs.map(([div, ids]) => {
+                const teams = ids.map(id => byId.get(String(id))).filter(Boolean)
+                    .sort((a, b) => a.displayName.localeCompare(b.displayName));
+                return `<div class="tl-div">
+                    <div class="sd-title">${div}</div>
+                    <div class="tl-teams">${teams.map(t => `
+                        <button type="button" class="tl-team" data-id="${esc(t.id)}">
+                            <img class="tl-logo" src="${esc(t.logo || FALLBACK_IMG)}" alt="" onerror="this.src='${FALLBACK_IMG}'">
+                            <span>${esc(t.displayName)}</span>
+                        </button>`).join('')}
+                    </div>
+                </div>`;
+            }).join('')}
+        </div>`).join('');
+}
+
+function showTeamList() {
+    teamSec.hidden = true;
+    teamListEl.hidden = false;
+}
+
+teamListEl.addEventListener('click', e => {
+    const btn = e.target.closest('.tl-team');
+    const t = btn && teamIndex.find(x => x.id === btn.dataset.id);
+    if (t) selectTeam(t);
+});
+teamListEl.innerHTML = '<div class="msg">Loading<span class="spinner"></span></div>';
+teamIndexReady.then(renderTeamList);
 
 function doTeamSearch(q) {
     const lower = q.toLowerCase();
@@ -877,6 +1007,7 @@ function renderTeamSuggestions(list) {
 async function selectTeam(t) {
     tqEl.value = t.displayName;
     clearTeamSugg();
+    teamListEl.hidden = true;
     teamSec.hidden = false;
 
     const logoEl = document.getElementById('t-logo');
@@ -1180,7 +1311,7 @@ function renderTeamStats(cache, teamId, prevStats, year) {
         </div>`;
     };
     document.getElementById('t-stats-detail').innerHTML = detGroups.map(([title, tiles, rate]) =>
-        `<div class="sd-group"><div class="sd-title">${title}</div><div class="sd-grid">${tiles.map(d => tile(d, rate)).join('')}</div></div>`
+        `<div class="sd-group" style="--n:${tiles.length}"><div class="sd-title">${title}</div><div class="sd-grid">${tiles.map(d => tile(d, rate)).join('')}</div></div>`
     ).join('');
 }
 
@@ -1275,7 +1406,7 @@ function renderRosterTable(rows, wrap) {
             <td class="player-col">
                 <div class="t-roster-player-cell">
                     ${photo}
-                    <div class="t-roster-name">${esc(withJersey(player.displayName, player.jersey))}</div>
+                    <div class="t-roster-name-row"><span class="t-roster-name">${esc(player.displayName)}</span>${player.jersey ? `<span class="t-roster-pos">#${esc(player.jersey)}</span>` : ''}</div>
                 </div>
             </td>
             ${cells}
@@ -1289,6 +1420,7 @@ function renderRosterTable(rows, wrap) {
 qEl.addEventListener('input', () => {
     clearTimeout(searchTimer);
     const q = qEl.value.trim();
+    if (q.length < 1) { clearSugg(); showRookieList(); return; }
     if (q.length < 2) { clearSugg(); return; }
     searchTimer = setTimeout(() => doSearch(q), 150);
 });
@@ -1297,6 +1429,52 @@ qEl.addEventListener('keydown', e => { if (e.key === 'Escape') clearSugg(); });
 document.addEventListener('click', e => { if (!e.target.closest('.search-wrap')) clearSugg(); });
 
 function clearSugg() { suggEl.innerHTML = ''; }
+
+/* ─── Rookie List（今季の新人をチームごとに表示） ─── */
+const rookieListEl = document.getElementById('rookie-list');
+const rookieBodyEl = document.getElementById('rookie-list-body');
+
+function renderRookieList() {
+    // 新人は expYears が 0 または 1 で返るため両方 Rookie 扱い（slExpClass と同じ基準）
+    const rookies = playerIndex.filter(p => p.expYears != null && p.expYears <= 1);
+    if (!rookies.length) {
+        rookieBodyEl.innerHTML = '<div class="msg">No rookie data available</div>';
+        return;
+    }
+    document.getElementById('rookie-count').textContent = `${rookies.length} players`;
+    rookieBodyEl.innerHTML = teamIndex.map(t => {
+        const players = rookies.filter(p => p.teamId === t.id);
+        if (!players.length) return '';
+        return `<div class="rl-team">
+            <div class="rl-team-head">
+                <img class="tl-logo" src="${esc(t.logo || FALLBACK_IMG)}" alt="" onerror="this.src='${FALLBACK_IMG}'">
+                <div class="sd-title">${esc(t.displayName)}</div>
+            </div>
+            <div class="tl-teams">${players.map(p => `
+                <button type="button" class="tl-team" data-id="${esc(p.id)}">
+                    <img class="rl-photo" src="${esc(p.headshot || FALLBACK_IMG)}" alt="" onerror="this.src='${FALLBACK_IMG}'">
+                    <div class="t-roster-name-row">
+                        <span class="rl-name">${esc(p.displayName)}</span>
+                        ${p.jersey ? `<span class="t-roster-pos">#${esc(p.jersey)}</span>` : ''}
+                        ${p.position ? `<span class="t-roster-pos">${esc(p.position)}</span>` : ''}
+                    </div>
+                </button>`).join('')}
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function showRookieList() {
+    playerSec.hidden = true;
+    rookieListEl.hidden = false;
+}
+
+rookieBodyEl.addEventListener('click', e => {
+    const btn = e.target.closest('.tl-team');
+    const p = btn && playerIndex.find(x => x.id === btn.dataset.id);
+    if (p) selectPlayer(p);
+});
+teamIndexReady.then(renderRookieList);
 
 function doSearch(q) {
     const lower = q.toLowerCase();
@@ -1332,6 +1510,7 @@ function renderSuggestions(list) {
 async function selectPlayer(a) {
     qEl.value = a.displayName;
     clearSugg();
+    rookieListEl.hidden = true;
     playerSec.hidden = false;
 
     // Profile
@@ -1449,7 +1628,7 @@ function renderStats(data, teamAvg) {
         </div>`;
     };
     document.getElementById('stats-detail').innerHTML = detGroups.map(([title, tiles]) =>
-        `<div class="sd-group"><div class="sd-title">${title}</div><div class="sd-grid">${tiles.map(tile).join('')}</div></div>`
+        `<div class="sd-group" style="--n:${tiles.length}"><div class="sd-title">${title}</div><div class="sd-grid">${tiles.map(tile).join('')}</div></div>`
     ).join('');
 }
 
@@ -1999,7 +2178,8 @@ function renderSlLeaders(athletes, tab) {
             ${photoEl}
             <div class="sl-body">
                 <div class="sl-name-row">
-                    <span class="sl-name">${esc(withJersey(name, jersey))}</span>
+                    <span class="sl-name">${esc(name)}</span>
+                    ${jersey ? `<span class="sl-team">#${esc(jersey)}</span>` : ''}
                     <span class="sl-team">${esc(team)}</span>
                 </div>
                 <div class="sl-main-stat" style="${mainStatStyle}">
@@ -2065,9 +2245,6 @@ document.getElementById('last-updated').textContent =
     new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' });
 
 /* ─── Utility ─── */
-// 選手名の後ろに背番号を付ける（例: Rui Hachimura #28）。背番号がなければ名前のみ
-const withJersey = (name, jersey) => jersey ? `${name} #${jersey}` : name;
-
 function esc(s) {
     return String(s)
         .replace(/&/g,'&amp;').replace(/</g,'&lt;')
