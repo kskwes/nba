@@ -468,10 +468,13 @@ const _now = new Date();
 const CAP_SEASON_YEAR = _now.getMonth() >= 6 ? _now.getFullYear() + 1 : _now.getFullYear();
 
 let teamIndex   = [];   // [{id, displayName, abbreviation, location, nickname, logo}]
-let teamPayroll = {};   // id -> { total, players: [{name, position, headshot, salary}] }
+let teamPayroll = {};   // id -> { total, players: [{name, jersey, position, headshot, salary}] }
 let dataReady   = false;
 
 /* ─── Utility ─── */
+// 選手名の後ろに背番号を付ける（例: Rui Hachimura #28）。背番号がなければ名前のみ
+const withJersey = (name, jersey) => jersey ? `${name} #${jersey}` : name;
+
 function esc(s) {
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
@@ -625,6 +628,7 @@ async function fetchAllPayrolls() {
         // established players (e.g. an expiring vet-min deal not yet re-signed) as making nothing.
         const players = (data.athletes || []).map(a => ({
             name:     a.fullName || a.displayName || '',
+            jersey:   a.jersey || '',
             position: a.position?.abbreviation || '',
             headshot: a.headshot?.href || '',
             salary:   salaryForYear(a, CAP_SEASON_YEAR),
@@ -811,7 +815,7 @@ function renderTeamDetail(team) {
             <td>
                 <div class="t-roster-player-cell">
                     ${photo}
-                    <div class="t-roster-name-row"><span class="t-roster-name">${esc(p.name)}</span><span class="t-roster-pos">${esc(p.position)}</span></div>
+                    <div class="t-roster-name-row"><span class="t-roster-name">${esc(withJersey(p.name, p.jersey))}</span><span class="t-roster-pos">${esc(p.position)}</span></div>
                 </div>
             </td>
             <td class="sal-val-col">${fmtUSD(p.salary)}</td>

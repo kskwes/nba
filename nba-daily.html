@@ -1297,6 +1297,9 @@ function switchBoxTeam(idx) {
 // ESPN の links 配列から rel に指定キーを含む href を取り出す
 const espnLink = (links, rel) => (links || []).find(l => l.rel?.includes(rel))?.href || '';
 const espnGameUrl = event => espnLink(event.links, 'summary') || `https://www.espn.com/nba/game/_/gameId/${event.id}`;
+// 選手名の後ろに背番号を付ける（例: Rui Hachimura #28）。背番号がなければ名前のみ
+const withJersey = (name, jersey) => jersey ? `${name} #${jersey}` : name;
+
 const espnPlayerUrl = athlete => espnLink(athlete?.links, 'playercard')
     || (athlete?.id ? `https://www.espn.com/nba/player/_/id/${athlete.id}` : '');
 
@@ -1311,7 +1314,7 @@ function boxTeamTable(teamData, gameTot) {
 
     const row = a => {
         const pos = a.athlete?.position?.abbreviation || '';
-        const name = a.athlete?.shortName || a.athlete?.displayName || '—';
+        const name = withJersey(a.athlete?.shortName || a.athlete?.displayName || '—', a.athlete?.jersey);
         const url  = espnPlayerUrl(a.athlete);
         const nameCell = `<td class="box-name">${url ? `<a class="box-player-link" href="${url}" target="_blank" rel="noopener">${name}</a>` : name}
             ${pos ? `<span class="box-pos">${pos}</span>` : ''}</td>`;
@@ -1485,6 +1488,7 @@ async function extractTopPlayers(events) {
 
                     players.push({
                         name:   a.athlete?.displayName || '—',
+                        jersey: a.athlete?.jersey || '',
                         photo:  a.athlete?.headshot?.href || '',
                         team:   teamAbbr,
                         teamColor: teamData.team?.color || '',
@@ -1595,7 +1599,7 @@ function renderPlayerList(elId, players, mode) {
             ${photoEl}
             <div class="tp-body">
                 <div class="tp-name-row">
-                    <span class="tp-name">${p.name}</span>
+                    <span class="tp-name">${withJersey(p.name, p.jersey)}</span>
                     <span class="tp-team">${p.team}</span>
                 </div>
                 <div class="tp-main-stats">
@@ -1633,6 +1637,7 @@ async function fetchInjuryPlayers(events) {
 
                 players.push({
                     name:   inj.athlete?.displayName || '?',
+                    jersey: inj.athlete?.jersey || '',
                     photo:  inj.athlete?.headshot?.href || '',
                     team:   teamAbbr,
                     status: inj.status || 'Out',
@@ -1675,7 +1680,7 @@ function renderInjuryPlayers(players) {
             ${photoEl}
             <div class="ip-body">
                 <div class="ip-name-row">
-                    <span class="ip-name">${p.name}</span>
+                    <span class="ip-name">${withJersey(p.name, p.jersey)}</span>
                     <span class="ip-team">${p.team}</span>
                 </div>
                 <div class="ip-reason">${p.reason}</div>

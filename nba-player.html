@@ -1275,7 +1275,7 @@ function renderRosterTable(rows, wrap) {
             <td class="player-col">
                 <div class="t-roster-player-cell">
                     ${photo}
-                    <div class="t-roster-name">${esc(player.displayName)}</div>
+                    <div class="t-roster-name">${esc(withJersey(player.displayName, player.jersey))}</div>
                 </div>
             </td>
             ${cells}
@@ -1957,6 +1957,8 @@ function renderSlLeaders(athletes, tab) {
 
         const headshotUrl = ath.headshot?.href || '';
         const name        = ath.displayName  || '—';
+        // リーダーAPIは背番号を返さないため、ロスター由来の playerIndex から引く
+        const jersey      = playerIndex.find(x => x.id === String(ath.id))?.jersey || '';
         const team        = ath.teamShortName || '';
 
         const photoEl = headshotUrl
@@ -1997,7 +1999,7 @@ function renderSlLeaders(athletes, tab) {
             ${photoEl}
             <div class="sl-body">
                 <div class="sl-name-row">
-                    <span class="sl-name">${esc(name)}</span>
+                    <span class="sl-name">${esc(withJersey(name, jersey))}</span>
                     <span class="sl-team">${esc(team)}</span>
                 </div>
                 <div class="sl-main-stat" style="${mainStatStyle}">
@@ -2026,6 +2028,7 @@ async function switchSlTab(key) {
     el.innerHTML = '<div class="msg">Loading<span class="spinner"></span></div>';
     try {
         const athletes = exp === 'all' ? await fetchSlLeaders(tab) : await fetchSlLeadersByExp(tab, exp);
+        await teamIndexReady;  // 背番号を playerIndex から引くため
         slCache[cacheKey] = athletes;
         // 読み込み中に別のタブや絞り込みへ切り替えられていたら描画しない
         if (slActiveKey !== key || slExp !== exp) return;
@@ -2062,6 +2065,9 @@ document.getElementById('last-updated').textContent =
     new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' });
 
 /* ─── Utility ─── */
+// 選手名の後ろに背番号を付ける（例: Rui Hachimura #28）。背番号がなければ名前のみ
+const withJersey = (name, jersey) => jersey ? `${name} #${jersey}` : name;
+
 function esc(s) {
     return String(s)
         .replace(/&/g,'&amp;').replace(/</g,'&lt;')
