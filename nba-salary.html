@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 個人用サイトのため検索エンジンに載せない -->
+    <meta name="robots" content="noindex, nofollow">
     <title>NBA Salary Cap Tracker</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -244,13 +246,74 @@
         }
         #team-select:focus { border-color: var(--blue); }
 
+        /* ── Team List（チーム未選択時の初期表示。nba-player.html の Team タブと同じ構成） ── */
+        .team-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; margin-top: 16px; }
+        .team-list[hidden] { display: none; }  /* display: grid が hidden 属性を打ち消すため */
+        .tl-conf-title { font-size: 15px; font-weight: 800; margin-bottom: 10px; }
+        .tl-div + .tl-div { margin-top: 14px; }
+        .tl-div-title { color: var(--muted); font-size: 10.5px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px; }
+        .tl-teams { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+        .tl-team {
+            display: flex; align-items: center; gap: 10px; width: 100%;
+            padding: 8px 12px; background: none; border: none; border-bottom: 1px solid var(--border);
+            color: inherit; font: inherit; font-size: 13px; font-weight: 600; text-align: left; cursor: pointer;
+            transition: background 0.1s;
+        }
+        .tl-team:last-child { border-bottom: none; }
+        .tl-team:hover { background: rgba(255,255,255,0.06); }
+        .tl-logo { width: 28px; height: 28px; object-fit: contain; flex-shrink: 0; }
+
+        /* ── Draft Picks（保有ドラフト指名権。データは data/draft-picks.js） ── */
+        .dp-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin: 28px 0 10px; }
+        .dp-head h2 { font-size: 15px; font-weight: 800; }
+        .dp-meta { font-size: 11px; color: var(--muted); margin-left: auto; }
+        .dp-meta a { color: var(--muted); }
+        .dp-summary { display: flex; gap: 8px; margin-bottom: 12px; }
+        .dp-stat { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; font-size: 11px; color: var(--muted); }
+        .dp-stat b { font-family: var(--font-score); font-size: 20px; font-weight: 600; color: var(--text); margin-right: 4px; }
+        .dp-table { width: 100%; border-collapse: collapse; font-size: 12px; table-layout: fixed; }
+        .dp-table col.y { width: 56px; }
+        .dp-table th { color: var(--muted); font-size: 11px; font-weight: 600; text-align: left; padding: 7px 8px; border-bottom: 2px solid var(--border); }
+        .dp-table td { padding: 7px 8px; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+        .dp-year { font-family: var(--font-score); font-size: 15px; font-weight: 600; }
+        .dp-cell { display: flex; flex-wrap: wrap; gap: 4px; }
+        /* チップ: 使える = 塗り、使えない = 点線・薄く。条件があるものは右上に小さな点 */
+        .dp-chip {
+            position: relative; display: inline-flex; align-items: center; gap: 4px; border-radius: 6px;
+            padding: 3px 8px; font: inherit; font-size: 11px; font-weight: 700; line-height: 1.35;
+            white-space: nowrap; cursor: pointer; color: var(--text);
+        }
+        .dp-chip img { width: 14px; height: 14px; object-fit: contain; }
+        .dp-chip.use  { background: var(--surface2); border: 1px solid var(--border); }
+        .dp-chip.use.own { color: var(--pos); border-color: color-mix(in srgb, var(--pos) 45%, transparent); }
+        .dp-chip.lost { background: none; border: 1px dashed var(--border); color: var(--muted); font-weight: 600; }
+        .dp-chip.lost img { opacity: .5; }
+        .dp-chip.cond::after {
+            content: ''; position: absolute; top: -3px; right: -3px; width: 7px; height: 7px;
+            border-radius: 50%; background: var(--warn); box-shadow: 0 0 0 2px var(--bg);
+        }
+        .dp-chip[aria-expanded="true"] { outline: 1px solid var(--text); }
+        .dp-detail td { background: var(--surface); padding: 10px 12px; font-size: 11.5px; color: var(--text-dim); line-height: 1.6; }
+        .dp-detail .sum { font-weight: 700; color: var(--text); margin-bottom: 4px; }
+        .dp-detail .orig { color: var(--muted); }
+        .dp-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 12px; font-size: 10.5px; color: var(--muted); align-items: center; }
+        .dp-legend .dp-chip { cursor: default; padding: 1px 7px; font-size: 10px; margin-right: 4px; }
+        .dp-note { font-size: 10.5px; color: var(--muted); margin-top: 6px; line-height: 1.6; }
+        @media (max-width: 600px) {
+            .dp-table col.y { width: 44px; }
+            .dp-table td, .dp-table th { padding-left: 4px; padding-right: 4px; }
+            .dp-stat { flex: 1; }
+        }
+
         /* ── Team header ── */
         .t-head {
             display: flex;
             align-items: center;
-            gap: 16px;
+            flex-wrap: wrap;  /* 「ラグジュアリータックス課税中」など長い状態ラベルは収まらなければ次の行へ */
+            gap: 10px 16px;
             margin-bottom: 22px;
         }
+        .t-head-pill { margin-left: auto; font-size: 12px; padding: 5px 14px; }
         .t-head img { width: 56px; height: 56px; object-fit: contain; background: rgba(255,255,255,0.08); border-radius: 10px; padding: 6px; flex-shrink: 0; }
         .t-head-name { font-family: var(--font-score); font-size: 26px; font-weight: 600; letter-spacing: .5px; }
         .t-head-total { font-size: 13px; color: var(--muted); margin-top: 2px; }
@@ -313,11 +376,18 @@
 
         /* ── Roster table (reuses t-roster-table) ── */
         .sal-roster-table th.sal-val-col, .sal-roster-table td.sal-val-col { text-align: right; padding-right: 16px; }
+        /* スマホ幅では選手名を折り返して、表が横スクロールしないようにする */
+        @media (max-width: 480px) {
+            .sal-roster-table th.player-col { min-width: 0; }
+            .sal-roster-table .t-roster-player-cell { white-space: normal; }
+            .sal-roster-table .t-roster-name-row { flex-wrap: wrap; column-gap: 6px; row-gap: 0; }
+            .sal-roster-table th.sal-val-col, .sal-roster-table td.sal-val-col { padding-right: 10px; white-space: nowrap; }
+        }
 
         /* ── Salary detail layout: pie chart (left) + roster table (right) ── */
         .sal-detail-grid {
             display: grid;
-            grid-template-columns: 7fr 3fr;
+            grid-template-columns: minmax(0, 1fr) max-content;
             gap: 20px;
             align-items: start;
         }
@@ -346,7 +416,8 @@
             flex: 1 1 220px;
             min-width: 220px;
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
+            /* minmax(0, …) で列を縮められるようにし、長い選手名は省略表示にする */
+            grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 8px 20px;
         }
         .sal-pie-legend-item { display: flex; align-items: center; gap: 8px; font-size: 11px; }
@@ -354,14 +425,17 @@
         .sal-pie-legend-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); font-weight: 600; }
         .sal-pie-legend-val { color: var(--muted); font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
+        /* 円グラフ＋凡例とロスター表を横に並べきれない幅では縦に並べる（全30チームで実測し、1200px 以下ではみ出した） */
+        @media (max-width: 1200px) {
+            .sal-detail-grid { grid-template-columns: minmax(0, 1fr); }
+        }
         @media (max-width: 800px) {
-            .sal-detail-grid { grid-template-columns: 1fr; }
             .sal-pie-wrap { flex-direction: column; align-items: stretch; }
             .sal-pie-svg-wrap { max-width: 220px; }
-            .sal-pie-legend { grid-template-columns: 1fr 1fr; min-width: 0; }
+            .sal-pie-legend { grid-template-columns: repeat(2, minmax(0, 1fr)); min-width: 0; }
         }
         @media (max-width: 480px) {
-            .sal-pie-legend { grid-template-columns: 1fr; }
+            .sal-pie-legend { grid-template-columns: minmax(0, 1fr); }
         }
 
         @media (max-width: 700px) {
@@ -372,6 +446,7 @@
             .section { padding: 0 12px; }
             .t-head img { width: 44px; height: 44px; }
             .t-head-name { font-size: 18px; }
+            .t-head-pill { margin-left: 0; }  /* 次の行に回ったときは左にそろえる */
         }
     </style>
 </head>
@@ -423,14 +498,17 @@
                 </select>
             </div>
 
-            <div id="team-detail">
-                <div class="msg">プルダウンからチームを選択してください</div>
+            <div id="team-list" class="team-list">
+                <div class="msg">Loading<span class="spinner"></span></div>
             </div>
+
+            <div id="team-detail"></div>
         </div>
 
     </div>
 </main>
 
+<script src="data/draft-picks.js"></script>
 <script>
 /* ─── Config ─── */
 const ESPN_ROSTER = 'https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams';
@@ -534,19 +612,21 @@ function renderSalaryPie(payroll, total) {
         slices.push({ label: `その他 (${rest.length}名)`, value: restTotal, color: PIE_OTHER_COLOR });
     }
 
-    const R = 70, SW = 34, CIRC = 2 * Math.PI * R;
+    // 各スライスは独立した弧として描く。1つの円を stroke-dasharray で区切る描き方だと、
+    // 最後のスライスが円の描き始め（継ぎ目）にかかったとき、Chrome が継ぎ目に線の角を描いて形が崩れるため
+    const R = 70, SW = 34;
+    const point = angle => `${(100 + R * Math.cos(angle)).toFixed(3)} ${(100 + R * Math.sin(angle)).toFixed(3)}`;
     let cumulative = 0;
     const arcsHtml = slices.map(s => {
         const pct = s.value / total;
-        const len = pct * CIRC;
-        const dashoffset = -cumulative;
-        cumulative += len;
         const tip = `${s.label}: ${fmtUSD(s.value)} (${(pct * 100).toFixed(1)}%)`;
-        return `<circle class="sal-pie-slice" cx="100" cy="100" r="${R}" fill="none"
-            stroke="${s.color}" stroke-width="${SW}"
-            stroke-dasharray="${len.toFixed(2)} ${(CIRC - len).toFixed(2)}"
-            stroke-dashoffset="${dashoffset.toFixed(2)}"
-            data-tooltip="${esc(tip)}"></circle>`;
+        const attrs = `class="sal-pie-slice" fill="none" stroke="${s.color}" stroke-width="${SW}" data-tooltip="${esc(tip)}"`;
+        // 1人で100%のときは弧の始点と終点が重なって描けないので、円で描く
+        if (pct >= 0.9999) return `<circle cx="100" cy="100" r="${R}" ${attrs}></circle>`;
+        const start = -Math.PI / 2 + cumulative * 2 * Math.PI;  // 12時の位置から時計回り
+        cumulative += pct;
+        const end = -Math.PI / 2 + cumulative * 2 * Math.PI;
+        return `<path d="M ${point(start)} A ${R} ${R} 0 ${pct > 0.5 ? 1 : 0} 1 ${point(end)}" ${attrs}></path>`;
     }).join('');
 
     const legendHtml = slices.map(s => `
@@ -560,7 +640,7 @@ function renderSalaryPie(payroll, total) {
         <div class="sal-pie-wrap">
             <div class="sal-pie-svg-wrap">
                 <svg viewBox="0 0 200 200" width="100%" height="100%">
-                    <g transform="rotate(-90 100 100)">${arcsHtml}</g>
+                    ${arcsHtml}
                 </svg>
                 <div class="sal-pie-center">
                     <div class="val">${fmtUSD(total)}</div>
@@ -724,6 +804,54 @@ function renderLeagueChart() {
     });
 }
 
+/* ─── Team List（カンファレンス → ディビジョンごとの全チーム） ─── */
+// ディビジョン編成は固定なのでチームIDで直書きする（nba-player.html と同じ）
+const TEAM_DIVISIONS = [
+    ['Eastern Conference', [
+        ['Atlantic',  [2, 17, 18, 20, 28]],
+        ['Central',   [4, 5, 8, 11, 15]],
+        ['Southeast', [1, 14, 19, 27, 30]],
+    ]],
+    ['Western Conference', [
+        ['Northwest', [7, 16, 22, 25, 26]],
+        ['Pacific',   [9, 12, 13, 21, 23]],
+        ['Southwest', [3, 6, 10, 24, 29]],
+    ]],
+];
+const teamListEl = document.getElementById('team-list');
+
+function renderTeamList() {
+    if (!teamIndex.length) {
+        teamListEl.innerHTML = '<div class="msg error">チームデータを取得できませんでした。ページを再読み込みしてください</div>';
+        return;
+    }
+    const byId = new Map(teamIndex.map(t => [t.id, t]));
+    teamListEl.innerHTML = TEAM_DIVISIONS.map(([conf, divs]) => `
+        <div>
+            <div class="tl-conf-title">${conf}</div>
+            ${divs.map(([div, ids]) => {
+                const teams = ids.map(id => byId.get(String(id))).filter(Boolean)
+                    .sort((a, b) => a.displayName.localeCompare(b.displayName));
+                return `<div class="tl-div">
+                    <div class="tl-div-title">${div}</div>
+                    <div class="tl-teams">${teams.map(t => `
+                        <button type="button" class="tl-team" data-id="${esc(t.id)}">
+                            <img class="tl-logo" src="${esc(t.logo || FALLBACK_IMG)}" alt="" onerror="this.src='${FALLBACK_IMG}'">
+                            <span>${esc(t.displayName)}</span>
+                        </button>`).join('')}
+                    </div>
+                </div>`;
+            }).join('')}
+        </div>`).join('');
+}
+
+teamListEl.addEventListener('click', e => {
+    const btn = e.target.closest('.tl-team');
+    if (!btn) return;
+    document.getElementById('team-select').value = btn.dataset.id;
+    selectTeam(btn.dataset.id, true);
+});
+
 /* ─── Team select ─── */
 function populateTeamSelect() {
     const sel = document.getElementById('team-select');
@@ -747,8 +875,10 @@ function populateTeamSelect() {
 
 function selectTeam(teamId, pushUrl) {
     const t = teamIndex.find(x => x.id === teamId);
+    // チーム未選択のときは一覧を出し、選択したら一覧を閉じて詳細を出す
+    teamListEl.hidden = !!t;
     if (!t) {
-        document.getElementById('team-detail').innerHTML = '<div class="msg">プルダウンからチームを選択してください</div>';
+        document.getElementById('team-detail').innerHTML = '';
         if (pushUrl) setUrlTeam(null);
         return;
     }
@@ -828,7 +958,7 @@ function renderTeamDetail(team) {
                 <div class="t-head-name">${esc(team.displayName)}</div>
                 <div class="t-head-total">${CAP_DATA.seasonLabel}シーズン 合計サラリー: <strong>${fmtUSD(total)}</strong></div>
             </div>
-            <span class="zone-pill" style="background:${zone.bg};color:${zone.fg};margin-left:auto;font-size:12px;padding:5px 14px">${esc(zone.label)}</span>
+            <span class="zone-pill t-head-pill" style="background:${zone.bg};color:${zone.fg}">${esc(zone.label)}</span>
         </div>
 
         <div class="cap-bars">${capBarsHtml}</div>
@@ -853,6 +983,7 @@ function renderTeamDetail(team) {
             ※ このAPIは翌シーズン以降の契約額を公開していないため、複数年での表示はできません（現シーズンの金額のみ）。<br>
             ※「-」は本当に$0なのではなく、このAPIに${CAP_DATA.seasonLabel}シーズンの契約データがまだ登録されていない選手です（合計サラリーにも含めていません）。${payroll.missingCount ? `このチームは${payroll.missingCount}名が該当します。` : ''}
         </div>
+        ${renderDraftPicks(team)}
     `;
 
     const pieTooltip = wrap.querySelector('#pie-tooltip');
@@ -872,11 +1003,138 @@ function renderTeamDetail(team) {
     });
 }
 
+/* ─── Draft Picks（保有ドラフト指名権） ─── */
+const DRAFT_PICKS = window.NBA_DRAFT_PICKS;
+// ESPN の略称 → 指名権データの略称
+const PICK_ABBR = { NY: 'NYK', GS: 'GSW', SA: 'SAS', NO: 'NOP', UTAH: 'UTA', WSH: 'WAS' };
+// 指名権データの略称 → ESPN のロゴ URL 用
+const ESPN_LOGO_ABBR = { NYK: 'ny', GSW: 'gs', SAS: 'sa', NOP: 'no', UTA: 'utah', WAS: 'wsh' };
+const pickLogo = abbr => `https://a.espncdn.com/i/teamlogos/nba/500/${(ESPN_LOGO_ABBR[abbr] || abbr).toLowerCase()}.png`;
+const RND = { 1: '1巡目', 2: '2巡目' };
+let pickItems = [];  // チップの番号 → { c: 表示内容, e: 元データ }
+
+// チップの短い表示: 3チーム以上は「先頭 他N」にまとめる
+const teamsShort = ts => !ts.length ? '' : ts.length <= 2
+    ? ts.map(t => `<img src="${pickLogo(t)}" alt="">${esc(t)}`).join('/')
+    : `<img src="${pickLogo(ts[0])}" alt="">${esc(ts[0])} 他${ts.length - 1}`;
+
+/* 1件を「使える / 使えない」「条件あり」「短い表示」「説明文」に変換する。
+   kind: own（譲渡の記録なし）/ out（自チームの指名権の行き先）/ in（他チームから獲得）
+   スワップされうる自前の指名権は使える扱い、保護付きで譲渡したものは使えない扱いにする */
+function pickChip(kind, e, rnd) {
+    if (kind === 'own') return { use: true, own: true, cond: false, label: '自前', tip: `自前の${RND[rnd]}を保持` };
+    const r = RND[e.round], to = e.teams.join(' / ');
+    if (kind === 'out') {
+        switch (e.status) {
+            case 'swap':        return { use: true, own: true, cond: true, label: '自前', tip: `自前の${r}。ただし ${to} が有利な方と交換できる（スワップ）` };
+            case 'protected':   return { use: false, cond: true, label: `→ ${teamsShort(e.teams)}`, tip: `${to} へ譲渡。ただし ${e.protection}位なら保持（保護付き）` };
+            case 'conditional': return { use: false, cond: true, label: `→ ${teamsShort(e.teams)}`, tip: `${to} へ譲渡（条件で行き先が変わる）` };
+            case 'forfeited':   return { use: false, cond: false, label: '剥奪', tip: 'リーグの処分で剥奪' };
+            default:            return { use: false, cond: false, label: `→ ${teamsShort(e.teams)}`, tip: `${to} へ譲渡済み` };
+        }
+    }
+    switch (e.status) {
+        case 'swap':        return { use: true, cond: true, label: teamsShort(e.teams), tip: `${to} の${r}とのスワップ権（有利な方を選べる）` };
+        case 'protected':   return { use: true, cond: true, label: teamsShort(e.teams), tip: `${to} の${r}を獲得。ただし ${e.protection}位なら ${to} が保持（保護付き）` };
+        case 'conditional': return { use: true, cond: true, label: teamsShort(e.teams), tip: `${to} の${r}を獲得（どれになるかは条件しだい）` };
+        case 'forfeited':   return { use: false, cond: false, label: teamsShort(e.teams), tip: `${to} から獲得した${r}だが、リーグの処分で剥奪` };
+        default:            return { use: true, cond: false, label: teamsShort(e.teams), tip: `${to} の${r}を獲得` };
+    }
+}
+
+function renderDraftPicks(team) {
+    const abbr = PICK_ABBR[team.abbreviation] || team.abbreviation;
+    const t = DRAFT_PICKS?.teams?.[abbr];
+    if (!t) return '';  // データファイルがない・チームが見つからない場合は出さない
+
+    pickItems = [];
+    const years = [];
+    for (let y = DRAFT_PICKS.years[0]; y <= DRAFT_PICKS.years[1]; y++) years.push(y);
+    const usable = { 1: 0, 2: 0 }, usableCond = { 1: 0, 2: 0 };
+
+    const cell = (y, rnd) => {
+        const outs = t.outgoing.filter(e => e.year === y && e.round === rnd);
+        const ins  = t.incoming.filter(e => e.year === y && e.round === rnd);
+        const chips = [
+            ...(outs.length ? outs.map(e => [pickChip('out', e, rnd), e]) : [[pickChip('own', null, rnd), null]]),
+            ...ins.map(e => [pickChip('in', e, rnd), e]),
+        ];
+        chips.sort((a, b) => b[0].use - a[0].use);  // 使えるものを先に並べる
+        return chips.map(([c, e]) => {
+            if (c.use) { usable[rnd]++; if (c.cond) usableCond[rnd]++; }
+            pickItems.push({ c, e });
+            const cls = ['dp-chip', c.use ? 'use' : 'lost', c.own ? 'own' : '', c.cond ? 'cond' : ''].filter(Boolean).join(' ');
+            return `<button type="button" class="${cls}" data-pick="${pickItems.length - 1}" aria-expanded="false">${c.label}</button>`;
+        }).join('');
+    };
+
+    const rows = years.map(y => `<tr>
+        <td class="dp-year">${y}</td>
+        <td><div class="dp-cell">${cell(y, 1)}</div></td>
+        <td><div class="dp-cell">${cell(y, 2)}</div></td>
+    </tr>`).join('');
+    const stat = rnd => `<div class="dp-stat"><b>${usable[rnd]}</b>使える${RND[rnd]}${usableCond[rnd] ? `（うち条件付き ${usableCond[rnd]}）` : ''}</div>`;
+
+    return `
+        <div class="dp-head">
+            <h2>保有ドラフト指名権</h2>
+            <span class="dp-meta">${years[0]}–${years[years.length - 1]} · 最終更新 ${esc(DRAFT_PICKS.updatedAt)} · 出典
+                <a href="${esc(DRAFT_PICKS.source.url)}" target="_blank" rel="noopener">${esc(DRAFT_PICKS.source.name)}</a></span>
+        </div>
+        <div class="dp-summary">${stat(1)}${stat(2)}</div>
+        <table class="dp-table" id="dp-table">
+            <colgroup><col class="y"><col><col></colgroup>
+            <thead><tr><th>年</th><th>1巡目</th><th>2巡目</th></tr></thead>
+            <tbody>${rows}</tbody>
+        </table>
+        <div class="dp-legend">
+            <span><span class="dp-chip use own">自前</span><span class="dp-chip use">NYK</span>使える（自前・獲得）</span>
+            <span><span class="dp-chip lost">→ MEM</span>使えない（譲渡・剥奪）</span>
+            <span><span class="dp-chip use cond">条件</span>条件あり（保護・スワップなど）</span>
+        </div>
+        <div class="dp-note">カーソルを当てると内容を、クリックするとリーグの記録どおりの条件（英語の原文）を表示します。
+            データは定期的に手動で更新しているため、最終更新日以降のトレードは反映されていません。</div>
+        <div class="chart-tooltip" id="dp-tooltip" hidden></div>`;
+}
+
+// チップのツールチップとクリック（詳細の再描画に影響されないよう document で受ける）
+document.addEventListener('mouseover', ev => {
+    const tip = document.getElementById('dp-tooltip');
+    if (!tip) return;
+    const b = ev.target.closest('#dp-table .dp-chip[data-pick]');
+    if (!b) { tip.hidden = true; return; }
+    tip.textContent = pickItems[b.dataset.pick].c.tip;
+    tip.hidden = false;
+});
+document.addEventListener('mousemove', ev => {
+    const tip = document.getElementById('dp-tooltip');
+    if (!tip || tip.hidden) return;
+    let left = ev.clientX + 14;
+    if (left + tip.offsetWidth > window.innerWidth - 8) left = ev.clientX - tip.offsetWidth - 14;
+    tip.style.left = left + 'px';
+    tip.style.top  = (ev.clientY + 16) + 'px';
+});
+// クリックで、その年の行の下に説明と原文を開く（もう一度押すと閉じる）
+document.addEventListener('click', ev => {
+    const b = ev.target.closest('#dp-table .dp-chip[data-pick]');
+    if (!b) return;
+    const table = b.closest('table');
+    const open = b.getAttribute('aria-expanded') === 'true';
+    table.querySelectorAll('.dp-detail').forEach(r => r.remove());
+    table.querySelectorAll('.dp-chip[aria-expanded="true"]').forEach(x => x.setAttribute('aria-expanded', 'false'));
+    if (open) return;
+    const { c, e } = pickItems[b.dataset.pick];
+    b.setAttribute('aria-expanded', 'true');
+    b.closest('tr').insertAdjacentHTML('afterend', `<tr class="dp-detail"><td colspan="3">
+        <div class="sum">${esc(c.tip)}</div>${e ? `<div class="orig">${esc(e.detail)}</div>` : ''}</td></tr>`);
+});
+
 /* ─── Init ─── */
 async function init() {
     renderCapStats();
     await fetchAllPayrolls();
     renderLeagueChart();
+    renderTeamList();
     populateTeamSelect();
 }
 
