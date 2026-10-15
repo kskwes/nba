@@ -382,6 +382,7 @@
             min-height: 72px;
             border-bottom: 1px solid var(--line-soft);
             transition: background 0.1s;
+            cursor: pointer;
         }
 
         .sl-item:last-child { border-bottom: none; }
@@ -2127,6 +2128,7 @@ async function fetchSlLeadersByExp(tab, exp) {
 
 function renderSlLeaders(athletes, tab) {
     const el = document.getElementById('sl-list');
+    slShown = athletes;
     if (!athletes.length) { el.innerHTML = '<div class="msg">No data</div>'; return; }
 
     el.innerHTML = athletes.map((a, i) => {
@@ -2175,7 +2177,7 @@ function renderSlLeaders(athletes, tab) {
         }
 
         return `
-        <div class="sl-item">
+        <div class="sl-item" data-idx="${i}">
             <div class="sl-rank">${i + 1}</div>
             ${photoEl}
             <div class="sl-body">
@@ -2192,6 +2194,22 @@ function renderSlLeaders(athletes, tab) {
         </div>`;
     }).join('');
 }
+
+// 選手をクリックしたら Player タブでその選手を表示する
+let slShown = [];  // 表示中のリーダー一覧（data-idx から元データを引くため）
+document.getElementById('sl-list').addEventListener('click', e => {
+    const item = e.target.closest('.sl-item');
+    const ath = item && slShown[item.dataset.idx]?.athlete;
+    if (!ath) return;
+    // ロスターに居ない選手（ウェイブ済みなど）はリーダーAPIの情報だけで表示する
+    const p = playerIndex.find(x => x.id === String(ath.id)) || {
+        id: String(ath.id), displayName: ath.displayName || '', team: ath.teamShortName || '',
+        teamId: '', position: '', jersey: '', headshot: ath.headshot?.href || '',
+    };
+    setMode('player');
+    selectPlayer(p);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+});
 
 async function switchSlTab(key) {
     slActiveKey = key;
