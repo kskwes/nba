@@ -328,6 +328,22 @@
             .status-actions { margin-left: 0; width: 100%; }
             .status-actions .btn { flex: 1; }
         }
+        @media (max-width: 600px) {
+            /* Finals: 2チームを横並びのまま収める（左チーム｜VS｜右チーム） */
+            .finals-panel {
+                display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+                gap: 8px; padding: 14px 10px; align-items: start;
+            }
+            .finals-team { min-width: 0; }
+            .finals-vs { align-self: center; font-size: 13px; letter-spacing: 1px; }
+            .finals-panel > .finals-result { grid-column: 1 / -1; }
+            .team-select { width: 100%; font-size: 12px; padding: 7px 24px 7px 8px; background-position: calc(100% - 13px) 52%, calc(100% - 8px) 52%; }
+            .champ-btn { min-width: 0; width: 100%; padding: 10px 6px; }
+            .champ-btn.disabled { min-height: 96px; }
+            .champ-btn img, .finals-logo { width: 44px; height: 44px; }
+            .champ-btn .nm { font-size: 12px; text-align: center; }
+            .champ-flag { font-size: 9px; letter-spacing: .5px; }
+        }
     </style>
 </head>
 <body class="theme-broadcast">
