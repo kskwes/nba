@@ -231,7 +231,7 @@ body.theme-broadcast {
     .theme-broadcast .site-logo { font-size: 18px; }
     .theme-broadcast .site-nav {
         position: fixed; left: 0; right: 0; bottom: 0; z-index: 150;
-        display: grid; grid-template-columns: repeat(4, 1fr); gap: 0;
+        display: grid; grid-template-columns: repeat(5, 1fr); gap: 0;
         background: #111114; border-top: 1px solid var(--border);
         padding-bottom: env(safe-area-inset-bottom, 0px);
     }

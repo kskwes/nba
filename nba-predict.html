@@ -1,0 +1,1417 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 個人用サイトのため検索エンジンに載せない -->
+    <meta name="robots" content="noindex, nofollow">
+    <title>NBA Predictions</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&display=swap">
+    <link rel="stylesheet" href="nba-common.css">
+    <style>
+        /* ─── Segmented control ─── */
+        .seg {
+            display: inline-flex; background: var(--surface); border: 1px solid var(--border);
+            border-radius: 8px; padding: 3px; gap: 2px; flex-wrap: wrap;
+        }
+        .seg button {
+            background: none; border: none; color: var(--muted); font-size: 12.5px; font-weight: 700;
+            padding: 6px 12px; border-radius: 6px; cursor: pointer; font-family: inherit;
+        }
+        .seg button:hover { color: var(--text); }
+        .seg button.on { background: var(--accent); color: var(--on-accent); }
+
+        /* ─── Buttons ─── */
+        .btn {
+            background: var(--surface2); border: 1px solid var(--border); color: var(--text-dim);
+            font-size: 12.5px; font-weight: 700; padding: 8px 14px; border-radius: 8px; cursor: pointer;
+            font-family: inherit; white-space: nowrap;
+        }
+        .btn:hover { color: var(--text); border-color: #3a3a44; }
+        .btn-primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+        .btn-primary:hover { color: var(--on-accent); filter: brightness(1.08); }
+
+        /* ─── Status bar ─── */
+        .status-bar {
+            display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+            background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+            padding: 12px 16px; margin-bottom: 22px;
+        }
+        .status-main { font-size: 13.5px; font-weight: 700; }
+        .status-main .em { color: var(--accent); }
+        .status-sub { font-size: 12px; color: var(--muted); }
+        .status-actions { margin-left: auto; display: flex; gap: 8px; }
+        .hits { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12.5px; color: var(--muted); margin-left: auto; }
+        .hits b { font-family: var(--font-score); font-size: 16px; font-weight: 600; color: var(--text); margin: 0 1px; }
+        .hits b.mark.ok { color: var(--pos); }
+        .hits b.mark.ng { color: var(--neg); }
+        .lock-badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            font-size: 12px; font-weight: 700; color: var(--text-dim);
+            background: var(--surface2); border: 1px solid var(--border); border-radius: 999px; padding: 4px 10px;
+        }
+        .progress { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
+        .progress-track { width: 120px; height: 4px; background: var(--surface2); border-radius: 2px; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--accent); border-radius: 2px; }
+
+        /* ─── Sections ─── */
+        .section { margin-bottom: 30px; }
+        .section-header { display: flex; gap: 12px; margin-bottom: 12px; }
+        .section-header .hint { font-size: 12px; color: var(--muted); }
+        .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
+
+
+        /* ─── Standings ─── */
+        .stand-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        .stand-panel { padding: 6px 0 8px; }
+        .stand-head {
+            display: flex; align-items: baseline; justify-content: space-between;
+            padding: 10px 14px 8px; border-bottom: 1px solid var(--border);
+        }
+        .conf-name { font-family: var(--font-score); font-size: 14px; font-weight: 600; letter-spacing: 2px; }
+        .conf-name.west { color: #64b5f6; }
+        .conf-name.east { color: #ef9a9a; }
+        .stand-cols { display: flex; gap: 0; font-size: 10px; color: var(--muted); font-weight: 700; letter-spacing: .5px; }
+        .stand-cols span { width: 46px; text-align: center; }
+        .stand-row {
+            display: flex; align-items: center; gap: 10px;
+            height: 40px; padding: 0 10px 0 14px; border-bottom: 1px solid var(--line-soft);
+            background: var(--surface); transition: background .12s;
+        }
+        .stand-row:last-child { border-bottom: none; }
+        .stand-row.draggable { cursor: grab; }
+        .stand-row.draggable:hover { background: var(--surface2); }
+        .stand-row.dragging { opacity: .35; }
+        .stand-row.drop-target { box-shadow: inset 0 2px 0 var(--accent); }
+        .s-rank { width: 20px; text-align: right; font-family: var(--font-score); font-size: 15px; font-weight: 600; color: var(--text-dim); font-variant-numeric: tabular-nums; }
+        .s-handle { color: #4a4a55; font-size: 14px; letter-spacing: -2px; user-select: none; }
+        .s-logo { width: 24px; height: 24px; object-fit: contain; }
+        .s-name { flex: 1; font-size: 13.5px; font-weight: 700; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .s-name .abbr { color: var(--muted); font-size: 11px; margin-left: 6px; font-weight: 600; }
+        .s-move { display: flex; gap: 2px; }
+        .s-move button {
+            width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border);
+            background: var(--surface-deep); color: var(--muted); cursor: pointer; font-size: 11px;
+        }
+        .s-move button:hover:not(:disabled) { color: var(--text); border-color: #3a3a44; }
+        .s-move button:disabled { opacity: .3; cursor: default; }
+        .s-cell { width: 46px; text-align: center; font-family: var(--font-score); font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
+        .s-cell.dim { color: var(--muted); }
+        .diff { font-size: 12px; }
+        .diff.zero { color: var(--pos); }
+        .stand-sep {
+            display: flex; align-items: center; gap: 8px; padding: 3px 14px;
+            font-size: 9.5px; font-weight: 700; letter-spacing: 1px; color: var(--muted);
+            background: var(--surface-deep); border-bottom: 1px solid var(--line-soft); text-transform: uppercase;
+        }
+
+        /* ─── Finals pick ─── */
+        .finals-panel { padding: 18px; display: flex; align-items: center; justify-content: center; gap: 22px; flex-wrap: wrap; }
+        .finals-team { display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 180px; }
+        .finals-team .conf-name { font-size: 12px; }
+        .finals-vs { font-family: var(--font-score); color: var(--muted); font-size: 16px; letter-spacing: 2px; }
+        .team-select {
+            appearance: none; background: var(--surface-deep); color: var(--text); border: 1px solid var(--border);
+            border-radius: 8px; padding: 8px 30px 8px 12px; font-size: 13px; font-weight: 700; font-family: inherit;
+            background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+            background-position: calc(100% - 15px) 52%, calc(100% - 10px) 52%; background-size: 5px 5px; background-repeat: no-repeat;
+        }
+        .champ-btn {
+            display: flex; flex-direction: column; align-items: center; gap: 6px;
+            background: var(--surface-deep); border: 1px solid var(--border); border-radius: 12px;
+            padding: 12px 18px; cursor: pointer; color: var(--text-dim); font-family: inherit; min-width: 150px;
+        }
+        .champ-btn:hover { border-color: #3a3a44; }
+        .champ-btn.static { cursor: default; }
+        .champ-btn.static:hover { border-color: var(--border); }
+        .champ-btn.static.on:hover { border-color: var(--accent); }
+        .champ-btn.disabled { opacity: .4; cursor: default; justify-content: center; min-height: 112px; }
+        .champ-btn.on { border-color: var(--accent); box-shadow: 0 0 14px rgba(245,183,0,.2); color: var(--text); }
+        .champ-btn img, .finals-logo { width: 56px; height: 56px; object-fit: contain; }
+        .champ-btn .nm { font-size: 13px; font-weight: 700; }
+        .champ-flag { font-size: 10px; font-weight: 800; letter-spacing: 1px; color: var(--accent); min-height: 13px; }
+        .finals-result { font-size: 12px; color: var(--muted); text-align: center; width: 100%; margin-top: 4px; }
+        .finals-result.big { font-size: 13px; }
+        .finals-result b { color: var(--text-dim); }
+
+        /* ─── Awards ─── */
+        .award-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
+        .award-card { padding: 12px 14px 10px; }
+        .award-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+        .award-id { font-family: var(--font-score); font-size: 16px; font-weight: 600; letter-spacing: 1px; }
+        .award-name { font-size: 11.5px; color: var(--muted); }
+        .slot { display: flex; align-items: center; gap: 10px; min-height: 40px; border-top: 1px solid var(--line-soft); position: relative; }
+        .slot-no { width: 26px; font-family: var(--font-score); font-size: 13px; font-weight: 600; color: var(--muted); }
+        .slot-no.first { color: var(--accent); }
+        .slot-body { flex: 1; min-width: 0; }
+        .slot-pick { display: flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 700; }
+        .slot-pick img { width: 20px; height: 20px; object-fit: contain; }
+        .slot-pick .tm { font-size: 11px; color: var(--muted); font-weight: 600; }
+        .slot-empty {
+            width: 100%; text-align: left; background: none; border: 1px dashed var(--border); border-radius: 8px;
+            color: var(--muted); font-size: 12.5px; padding: 7px 10px; cursor: pointer; font-family: inherit;
+        }
+        .slot-empty:hover { border-color: var(--accent); color: var(--text-dim); }
+        .slot-none { font-size: 12.5px; color: var(--muted); }
+        .slot-x { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 15px; padding: 4px 6px; }
+        .slot-x:hover { color: var(--text); }
+        .slot-search {
+            width: 100%; background: var(--surface-deep); border: 1px solid var(--accent); border-radius: 8px;
+            color: var(--text); font-size: 13px; padding: 7px 10px; font-family: inherit; outline: none;
+        }
+        .suggest {
+            position: absolute; left: 36px; right: 0; top: calc(100% - 2px); z-index: 20;
+            background: #1a1a20; border: 1px solid #33333c; border-radius: 10px; overflow: hidden;
+            box-shadow: 0 10px 28px rgba(0,0,0,.55);
+        }
+        .suggest button {
+            display: flex; align-items: center; gap: 8px; width: 100%; text-align: left;
+            background: none; border: none; border-bottom: 1px solid var(--line-soft);
+            color: var(--text-dim); font-size: 13px; font-weight: 600; padding: 8px 10px; cursor: pointer; font-family: inherit;
+        }
+        .suggest button:last-child { border-bottom: none; }
+        .suggest button:hover { background: var(--surface2); color: var(--text); }
+        .suggest img { width: 18px; height: 18px; object-fit: contain; }
+        .suggest-msg { padding: 10px 12px; font-size: 12.5px; color: var(--muted); }
+        .suggest .tm { margin-left: auto; font-size: 11px; color: var(--muted); }
+        .slot-result { font-size: 11px; white-space: nowrap; display: flex; align-items: center; gap: 6px; margin-top: 2px; }
+        .slot.scored { padding: 6px 0; }
+        .slot-result .act { color: var(--muted); }
+        .mark { font-weight: 800; }
+        .mark.ok { color: var(--pos); }
+        .mark.part { color: var(--warn); }
+        .mark.ng { color: var(--neg); }
+        .award-actual { font-size: 11px; color: var(--muted); border-top: 1px solid var(--line-soft); padding-top: 7px; margin-top: 2px; }
+
+
+        /* ─── Placeholder ─── */
+        .placeholder { padding: 46px 20px; text-align: center; }
+        .placeholder .big { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+        .placeholder .sub { font-size: 12.5px; color: var(--muted); }
+
+        /* ─── Bracket（nba-playoff.html のカードに準拠） ─── */
+        .bracket-outer { overflow-x: auto; padding-bottom: 12px; }
+        .bracket { min-width: max-content; }
+        .bracket-cols { display: flex; }
+        .b-col { width: 168px; display: flex; flex-direction: column; flex-shrink: 0; }
+        .b-col.finals { width: 180px; }
+        .round-label {
+            font-size: 10px; font-weight: 700; color: var(--muted); text-align: center;
+            letter-spacing: .8px; text-transform: uppercase; padding: 10px 0 8px; border-bottom: 1px solid var(--border);
+        }
+        .b-col.finals .round-label { color: var(--gold); }
+        .b-slots { flex: 1; display: flex; flex-direction: column; justify-content: space-around; padding: 6px 0; }
+        .b-slot { padding: 6px 7px; }
+        .matchup-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 6px 8px 6px; }
+        .matchup-card.champion { border-color: var(--accent); box-shadow: 0 0 14px rgba(245,183,0,.25); }
+        .mc-team {
+            display: flex; align-items: center; gap: 5px; padding: 4px 4px; width: 100%;
+            background: none; border: none; border-radius: 6px; color: inherit; font-family: inherit; text-align: left;
+        }
+        button.mc-team { cursor: pointer; }
+        button.mc-team:hover { background: var(--surface2); }
+        .mc-team + .mc-team { border-top: 1px solid var(--line-soft); border-radius: 0 0 6px 6px; }
+        .mc-seed { font-size: 9px; color: var(--muted); width: 12px; text-align: right; font-weight: 600; }
+        .mc-logo { width: 22px; height: 22px; object-fit: contain; }
+        .mc-name { font-size: 12px; font-weight: 700; flex: 1; color: var(--text-dim); }
+        .mc-check { width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid #3a3a44; flex-shrink: 0; }
+        .mc-picked .mc-name { color: var(--text); }
+        .mc-picked .mc-check { border-color: var(--accent); background: var(--accent); box-shadow: inset 0 0 0 3px var(--surface); }
+        .mc-dim { opacity: .45; }
+        .mc-wins { font-family: var(--font-score); font-size: 16px; font-weight: 600; color: var(--muted); min-width: 14px; text-align: center; }
+        .mc-win .mc-wins, .mc-win .mc-name { color: var(--text); }
+        .mc-tbd { font-size: 11px; color: var(--muted); padding: 7px 4px; }
+        .mc-mypick { font-size: 8.5px; font-weight: 800; color: var(--on-accent); background: var(--accent); border-radius: 3px; padding: 1px 4px; letter-spacing: .3px; }
+        .g-chips { display: flex; gap: 3px; margin-top: 5px; padding-top: 5px; border-top: 1px solid var(--line-soft); }
+        .g-chips button {
+            flex: 1; font-family: var(--font-score); font-size: 11.5px; font-weight: 600; padding: 3px 0;
+            background: var(--surface-deep); border: 1px solid var(--border); border-radius: 5px; color: var(--muted); cursor: pointer;
+        }
+        .g-chips button:hover:not(:disabled) { color: var(--text); }
+        .g-chips button.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+        .g-chips button:disabled { opacity: .3; cursor: default; }
+        .g-read { font-size: 10px; color: var(--muted); text-align: center; margin-top: 4px; padding-top: 4px; border-top: 1px solid var(--line-soft); }
+        .mc-status { font-size: 10px; text-align: center; margin-top: 4px; padding-top: 4px; border-top: 1px solid var(--line-soft); color: var(--muted); white-space: nowrap; }
+        .mc-status b { font-family: var(--font-score); font-weight: 600; font-size: 12px; }
+        .card-empty { border: 1px dashed var(--border); border-radius: 10px; padding: 18px 8px; text-align: center; font-size: 11px; color: var(--muted); }
+        .conf-row { display: flex; justify-content: space-between; padding: 0 4px; }
+
+        /* ─── Trends ─── */
+        .trend-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+        .team-chips { display: flex; gap: 4px; flex-wrap: wrap; }
+        .team-chip {
+            width: 38px; height: 38px; border-radius: 8px; background: var(--surface); border: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0;
+        }
+        .team-chip img { width: 24px; height: 24px; object-fit: contain; opacity: .55; }
+        .team-chip:hover img { opacity: 1; }
+        .team-chip.on { background: var(--surface2); }
+        .chip-hint { font-size: 11.5px; color: var(--muted); margin: 6px 0 12px; }
+        .team-chip.on img { opacity: 1; }
+        .trend-body { display: flex; gap: 14px; align-items: flex-start; }
+        .chart-panel { padding: 14px 14px 10px; flex: 0 0 auto; width: 100%; min-width: 0; transition: width .35s ease; }
+        .trend-body.recent .chart-panel { width: 580px; }
+        .chart-wrap { min-height: 340px; }
+        .delta-panel { flex: 1; min-width: 0; padding: 14px 14px 8px; }
+        .delta-panel.fade { animation: fadein .3s ease; }
+        .trend-body.all .delta-panel { display: none; }
+        @keyframes fadein { from { opacity: 0; } }
+        .d-row { display: flex; align-items: center; gap: 8px; height: 25px; font-size: 12px; color: var(--text-dim); border-bottom: 1px solid var(--line-soft); }
+        .d-row:last-child { border-bottom: none; }
+        .d-row.sel { color: var(--text); font-weight: 700; }
+        .d-rank { width: 18px; text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
+        .d-dot { width: 6px; height: 6px; border-radius: 50%; }
+        .d-row img { width: 18px; height: 18px; object-fit: contain; }
+        .d-abbr { width: 36px; }
+        .d-rec { flex: 1; color: var(--muted); font-variant-numeric: tabular-nums; font-weight: 400; }
+        .d-chg { width: 34px; text-align: right; font-family: var(--font-score); font-size: 13px; font-weight: 600; }
+        .d-chg .up { color: var(--pos); }
+        .d-chg .down { color: var(--neg); }
+        .d-chg .flat { color: var(--muted); }
+        .chart-title { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; padding-left: 4px; }
+        .chart-title .t { font-size: 14px; font-weight: 700; }
+        .chart-title .s { font-size: 12px; color: var(--muted); }
+        .chart-wrap { position: relative; }
+        .chart-wrap.recent #hit { cursor: zoom-out; }
+        .chart-wrap.all #hit { cursor: zoom-in; }
+        .chart-note { font-size: 11px; color: var(--muted); padding: 6px 4px 0; }
+        .chart-wrap svg { display: block; width: 100%; }
+        .tt {
+            position: absolute; pointer-events: none; z-index: 10; display: none;
+            background: #1a1a20; border: 1px solid #33333c; border-radius: 10px; padding: 8px 10px;
+            box-shadow: 0 10px 28px rgba(0,0,0,.55); font-size: 11.5px; min-width: 150px;
+        }
+        .tt-h { font-weight: 700; color: var(--text); margin-bottom: 5px; }
+        .tt-row { display: flex; gap: 8px; color: var(--muted); line-height: 1.55; font-variant-numeric: tabular-nums; }
+        .tt-row .r { width: 16px; text-align: right; }
+        .tt-row .a { width: 42px; display: flex; align-items: center; gap: 4px; }
+        .tt-row .a i { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+        .tt-row.sel { color: var(--text); font-weight: 700; }
+        
+        .chart-foot { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; font-size: 11.5px; color: var(--muted); padding: 8px 4px 0; }
+        .lg { display: inline-flex; align-items: center; gap: 6px; }
+        .lg i { display: inline-block; width: 18px; height: 0; border-top: 2.5px solid var(--accent); }
+        .lg i.pred { border-top: 1.5px dashed var(--muted) !important; }
+        .lg i.ctx { border-top: 1.5px solid #4a4a55; }
+        .lg i.pred { border-top: 1.5px dashed var(--accent); }
+        .chart-foot .btn { margin-left: auto; padding: 6px 12px; font-size: 12px; }
+        .tbl-wrap { overflow-x: auto; margin-top: 12px; }
+        .rank-tbl { border-collapse: collapse; font-size: 11.5px; font-variant-numeric: tabular-nums; }
+        .rank-tbl th, .rank-tbl td { padding: 5px 7px; text-align: center; border-bottom: 1px solid var(--line-soft); white-space: nowrap; }
+        .rank-tbl th { color: var(--muted); font-weight: 700; font-size: 10.5px; }
+        .rank-tbl td:first-child, .rank-tbl th:first-child { text-align: left; position: sticky; left: 0; background: var(--surface); font-weight: 700; }
+        .rank-tbl tr.sel td { color: var(--text); font-weight: 700; }
+        .rank-tbl tr.sel td:first-child { box-shadow: inset 3px 0 0 var(--c); }
+
+        /* ─── Export modal ─── */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 300; display: none; align-items: center; justify-content: center; padding: 16px; }
+        .modal-overlay.open { display: flex; }
+        .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; width: 100%; max-width: 620px; max-height: 86vh; display: flex; flex-direction: column; }
+        .modal-head { display: flex; align-items: center; padding: 14px 18px; border-bottom: 1px solid var(--border); font-weight: 700; }
+        .modal-close { margin-left: auto; background: none; border: none; color: var(--muted); font-size: 22px; cursor: pointer; }
+        .modal-body { padding: 14px 18px; overflow: auto; font-size: 12.5px; color: var(--text-dim); line-height: 1.7; }
+        .modal-warn { color: var(--warn); margin-bottom: 8px; }
+        .modal-body ol { padding-left: 20px; margin: 6px 0 12px; }
+        .modal-body code { color: var(--accent); }
+        .modal-body pre { background: var(--surface-deep); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; font-size: 11px; color: var(--text-dim); overflow: auto; max-height: 260px; }
+        .modal-foot { display: flex; gap: 8px; justify-content: flex-end; padding: 12px 18px; border-top: 1px solid var(--border); }
+
+        @media (max-width: 860px) {
+            .trend-body { flex-direction: column; }
+            .trend-body.recent .chart-panel { width: 100%; }
+            .delta-panel { width: 100%; }
+            .stand-grid { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 768px) {
+            .status-actions { margin-left: 0; width: 100%; }
+            .status-actions .btn { flex: 1; }
+        }
+    </style>
+</head>
+<body class="theme-broadcast">
+<header>
+    <a class="site-logo" href="nba-daily.html">NBA <em>Daily</em></a>
+    <nav class="site-nav" aria-label="Pages">
+        <a href="nba-daily.html">Daily</a>
+        <a href="nba-player.html">Players</a>
+        <a href="nba-playoff.html">Playoffs</a>
+        <a href="nba-salary.html">Salary</a>
+        <a class="on" href="nba-predict.html" aria-current="page">Predict</a>
+    </nav>
+    <div class="header-right">
+        <div class="last-updated" id="last-updated"></div>
+    </div>
+</header>
+
+<div class="main-wrap">
+    <div class="tabs-nav">
+        <button class="tab-btn active" data-tab="season">Season</button>
+        <button class="tab-btn" data-tab="playoffs">Playoffs</button>
+        <button class="tab-btn" data-tab="trends">Trends</button>
+    </div>
+    <div class="tab-panel active" id="tab-season"><div class="msg">Loading<span class="spinner"></span></div></div>
+    <div class="tab-panel" id="tab-playoffs"></div>
+    <div class="tab-panel" id="tab-trends"></div>
+</div>
+
+<div class="modal-overlay" id="modal">
+    <div class="modal">
+        <div class="modal-head">予想を書き出す<button class="modal-close" id="modal-close">×</button></div>
+        <div class="modal-body" id="modal-body"></div>
+        <div class="modal-foot">
+            <button class="btn" id="modal-copy">コピー</button>
+            <button class="btn btn-primary" id="modal-dl">ダウンロード</button>
+        </div>
+    </div>
+</div>
+
+<!-- 予想ファイル・アワード結果（置いたものだけ読み込まれる。無いファイルは 404 になるが動作に影響しない） -->
+<script src="data/predictions-2027.js"></script>
+<script src="data/predictions-2027-playoffs.js"></script>
+<script src="data/awards-2027.js"></script>
+<script src="nba-common.js"></script>
+<script>
+/* ══════════════════════════════════════════════
+   CONFIG  – シーズンごとに更新する
+   ══════════════════════════════════════════════ */
+const SEASON       = 2027;                              // ESPN の年（2026-27 シーズン）
+const SEASON_LABEL = '2026-27';
+const LOCK_AT      = new Date('2026-10-20T19:00:00Z');  // 開幕戦（BOS @ DET）の開始時刻
+const PO_SCAN_FROM = '2027-04-10';                      // プレイオフの試合を探す期間
+const PO_SCAN_TO   = '2027-06-27';
+const DRAFT_KEY    = `nba-predict-draft-${SEASON}`;
+const PO_DRAFT_KEY = `nba-predict-po-draft-${SEASON}`;
+
+const ESPN_STANDINGS  = 'https://site.api.espn.com/apis/v2/sports/basketball/nba/standings';
+const ESPN_SCOREBOARD = 'https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard';
+const ESPN_TEAMS      = 'https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams';
+
+// data/ のファイル（無ければ入力モード）
+const PRED          = window.NBA_PREDICTIONS || null;
+const PO_PRED       = window.NBA_PLAYOFF_PREDICTIONS || null;
+const AWARD_RESULTS = window.NBA_AWARD_RESULTS || null;
+
+/* ── Helpers ── */
+const ABBR_MAP = { NY: 'NYK', GS: 'GSW', NO: 'NOP', SA: 'SAS', UTAH: 'UTA', WSH: 'WAS' };
+const normAbbr = a => ABBR_MAP[a] || a;
+const ESPN_LOGO_ABBR = { NYK: 'ny', GSW: 'gs', SAS: 'sa', NOP: 'no', UTA: 'utah', WAS: 'wsh' };
+const logo = a => `https://a.espncdn.com/i/teamlogos/nba/500/${(ESPN_LOGO_ABBR[a] || a).toLowerCase()}.png`;
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const normName = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+const etDate = d => new Date(d).toLocaleDateString('en-CA', { timeZone: 'America/New_York' });   // YYYY-MM-DD
+const mdLabel = ymd => `${+ymd.slice(5, 7)}/${+ymd.slice(8, 10)}`;
+const fmtJst = d => new Date(d).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo', year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+const fmtJstDay = d => new Date(d).toLocaleDateString('ja-JP', { timeZone: 'Asia/Tokyo', year: 'numeric', month: 'numeric', day: 'numeric' });
+
+function storeGet(key) { try { return JSON.parse(localStorage.getItem(key)); } catch (e) { return null; } }
+function storeSet(key, v) { try { localStorage.setItem(key, JSON.stringify(v)); } catch (e) { /* 保存できなくても動作は続ける */ } }
+function storeDel(key) { try { localStorage.removeItem(key); } catch (e) { /* noop */ } }
+
+function countdown(target) {
+    const ms = target - Date.now();
+    const d = Math.floor(ms / 86400000), h = Math.floor(ms % 86400000 / 3600000);
+    return d > 0 ? `${d}日${h}時間` : `${h}時間${Math.floor(ms % 3600000 / 60000)}分`;
+}
+
+const CONF = { west: 'West', east: 'East' };
+const AWARDS = [
+    { id: 'MVP', name: '最優秀選手' },
+    { id: 'ROY', name: '新人王', rookie: true },
+    { id: 'DPOY', name: '最優秀守備選手' },
+    { id: 'SMOY', label: '6MOY', name: 'シックスマン賞' },
+    { id: 'MIP', name: '躍進選手賞' },
+    { id: 'COY', name: '最優秀HC', coach: true },
+];
+
+/* ── State ── */
+const TEAMS = {};          // abbr → { id, name, full, conf }
+const ID2ABBR = {};
+let finalOrder = null;     // レギュラーシーズン終了後の公式順位 { west: [abbr], east: [abbr] }
+let defaultOrder = null;   // 入力の初期並び（昨季の最終順位）
+let draft = null;          // シーズン予想の下書き
+let poDraft = null;        // プレイオフ予想の下書き
+let po = null;             // プレイオフの実データ
+let poLoading = false;
+let activeSlot = null;     // 検索中のアワード枠 { award, idx }
+
+/* ══════════════════════════════════════════════
+   Data loading
+   ══════════════════════════════════════════════ */
+async function fetchStandings(season) {
+    const d = await fetch(`${ESPN_STANDINGS}?season=${season}`).then(r => r.json());
+    const out = { west: [], east: [] };
+    (d.children || []).forEach(c => {
+        const conf = /east/i.test(c.name) ? 'east' : 'west';
+        const entries = c.standings?.entries?.length
+            ? c.standings.entries
+            : (c.children || []).flatMap(x => x.standings?.entries || []);
+        entries.forEach(e => {
+            const stat = n => { const s = e.stats?.find(x => x.name === n); return s ? Number(s.value ?? s.displayValue) : NaN; };
+            out[conf].push({
+                abbr: normAbbr(e.team.abbreviation), id: e.team.id,
+                name: e.team.shortDisplayName || e.team.name, full: e.team.displayName,
+                seed: stat('playoffSeed') || 99, w: stat('wins') || 0, l: stat('losses') || 0,
+            });
+        });
+        out[conf].sort((a, b) => a.seed - b.seed);
+    });
+    return out;
+}
+
+function emptyDraft() {
+    const awards = {};
+    AWARDS.forEach(a => awards[a.id] = [null, null, null]);
+    return { standings: { west: [...defaultOrder.west], east: [...defaultOrder.east] }, finals: { west: null, east: null, champion: null }, awards };
+}
+
+function loadDraft() {
+    const base = emptyDraft();
+    const saved = storeGet(DRAFT_KEY);
+    if (!saved) return base;
+    // チーム構成が今季と合わない場合はそのカンファレンスだけ初期化
+    ['west', 'east'].forEach(c => {
+        const list = saved.standings?.[c];
+        if (Array.isArray(list) && list.length === 15 && list.every(a => TEAMS[a]?.conf === c)) base.standings[c] = list;
+    });
+    if (saved.finals) base.finals = { ...base.finals, ...saved.finals };
+    AWARDS.forEach(a => { if (Array.isArray(saved.awards?.[a.id])) base.awards[a.id] = saved.awards[a.id].slice(0, 3).concat([null, null, null]).slice(0, 3); });
+    return base;
+}
+const saveDraft = () => storeSet(DRAFT_KEY, draft);
+
+/* ── 選手・HC の検索用リスト（初回の検索時に30チームのロスターを取得） ── */
+let pool = null, poolPromise = null;
+function loadPool() {
+    if (!poolPromise) {
+        poolPromise = Promise.all(Object.keys(TEAMS).map(a =>
+            fetch(`${ESPN_TEAMS}/${TEAMS[a].id}/roster`).then(r => r.json()).then(d => ({ a, d })).catch(() => null)
+        )).then(rs => {
+            const players = [], coaches = [];
+            rs.forEach(r => {
+                if (!r) return;
+                (r.d.athletes || []).forEach(p => players.push({ id: p.id, name: p.displayName || p.fullName, team: r.a, rookie: p.experience?.years === 0 }));
+                (r.d.coach || []).forEach(c => coaches.push({ id: c.id, name: `${c.firstName} ${c.lastName}`, team: r.a }));
+            });
+            pool = { players, coaches };
+        });
+    }
+    return poolPromise;
+}
+
+/* ── プレイオフ（scoreboard を日付ごとに走査） ── */
+function parseRound(comp) {
+    const id = parseInt(comp.type?.id);
+    if (id >= 14 && id <= 17) return id - 13;
+    const h = (comp.notes?.[0]?.headline || '').toLowerCase();
+    if (h.includes('1st round')) return 1;
+    if (h.includes('semifinal') || h.includes('second round')) return 2;
+    if (h.includes('nba finals')) return 4;
+    if (h.includes('finals')) return 3;
+    return 0;
+}
+
+async function loadPlayoffs() {
+    if (poLoading || po) return;
+    poLoading = true;
+    const dates = [];
+    const end = Math.min(new Date(PO_SCAN_TO), Date.now() + 86400000 * 3);
+    for (let d = new Date(PO_SCAN_FROM + 'T12:00:00Z'); d <= end; d.setUTCDate(d.getUTCDate() + 1)) {
+        dates.push(d.toISOString().slice(0, 10).replace(/-/g, ''));
+    }
+    const events = [];
+    for (let i = 0; i < dates.length; i += 20) {
+        const res = await Promise.all(dates.slice(i, i + 20).map(ds =>
+            fetch(`${ESPN_SCOREBOARD}?dates=${ds}&limit=25`).then(r => r.json()).then(j => j.events || []).catch(() => [])));
+        events.push(...res.flat());
+    }
+    const series = {};
+    let firstGameAt = null;
+    events.forEach(ev => {
+        if (ev.season?.type !== 3) return;
+        const comp = ev.competitions?.[0];
+        if (!comp) return;
+        const round = parseRound(comp);
+        const teams = comp.competitors.map(c => ID2ABBR[c.team.id] || normAbbr(c.team.abbreviation));
+        if (!round || teams.length !== 2 || teams.some(t => !TEAMS[t])) return;   // 未定（TBD）の試合は除外
+        const key = [...teams].sort().join('-');
+        const s = series[key] || (series[key] = { round, teams, wins: { [teams[0]]: 0, [teams[1]]: 0 }, completed: false });
+        if (comp.series) {
+            s.completed = s.completed || !!comp.series.completed;
+            (comp.series.competitors || []).forEach(sc => {
+                const a = ID2ABBR[sc.id];
+                if (a in s.wins) s.wins[a] = Math.max(s.wins[a], sc.wins || 0);
+            });
+        }
+        if (round === 1 && (!firstGameAt || new Date(ev.date) < firstGameAt)) firstGameAt = new Date(ev.date);
+    });
+    Object.values(series).forEach(s => {
+        const [a, b] = s.teams;
+        if (s.wins[a] >= 4 || s.wins[b] >= 4) s.completed = true;
+        s.winner = s.completed ? (s.wins[a] > s.wins[b] ? a : b) : null;
+        s.games = s.wins[a] + s.wins[b];
+    });
+    // 1回戦のシード：1〜6位は公式順位、7・8位は 2位・1位 の対戦相手
+    let seeds = null;
+    if (finalOrder) {
+        seeds = { west: {}, east: {} };
+        ['west', 'east'].forEach(c => {
+            finalOrder[c].slice(0, 6).forEach((a, i) => seeds[c][i + 1] = a);
+            const oppOf = t => {
+                const s = Object.values(series).find(x => x.round === 1 && x.teams.includes(t));
+                return s ? s.teams.find(x => x !== t) : null;
+            };
+            seeds[c][8] = oppOf(seeds[c][1]);
+            seeds[c][7] = oppOf(seeds[c][2]);
+        });
+        if (!['west', 'east'].every(c => seeds[c][7] && seeds[c][8])) seeds = null;
+    }
+    po = { series, seeds, firstGameAt };
+    poLoading = false;
+}
+
+/* ── Bracket helpers ── */
+const R1_PAIRS = [[1, 8], [4, 5], [3, 6], [2, 7]];
+const confKey = id => id[0] === 'W' ? 'west' : 'east';
+function allSeriesIds() {
+    const ids = [];
+    ['W', 'E'].forEach(p => { [0, 1, 2, 3].forEach(i => ids.push(`${p}-R1-${i}`)); ids.push(`${p}-R2-0`, `${p}-R2-1`, `${p}-CF`); });
+    ids.push('F');
+    return ids;
+}
+// winnerFn(id) → そのシリーズの勝者（予想 or 実際）
+function slotTeams(id, seeds, winnerFn) {
+    if (id === 'F') return [winnerFn('W-CF'), winnerFn('E-CF')];
+    const p = id[0], parts = id.split('-');
+    if (parts[1] === 'R1') return R1_PAIRS[+parts[2]].map(s => seeds?.[confKey(id)]?.[s] || null);
+    if (parts[1] === 'R2') { const k = +parts[2]; return [winnerFn(`${p}-R1-${k * 2}`), winnerFn(`${p}-R1-${k * 2 + 1}`)]; }
+    return [winnerFn(`${p}-R2-0`), winnerFn(`${p}-R2-1`)];
+}
+function actualSeries(id) {
+    if (!po?.seeds) return null;
+    const [a, b] = slotTeams(id, po.seeds, actualWinner);
+    if (!a || !b) return { teams: [a, b] };
+    return po.series[[a, b].sort().join('-')] ? { ...po.series[[a, b].sort().join('-')], teams: [a, b] } : { teams: [a, b] };
+}
+function actualWinner(id) { return actualSeries(id)?.winner || null; }
+
+/* ══════════════════════════════════════════════
+   Season tab
+   ══════════════════════════════════════════════ */
+function seasonMode() { return PRED ? 'locked' : (Date.now() < LOCK_AT ? 'input' : 'late'); }
+const viewPred = () => PRED || draft;
+
+function filledCount() {
+    const p = viewPred();
+    let n = 0;
+    AWARDS.forEach(a => (p.awards?.[a.id] || []).forEach(v => v && n++));
+    ['west', 'east', 'champion'].forEach(k => p.finals?.[k] && n++);
+    return n;
+}
+const FILL_TOTAL = AWARDS.length * 3 + 3;
+
+function finalsActual() {
+    return { west: actualWinner('W-CF'), east: actualWinner('E-CF'), champion: actualWinner('F') };
+}
+// ok: 順位どおり ／ part: 順位違いでトップ3 ／ ng: 圏外 ／ null: 結果未登録
+function awardResult(awardId, idx, entry) {
+    const res = AWARD_RESULTS?.[awardId];
+    if (!res || !entry) return null;
+    const names = res.map(r => normName(typeof r === 'string' ? r : r.name));
+    const act = names.indexOf(normName(entry.name));
+    return { act, mark: act === idx ? 'ok' : (act >= 0 && act < 3 ? 'part' : 'ng') };
+}
+
+function hitsSummary() {
+    const p = viewPred(), parts = [];
+    if (finalOrder) {
+        let exact = 0;
+        ['west', 'east'].forEach(c => p.standings[c].forEach((t, i) => finalOrder[c][i] === t && exact++));
+        parts.push(`<span>順位ピタリ <b>${exact}</b>/30</span>`);
+    }
+    const a = finalsActual();
+    if (a.west && a.east) parts.push(`<span>ファイナル進出 <b>${(p.finals.west === a.west) + (p.finals.east === a.east)}</b>/2</span>`);
+    if (a.champion) {
+        const ok = p.finals.champion === a.champion;
+        parts.push(`<span>優勝 <b class="mark ${ok ? 'ok' : 'ng'}">${ok ? '✓' : '✗'}</b></span>`);
+    }
+    const decided = AWARDS.filter(x => AWARD_RESULTS?.[x.id]?.length);
+    if (decided.length) {
+        const hit = decided.filter(x => awardResult(x.id, 0, p.awards[x.id]?.[0])?.mark === 'ok').length;
+        parts.push(`<span>アワード1位 <b>${hit}</b>/${decided.length}</span>`);
+    }
+    return parts.length ? `<span class="hits">${parts.join('')}</span>` : '<span class="status-sub">結果はシーズン終了後に表示されます</span>';
+}
+
+function statusBar() {
+    const mode = seasonMode();
+    if (mode === 'input') {
+        const n = filledCount();
+        return `<div class="status-bar">
+            <div>
+                <div class="status-main">締切まであと <span class="em">${countdown(LOCK_AT)}</span>（${fmtJst(LOCK_AT)} 開幕戦の開始時刻）</div>
+                <div class="status-sub">下書きはこのブラウザに自動保存されます</div>
+            </div>
+            <div class="progress">アワード・ファイナル ${n}/${FILL_TOTAL}
+                <div class="progress-track"><div class="progress-fill" style="width:${n / FILL_TOTAL * 100}%"></div></div></div>
+            <div class="status-actions">
+                <button class="btn" id="btn-reset">下書きをリセット</button>
+                <button class="btn btn-primary" id="btn-export">予想を書き出す</button>
+            </div>
+        </div>`;
+    }
+    if (mode === 'late') {
+        return `<div class="status-bar">
+            <div>
+                <div class="status-main">締切（${fmtJst(LOCK_AT)}）を過ぎました</div>
+                <div class="status-sub">予想ファイル data/predictions-${SEASON}.js がまだありません。このブラウザの下書きを書き出して配置してください</div>
+            </div>
+            <div class="status-actions"><button class="btn btn-primary" id="btn-export">下書きを書き出す</button></div>
+        </div>`;
+    }
+    return `<div class="status-bar">
+        <span class="lock-badge">🔒 ${fmtJstDay(PRED.lockedAt || LOCK_AT)} 確定</span>
+        <span class="status-sub">data/predictions-${SEASON}.js</span>
+        ${hitsSummary()}
+    </div>`;
+}
+
+function standingsPanel(conf) {
+    const p = viewPred();
+    const list = p.standings[conf];
+    const editable = seasonMode() === 'input';
+    const scored = !editable && !!finalOrder;
+    let html = `<div class="panel stand-panel">
+        <div class="stand-head"><span class="conf-name ${conf}">${CONF[conf]}</span>
+        ${scored ? '<span class="stand-cols"><span>実際</span><span>結果</span></span>' : ''}</div>`;
+    list.forEach((t, i) => {
+        if (i === 6) html += '<div class="stand-sep">Play-In</div>';
+        if (i === 10) html += '<div class="stand-sep">Lottery</div>';
+        let right = '';
+        if (editable) {
+            right = `<div class="s-move">
+                <button data-move="${conf}:${i}:-1" ${i === 0 ? 'disabled' : ''} aria-label="上へ">▲</button>
+                <button data-move="${conf}:${i}:1" ${i === list.length - 1 ? 'disabled' : ''} aria-label="下へ">▼</button></div>`;
+        } else if (scored) {
+            const act = finalOrder[conf].indexOf(t) + 1;
+            const diff = act - (i + 1);
+            right = `<span class="s-cell dim">${act || '-'}</span>
+                <span class="s-cell diff ${diff === 0 ? 'zero' : ''}">${diff === 0 ? '✓' : (diff > 0 ? '↓' : '↑') + Math.abs(diff)}</span>`;
+        }
+        html += `<div class="stand-row ${editable ? 'draggable' : ''}" ${editable ? `draggable="true" data-drag="${conf}:${i}"` : ''}>
+            <span class="s-rank">${i + 1}</span>
+            ${editable ? '<span class="s-handle">⋮⋮</span>' : ''}
+            <img class="s-logo" src="${logo(t)}" alt="">
+            <span class="s-name">${esc(TEAMS[t]?.name || t)}<span class="abbr">${t}</span></span>
+            ${right}
+        </div>`;
+    });
+    return html + '</div>';
+}
+
+function finalsSection() {
+    const f = viewPred().finals;
+    const name = t => esc(TEAMS[t]?.name || t);
+    if (seasonMode() === 'input') {
+        const opts = (conf, sel) => ['<option value="">選択…</option>']
+            .concat(draft.standings[conf].map(t => `<option value="${t}" ${t === sel ? 'selected' : ''}>${name(t)}</option>`)).join('');
+        const champBtn = t => t
+            ? `<button class="champ-btn ${f.champion === t ? 'on' : ''}" data-champ="${t}">
+                 <img src="${logo(t)}" alt=""><span class="nm">${name(t)}</span>
+                 <span class="champ-flag">${f.champion === t ? '🏆 CHAMPION' : 'タップで優勝に'}</span></button>`
+            : '<div class="champ-btn disabled"><span class="nm">未選択</span></div>';
+        return `<div class="panel finals-panel">
+            <div class="finals-team"><span class="conf-name west">WEST 代表</span>
+                <select class="team-select" data-finals="west">${opts('west', f.west)}</select>${champBtn(f.west)}</div>
+            <span class="finals-vs">VS</span>
+            <div class="finals-team"><span class="conf-name east">EAST 代表</span>
+                <select class="team-select" data-finals="east">${opts('east', f.east)}</select>${champBtn(f.east)}</div>
+        </div>`;
+    }
+    const a = finalsActual();
+    const side = conf => {
+        const t = f[conf];
+        let res = '';
+        if (a[conf]) {
+            res = `<div class="finals-result">${a[conf] === t ? '<span class="mark ok">✓ 的中</span>'
+                : `<span class="mark ng">✗</span> 実際: <b>${name(a[conf])}</b>`}</div>`;
+        }
+        const card = t
+            ? `<div class="champ-btn static ${f.champion === t ? 'on' : ''}"><img src="${logo(t)}" alt=""><span class="nm">${name(t)}</span>
+                <span class="champ-flag">${f.champion === t ? '🏆 CHAMPION' : ''}</span></div>`
+            : '<div class="champ-btn disabled"><span class="nm">未選択</span></div>';
+        return `<div class="finals-team"><span class="conf-name ${conf}">${CONF[conf].toUpperCase()} 代表</span>${card}${res}</div>`;
+    };
+    let foot = '';
+    if (a.champion) {
+        foot = `<div class="finals-result big">優勝 ${a.champion === f.champion ? '<span class="mark ok">✓ 的中</span>'
+            : `<span class="mark ng">✗</span> 実際の優勝: <b>${name(a.champion)}</b>`}</div>`;
+    }
+    return `<div class="panel finals-panel">${side('west')}<span class="finals-vs">VS</span>${side('east')}${foot}</div>`;
+}
+
+function awardsSection() {
+    const p = viewPred();
+    const editable = seasonMode() === 'input';
+    return `<div class="award-grid">${AWARDS.map(a => {
+        const picks = p.awards?.[a.id] || [null, null, null];
+        const kind = a.coach ? 'HC' : (a.rookie ? 'ルーキー' : '選手');
+        const slots = picks.map((entry, i) => {
+            const no = `<span class="slot-no ${i === 0 ? 'first' : ''}">${i + 1}位</span>`;
+            if (editable && activeSlot && activeSlot.award === a.id && activeSlot.idx === i) {
+                return `<div class="slot">${no}<div class="slot-body">
+                    <input class="slot-search" id="slot-search" placeholder="${kind}名で検索" autocomplete="off"></div>
+                    <div class="suggest" id="suggest"></div></div>`;
+            }
+            if (!entry) {
+                return `<div class="slot">${no}<div class="slot-body">${editable
+                    ? `<button class="slot-empty" data-slot="${a.id}:${i}">＋ ${kind}を選ぶ</button>`
+                    : '<span class="slot-none">未選択</span>'}</div></div>`;
+            }
+            const tmLogo = TEAMS[entry.team] ? `<img src="${logo(entry.team)}" alt="">` : '';
+            const pick = `<span class="slot-pick">${tmLogo}${esc(entry.name)}<span class="tm">${esc(entry.team || '')}</span></span>`;
+            const r = awardResult(a.id, i, entry);
+            if (r) {
+                const sym = { ok: '✓ 的中', part: '△ 3位以内', ng: '✗' }[r.mark];
+                return `<div class="slot scored">${no}<div class="slot-body">${pick}
+                    <span class="slot-result"><span class="act">実際 ${r.act >= 0 ? r.act + 1 + '位' : '圏外'}</span>
+                    <span class="mark ${r.mark}">${sym}</span></span></div></div>`;
+            }
+            return `<div class="slot">${no}<div class="slot-body">${pick}</div>
+                ${editable ? `<button class="slot-x" data-clear="${a.id}:${i}" aria-label="削除">×</button>` : ''}</div>`;
+        }).join('');
+        const res = AWARD_RESULTS?.[a.id];
+        const actual = res?.length ? `<div class="award-actual">結果: ${res.slice(0, 3).map((r, i) => `${i + 1}. ${esc(typeof r === 'string' ? r : r.name)}`).join('　')}</div>` : '';
+        return `<div class="panel award-card">
+            <div class="award-head"><span class="award-id">${a.label || a.id}</span><span class="award-name">${a.name}</span></div>
+            ${slots}${actual}</div>`;
+    }).join('')}</div>`;
+}
+
+function renderSeason() {
+    const el = document.getElementById('tab-season');
+    const editable = seasonMode() === 'input';
+    el.innerHTML = `
+        ${statusBar()}
+        <div class="section">
+            <div class="section-header"><h2>Standings</h2>
+                ${editable ? '<span class="hint">ドラッグまたは ▲▼ で並べ替え（初期値は昨季の最終順位）</span>' : ''}</div>
+            <div class="stand-grid">${standingsPanel('west')}${standingsPanel('east')}</div>
+        </div>
+        <div class="section">
+            <div class="section-header"><h2>Finals</h2>
+                ${editable ? '<span class="hint">各カンファレンスの代表を選び、優勝チームをタップ</span>' : ''}</div>
+            ${finalsSection()}
+        </div>
+        <div class="section">
+            <div class="section-header"><h2>Awards</h2>
+                ${editable ? '<span class="hint">各部門の上位3人を予想</span>' : ''}</div>
+            ${awardsSection()}
+        </div>`;
+    bindSeason(el);
+}
+
+function bindSeason(root) {
+    const rerender = () => { saveDraft(); renderSeason(); };
+    root.querySelectorAll('[data-move]').forEach(b => b.onclick = () => {
+        const [c, i, d] = b.dataset.move.split(':');
+        const arr = draft.standings[c], a = +i, z = a + +d;
+        [arr[a], arr[z]] = [arr[z], arr[a]];
+        rerender();
+    });
+    // drag & drop（デスクトップ）
+    let from = null;
+    root.querySelectorAll('[data-drag]').forEach(row => {
+        row.addEventListener('dragstart', () => { from = row.dataset.drag; row.classList.add('dragging'); });
+        row.addEventListener('dragend', () => row.classList.remove('dragging'));
+        row.addEventListener('dragover', e => { e.preventDefault(); row.classList.add('drop-target'); });
+        row.addEventListener('dragleave', () => row.classList.remove('drop-target'));
+        row.addEventListener('drop', e => {
+            e.preventDefault();
+            if (!from) return;
+            const [fc, fi] = from.split(':'), [tc, ti] = row.dataset.drag.split(':');
+            from = null;
+            if (fc !== tc) return renderSeason();
+            const arr = draft.standings[fc];
+            const [t] = arr.splice(+fi, 1);
+            arr.splice(+ti, 0, t);
+            rerender();
+        });
+    });
+    root.querySelectorAll('[data-finals]').forEach(s => s.onchange = () => {
+        const conf = s.dataset.finals;
+        if (draft.finals.champion && draft.finals.champion === draft.finals[conf]) draft.finals.champion = null;
+        draft.finals[conf] = s.value || null;
+        rerender();
+    });
+    root.querySelectorAll('[data-champ]').forEach(b => b.onclick = () => { draft.finals.champion = b.dataset.champ; rerender(); });
+    root.querySelectorAll('[data-slot]').forEach(b => b.onclick = () => {
+        const [award, idx] = b.dataset.slot.split(':');
+        activeSlot = { award, idx: +idx };
+        renderSeason();
+    });
+    root.querySelectorAll('[data-clear]').forEach(b => b.onclick = () => {
+        const [award, idx] = b.dataset.clear.split(':');
+        draft.awards[award][+idx] = null;
+        rerender();
+    });
+    const input = document.getElementById('slot-search');
+    if (input) bindSearch(input);
+    const exp = document.getElementById('btn-export');
+    if (exp) exp.onclick = () => openExport({
+        file: `predictions-${SEASON}.js`, text: seasonExportText(),
+        warn: FILL_TOTAL - filledCount() ? `未入力が ${FILL_TOTAL - filledCount()} 件あります（未入力のままでも書き出せます）` : '',
+    });
+    const rst = document.getElementById('btn-reset');
+    if (rst) rst.onclick = () => {
+        if (!confirm('下書きを消して初期状態に戻しますか？')) return;
+        storeDel(DRAFT_KEY);
+        draft = emptyDraft();
+        renderSeason();
+    };
+}
+
+function bindSearch(input) {
+    const award = AWARDS.find(a => a.id === activeSlot.award);
+    const box = document.getElementById('suggest');
+    let list = [];
+    const choose = p => {
+        draft.awards[award.id][activeSlot.idx] = { id: p.id, name: p.name, team: p.team };
+        activeSlot = null;
+        saveDraft();
+        renderSeason();
+    };
+    const draw = () => {
+        if (!pool) { box.innerHTML = '<div class="suggest-msg">読み込み中<span class="spinner"></span></div>'; return; }
+        const q = normName(input.value);
+        const taken = draft.awards[award.id].filter(Boolean).map(e => e.id);
+        const src = award.coach ? pool.coaches : pool.players.filter(p => !award.rookie || p.rookie);
+        list = src.filter(p => !taken.includes(p.id) && normName(p.name).includes(q))
+            .sort((a, b) => normName(a.name).indexOf(q) - normName(b.name).indexOf(q)).slice(0, 8);
+        box.innerHTML = list.length
+            ? list.map((p, i) => `<button data-pick="${i}">${TEAMS[p.team] ? `<img src="${logo(p.team)}" alt="">` : ''}${esc(p.name)}<span class="tm">${p.team}</span></button>`).join('')
+            : '<div class="suggest-msg">該当なし</div>';
+        box.querySelectorAll('[data-pick]').forEach(b => b.onmousedown = e => { e.preventDefault(); choose(list[+b.dataset.pick]); });
+    };
+    input.oninput = draw;
+    input.onblur = () => { activeSlot = null; renderSeason(); };
+    input.onkeydown = e => {
+        if (e.key === 'Escape') input.blur();
+        if (e.key === 'Enter' && list[0]) choose(list[0]);
+    };
+    draw();
+    input.focus();
+    if (!pool) loadPool().then(() => { if (document.getElementById('slot-search') === input) draw(); });
+}
+
+/* ── Export ── */
+function seasonExportText() {
+    const out = { season: SEASON_LABEL, lockedAt: LOCK_AT.toISOString(), exportedAt: new Date().toISOString(),
+        standings: draft.standings, finals: draft.finals, awards: draft.awards };
+    return `// ${SEASON_LABEL} シーズン予想。このファイルがあると nba-predict.html は表示専用になる\nwindow.NBA_PREDICTIONS = ${JSON.stringify(out, null, 2)};\n`;
+}
+let exportState = null;
+function openExport(state) {
+    exportState = state;
+    document.getElementById('modal-body').innerHTML = `
+        ${state.warn ? `<p class="modal-warn">⚠ ${state.warn}</p>` : ''}
+        <ol>
+            <li>「ダウンロード」で <code>${state.file}</code> を保存</li>
+            <li><code>nba/data/</code> に置いて push</li>
+            <li>どのデバイスで開いても予想が表示され、編集できない状態になります</li>
+        </ol>
+        <pre>${esc(state.text)}</pre>`;
+    document.getElementById('modal').classList.add('open');
+}
+const closeExport = () => document.getElementById('modal').classList.remove('open');
+document.getElementById('modal-close').onclick = closeExport;
+document.getElementById('modal').onclick = e => { if (e.target.id === 'modal') closeExport(); };
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeExport(); });
+document.getElementById('modal-copy').onclick = e => {
+    navigator.clipboard?.writeText(exportState.text).then(() => { e.target.textContent = 'コピーしました'; setTimeout(() => e.target.textContent = 'コピー', 1500); });
+};
+document.getElementById('modal-dl').onclick = () => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([exportState.text], { type: 'text/javascript' }));
+    a.download = exportState.file;
+    a.click();
+    URL.revokeObjectURL(a.href);
+};
+
+/* ══════════════════════════════════════════════
+   Playoffs tab
+   ══════════════════════════════════════════════ */
+function poMode() {
+    if (PO_PRED) return 'locked';
+    if (!po?.seeds) return 'wait';
+    return po.firstGameAt && Date.now() >= po.firstGameAt ? 'late' : 'input';
+}
+const poPicks = () => (PO_PRED ? PO_PRED.picks : poDraft?.picks) || {};
+const poSeeds = () => PO_PRED?.seeds || po?.seeds;
+const pickWinner = id => poPicks()[id]?.winner || null;
+
+function loadPoDraft() {
+    const saved = storeGet(PO_DRAFT_KEY);
+    // シードが変わっていたら（再取得で確定した等）下書きを捨てる
+    if (saved && JSON.stringify(saved.seeds) === JSON.stringify(po.seeds)) return saved;
+    return { seeds: po.seeds, picks: {} };
+}
+function sanitizePicks() {
+    const picks = poDraft.picks;
+    allSeriesIds().forEach(id => {
+        if (picks[id] && !slotTeams(id, po.seeds, pickWinner).includes(picks[id].winner)) delete picks[id];
+    });
+}
+
+function seriesResult(id) {
+    const p = poPicks()[id], a = actualSeries(id);
+    if (!p?.winner || !a) return null;
+    const known = a.teams[0] && a.teams[1];
+    if (known && !a.teams.includes(p.winner)) return { ok: false };    // 予想した勝者がこのシリーズに出ていない
+    if (!a.completed) return null;
+    const ok = p.winner === a.winner;
+    return { ok, gOk: ok && p.games === a.games };
+}
+
+function seedOf(t) {
+    const s = poSeeds();
+    for (const c of ['west', 'east']) for (const k in (s?.[c] || {})) if (s[c][k] === t) return k;
+    return '';
+}
+
+function teamRow(t, id, mode, act) {
+    if (!t) return '<div class="mc-team"><span class="mc-tbd">未定</span></div>';
+    const seed = id === 'F' ? '' : seedOf(t);
+    const pick = poPicks()[id];
+    if (mode === 'input') {
+        const on = pick?.winner === t, dim = pick?.winner && !on;
+        return `<button class="mc-team ${on ? 'mc-picked' : ''} ${dim ? 'mc-dim' : ''}" data-pick-series="${id}" data-team="${t}">
+            <span class="mc-seed">${seed}</span><img class="mc-logo" src="${logo(t)}" alt=""><span class="mc-name">${t}</span><span class="mc-check"></span></button>`;
+    }
+    const wins = act?.wins?.[t];
+    const win = act?.winner === t, lose = act?.winner && !win;
+    return `<div class="mc-team ${win ? 'mc-win' : ''} ${lose ? 'mc-dim' : ''}">
+        <span class="mc-seed">${seed}</span><img class="mc-logo" src="${logo(t)}" alt=""><span class="mc-name">${t}</span>
+        ${pick?.winner === t ? '<span class="mc-mypick">予想</span>' : ''}<span class="mc-wins">${wins ?? ''}</span></div>`;
+}
+
+function seriesCard(id, mode) {
+    const pick = poPicks()[id];
+    if (mode === 'input') {
+        const [a, b] = slotTeams(id, po.seeds, pickWinner);
+        if (!a && !b) return '<div class="card-empty">前のラウンドを予想すると<br>対戦が決まります</div>';
+        const chips = [4, 5, 6, 7].map(g =>
+            `<button data-games="${id}:${g}" class="${pick?.games === g ? 'on' : ''}" ${pick?.winner ? '' : 'disabled'}>4-${g - 4}</button>`).join('');
+        return `<div class="matchup-card ${id === 'F' && pick?.winner ? 'champion' : ''}">${teamRow(a, id, mode)}${teamRow(b, id, mode)}<div class="g-chips">${chips}</div></div>`;
+    }
+    // locked / late: 実際の対戦カード（決まっていなければ未定）＋自分の予想
+    const act = actualSeries(id);
+    const [a, b] = act ? act.teams : [null, null];
+    const r = seriesResult(id);
+    const pickTxt = pick?.winner ? `予想 ${pick.winner}${pick.games ? ` 4-${pick.games - 4}` : ''}` : '予想なし';
+    const mark = !r ? '' : r.ok ? `<span class="mark ok">✓${r.gOk ? ' 試合数も' : ''}</span>` : '<span class="mark ng">✗</span>';
+    const champ = id === 'F' && act?.winner;
+    return `<div class="matchup-card ${champ ? 'champion' : ''}">${teamRow(a, id, mode, act)}${teamRow(b, id, mode, act)}
+        <div class="mc-status">${pickTxt}　${mark}</div></div>`;
+}
+
+function bracketCol(label, ids, mode, extra = '') {
+    return `<div class="b-col ${extra}"><div class="round-label">${label}</div>
+        <div class="b-slots">${ids.map(id => `<div class="b-slot">${seriesCard(id, mode)}</div>`).join('')}</div></div>`;
+}
+
+function poExportText() {
+    const out = { season: SEASON_LABEL, lockedAt: po.firstGameAt?.toISOString() || null, exportedAt: new Date().toISOString(),
+        seeds: po.seeds, picks: poDraft.picks };
+    return `// ${SEASON_LABEL} プレイオフ予想。このファイルがあると Playoffs タブは表示専用になる\nwindow.NBA_PLAYOFF_PREDICTIONS = ${JSON.stringify(out, null, 2)};\n`;
+}
+
+function renderPlayoffs() {
+    const el = document.getElementById('tab-playoffs');
+    if (poLoading) { el.innerHTML = '<div class="msg">Loading<span class="spinner"></span></div>'; return; }
+    const mode = poMode();
+    if (mode === 'wait') {
+        el.innerHTML = `<div class="panel placeholder">
+            <div class="big">プレイオフ予想はプレイイン終了後に入力できます</div>
+            <div class="sub">1回戦の対戦カードがすべて決まるとここに表示されます。締切は1回戦の最初の試合開始時刻です。</div></div>`;
+        return;
+    }
+    if (mode === 'input' || mode === 'late') {
+        if (!poDraft) poDraft = loadPoDraft();
+        sanitizePicks();
+    }
+    const done = allSeriesIds().filter(id => poPicks()[id]?.winner && poPicks()[id]?.games).length;
+    let bar;
+    if (mode === 'input') {
+        bar = `<div class="status-bar">
+            <div><div class="status-main">締切まであと <span class="em">${countdown(po.firstGameAt)}</span>（${fmtJst(po.firstGameAt)} 1回戦の最初の試合）</div>
+            <div class="status-sub">勝つチームをタップ → 試合数（4-0〜4-3）を選択。下書きはこのブラウザに自動保存されます</div></div>
+            <div class="progress">${done}/15 シリーズ<div class="progress-track"><div class="progress-fill" style="width:${done / 15 * 100}%"></div></div></div>
+            <div class="status-actions"><button class="btn btn-primary" id="po-export">予想を書き出す</button></div></div>`;
+    } else if (mode === 'late') {
+        bar = `<div class="status-bar">
+            <div><div class="status-main">締切を過ぎました</div>
+            <div class="status-sub">予想ファイル data/predictions-${SEASON}-playoffs.js がまだありません。このブラウザの下書きを書き出して配置してください</div></div>
+            <div class="status-actions"><button class="btn btn-primary" id="po-export">下書きを書き出す</button></div></div>`;
+    } else {
+        const res = allSeriesIds().map(seriesResult).filter(r => r && (r.ok || r.ok === false));
+        const decided = allSeriesIds().filter(id => actualSeries(id)?.completed).length;
+        bar = `<div class="status-bar"><span class="lock-badge">🔒 ${fmtJstDay(PO_PRED.lockedAt || Date.now())} 確定</span>
+            <span class="status-sub">data/predictions-${SEASON}-playoffs.js</span>
+            ${decided ? `<span class="hits"><span>勝者 <b>${res.filter(r => r.ok).length}</b>/${decided}</span>
+            <span>試合数まで <b>${res.filter(r => r.gOk).length}</b>/${decided}</span></span>` : ''}</div>`;
+    }
+    const m = mode === 'input' ? 'input' : 'view';
+    el.innerHTML = `${bar}
+        <div class="bracket-outer"><div class="bracket">
+            <div class="conf-row"><span class="conf-name west">WEST</span><span class="conf-name east">EAST</span></div>
+            <div class="bracket-cols">
+            ${bracketCol('1st Round', ['W-R1-0', 'W-R1-1', 'W-R1-2', 'W-R1-3'], m)}
+            ${bracketCol('Conf Semis', ['W-R2-0', 'W-R2-1'], m)}
+            ${bracketCol('Conf Finals', ['W-CF'], m)}
+            ${bracketCol('NBA Finals', ['F'], m, 'finals')}
+            ${bracketCol('Conf Finals', ['E-CF'], m)}
+            ${bracketCol('Conf Semis', ['E-R2-0', 'E-R2-1'], m)}
+            ${bracketCol('1st Round', ['E-R1-0', 'E-R1-1', 'E-R1-2', 'E-R1-3'], m)}
+            </div>
+        </div></div>`;
+    el.querySelectorAll('[data-pick-series]').forEach(b => b.onclick = () => {
+        const id = b.dataset.pickSeries;
+        poDraft.picks[id] = { winner: b.dataset.team, games: poDraft.picks[id]?.games || null };
+        sanitizePicks();
+        storeSet(PO_DRAFT_KEY, poDraft);
+        renderPlayoffs();
+    });
+    el.querySelectorAll('[data-games]').forEach(b => b.onclick = () => {
+        const [id, g] = b.dataset.games.split(':');
+        poDraft.picks[id].games = +g;
+        storeSet(PO_DRAFT_KEY, poDraft);
+        renderPlayoffs();
+    });
+    const ex = document.getElementById('po-export');
+    if (ex) ex.onclick = () => openExport({
+        file: `predictions-${SEASON}-playoffs.js`, text: poExportText(),
+        warn: done < 15 ? `未入力のシリーズが ${15 - done} 件あります（未入力のままでも書き出せます）` : '',
+    });
+}
+
+/* ══════════════════════════════════════════════
+   Trends tab
+   ══════════════════════════════════════════════ */
+// 強調色（暗い背景で3色とも区別できることを検証済み）。色はチームに付き、選択順で空いている色を割り当てる
+const SERIES_COLORS = ['#c98500', '#3987e5', '#d55181'];
+const MAX_TEAMS = SERIES_COLORS.length;
+const RECENT_POINTS = 5;   // 直近1ヶ月 = 最新を含む5時点
+let trend = null;          // { dates: [YYYY-MM-DD], snaps: { west: [{abbr: {rank,w,l}}], east } }
+let trendLoading = false, trendError = false;
+let trendConf = 'west';
+let trendSel = {};         // conf → [{ team, color }]
+let trendRange = 'recent';
+let trendNotice = '';
+let showTable = false;
+
+async function loadTrends() {
+    if (trend || trendLoading) return;
+    trendLoading = true;
+    try {
+        const abbrs = Object.keys(TEAMS);
+        const scheds = await Promise.all(abbrs.map(a =>
+            fetch(`${ESPN_TEAMS}/${TEAMS[a].id}/schedule?season=${SEASON}&seasontype=2`).then(r => r.json())));
+        const games = {};   // abbr → [{ date, win }]
+        let last = null;
+        abbrs.forEach((a, k) => {
+            games[a] = [];
+            (scheds[k].events || []).forEach(ev => {
+                const comp = ev.competitions?.[0];
+                if (!comp?.status?.type?.completed) return;
+                const me = comp.competitors.find(c => c.team?.id === TEAMS[a].id);
+                if (!me) return;
+                const date = etDate(ev.date);
+                games[a].push({ date, win: !!me.winner });
+                if (!last || date > last) last = date;
+            });
+        });
+        if (!last) { trend = { dates: [], snaps: { west: [], east: [] } }; return; }
+        // 時点：開幕後の毎週日曜＋最新の試合日
+        const first = Object.values(games).flat().reduce((m, g) => g.date < m ? g.date : m, last);
+        const dates = [];
+        const d = new Date(first + 'T00:00:00Z');
+        d.setUTCDate(d.getUTCDate() + (7 - d.getUTCDay()) % 7);
+        for (; d.toISOString().slice(0, 10) <= last; d.setUTCDate(d.getUTCDate() + 7)) dates.push(d.toISOString().slice(0, 10));
+        if (dates[dates.length - 1] !== last) dates.push(last);
+        const snaps = { west: [], east: [] };
+        dates.forEach(day => {
+            ['west', 'east'].forEach(c => {
+                const rec = {};
+                abbrs.filter(a => TEAMS[a].conf === c).forEach(a => {
+                    const gs = games[a].filter(g => g.date <= day);
+                    rec[a] = { w: gs.filter(g => g.win).length, l: gs.filter(g => !g.win).length };
+                });
+                const pct = a => rec[a].w + rec[a].l ? rec[a].w / (rec[a].w + rec[a].l) : 0;
+                const snap = {};
+                Object.keys(rec).sort((a, b) => pct(b) - pct(a) || rec[b].w - rec[a].w || a.localeCompare(b))
+                    .forEach((a, i) => snap[a] = { rank: i + 1, ...rec[a] });
+                snaps[c].push(snap);
+            });
+        });
+        trend = { dates, snaps };
+    } catch (e) {
+        console.warn('trend error:', e);
+        trendError = true;
+    } finally {
+        trendLoading = false;
+    }
+}
+
+function selected() {
+    if (!trendSel[trendConf]) trendSel[trendConf] = [{ team: viewPred().standings[trendConf][0], color: SERIES_COLORS[0] }];
+    return trendSel[trendConf];
+}
+function toggleTeam(t) {
+    const sel = selected();
+    const at = sel.findIndex(s => s.team === t);
+    trendNotice = '';
+    if (at >= 0) { if (sel.length > 1) sel.splice(at, 1); }
+    else if (sel.length >= MAX_TEAMS) trendNotice = `同時に選べるのは${MAX_TEAMS}チームまでです`;
+    else sel.push({ team: t, color: SERIES_COLORS.find(c => !sel.some(s => s.color === c)) });
+    renderTrends();
+}
+function pointWindow() {
+    const n = trend.dates.length;
+    return { n, from: trendRange === 'recent' ? Math.max(0, n - RECENT_POINTS) : 0 };
+}
+function setRange(r) {
+    if (r === trendRange) return;
+    const prev = trendRange;
+    trendRange = r;
+    renderTrends(prev);
+}
+
+// 直近1ヶ月の順位変動（グラフ横の一覧）
+function deltaPanel(fade) {
+    const { n, from } = pointWindow();
+    const snaps = trend.snaps[trendConf], now = snaps[n - 1], before = snaps[from];
+    const order = Object.keys(now).sort((a, b) => now[a].rank - now[b].rank);
+    const colorOf = t => selected().find(s => s.team === t)?.color;
+    return `<div class="panel delta-panel ${fade ? 'fade' : ''}">
+        <div class="chart-title"><span class="t">この1ヶ月の変動</span><span class="s">${mdLabel(trend.dates[from])} → ${mdLabel(trend.dates[n - 1])}</span></div>
+        ${order.map(t => {
+            const d = before[t].rank - now[t].rank, c = colorOf(t);
+            const chg = d > 0 ? `<span class="up">▲${d}</span>` : d < 0 ? `<span class="down">▼${-d}</span>` : '<span class="flat">–</span>';
+            return `<div class="d-row ${c ? 'sel' : ''}"><span class="d-rank">${now[t].rank}</span>
+                <span class="d-dot" style="${c ? `background:${c}` : ''}"></span>
+                <img src="${logo(t)}" alt=""><span class="d-abbr">${t}</span>
+                <span class="d-rec">${now[t].w}-${now[t].l}</span><span class="d-chg">${chg}</span></div>`;
+        }).join('')}
+    </div>`;
+}
+
+function renderTrends(animFrom) {
+    const el = document.getElementById('tab-trends');
+    if (Date.now() < LOCK_AT) {
+        el.innerHTML = `<div class="panel placeholder"><div class="big">開幕後、1週間ごとの順位推移を表示します</div>
+            <div class="sub">毎週日曜時点の順位を、ESPN の試合結果から計算します</div></div>`;
+        return;
+    }
+    if (!Object.keys(TEAMS).length) { el.innerHTML = '<div class="msg">Loading<span class="spinner"></span></div>'; return; }   // init 完了後に描き直す
+    if (trendError) { el.innerHTML = '<div class="msg error">試合結果を取得できませんでした。時間をおいて再読み込みしてください</div>'; return; }
+    if (!trend) {
+        el.innerHTML = '<div class="msg">Loading<span class="spinner"></span></div>';
+        loadTrends().then(() => renderTrends());
+        return;
+    }
+    if (!trend.dates.length) {
+        el.innerHTML = '<div class="panel placeholder"><div class="big">まだ試合結果がありません</div><div class="sub">最初の週が終わると表示されます</div></div>';
+        return;
+    }
+    const teams = viewPred().standings[trendConf];
+    const sel = selected();
+    const colorOf = t => sel.find(s => s.team === t)?.color;
+    const { n, from } = pointWindow();
+    el.innerHTML = `
+        <div class="trend-controls">
+            <div class="seg">
+                <button data-conf="west" class="${trendConf === 'west' ? 'on' : ''}">West</button>
+                <button data-conf="east" class="${trendConf === 'east' ? 'on' : ''}">East</button>
+            </div>
+            <div class="seg">
+                <button data-range="recent" class="${trendRange === 'recent' ? 'on' : ''}">直近1ヶ月</button>
+                <button data-range="all" class="${trendRange === 'all' ? 'on' : ''}">シーズン全体</button>
+            </div>
+        </div>
+        <div class="team-chips">${teams.map(t => {
+            const c = colorOf(t);
+            return `<button class="team-chip ${c ? 'on' : ''}" style="${c ? `border-color:${c};box-shadow:inset 0 -3px 0 ${c}` : ''}"
+                data-team-chip="${t}" title="${esc(TEAMS[t]?.name || t)}" aria-pressed="${!!c}"><img src="${logo(t)}" alt="${t}"></button>`;
+        }).join('')}</div>
+        <div class="chip-hint">${trendNotice || `チームを選んで比較（最大${MAX_TEAMS}チーム）`}</div>
+        <div class="trend-body ${animFrom || trendRange}" id="trend-body">
+        <div class="panel chart-panel">
+            <div class="chart-title"><span class="t">${CONF[trendConf]} 順位推移</span>
+                <span class="s">${mdLabel(trend.dates[from])}〜${mdLabel(trend.dates[n - 1])}</span></div>
+            <div class="chart-wrap ${trendRange}" id="chart-wrap"><div class="tt" id="tt"></div></div>
+            <div class="chart-foot">
+                ${sel.map(s => `<span class="lg"><i style="border-top-color:${s.color}"></i>${s.team}（予想${teams.indexOf(s.team) + 1}位）</span>`).join('')}
+                <span class="lg"><i class="pred"></i>予想順位</span>
+                <button class="btn" id="tbl-toggle">${showTable ? '表を閉じる' : '表で見る'}</button>
+            </div>
+            <div class="chart-note">${trendRange === 'recent' ? 'グラフをクリックするとシーズン全体を表示' : 'グラフをクリックすると直近1ヶ月に戻る'} ・ 毎週日曜時点（最後は最新の試合日）・ 順位は勝率のみで算出（タイブレーク未考慮）</div>
+            ${showTable ? rankTable() : ''}
+        </div>
+        ${deltaPanel(!!animFrom)}
+        </div>`;
+    el.querySelectorAll('[data-conf]').forEach(b => b.onclick = () => { trendConf = b.dataset.conf; trendNotice = ''; renderTrends(); });
+    el.querySelectorAll('[data-range]').forEach(b => b.onclick = () => setRange(b.dataset.range));
+    el.querySelectorAll('[data-team-chip]').forEach(b => b.onclick = () => toggleTeam(b.dataset.teamChip));
+    document.getElementById('tbl-toggle').onclick = () => { showTable = !showTable; renderTrends(); };
+    if (!animFrom) return drawChart();
+    // 期間切替: 前の幅から新しい幅へアニメーションし、終わってからグラフを描く
+    const body = document.getElementById('trend-body');
+    let done = false;
+    const finish = () => { if (!done) { done = true; drawChart(); } };
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+        body.classList.replace(animFrom, trendRange);
+        body.querySelector('.chart-panel').addEventListener('transitionend', finish, { once: true });
+        setTimeout(finish, 450); // 幅が変わらない（スマホ）場合の保険
+    }));
+}
+
+function rankTable() {
+    const { n, from } = pointWindow();
+    const snaps = trend.snaps[trendConf];
+    const last = snaps[n - 1];
+    const order = Object.keys(last).sort((a, b) => last[a].rank - last[b].rank);
+    const cols = [];
+    for (let i = from; i < n; i++) cols.push(i);
+    const colorOf = t => selected().find(s => s.team === t)?.color;
+    return `<div class="tbl-wrap"><table class="rank-tbl">
+        <tr><th>チーム</th><th>予想</th>${cols.map(i => `<th>${mdLabel(trend.dates[i])}</th>`).join('')}</tr>
+        ${order.map(t => `<tr ${colorOf(t) ? `class="sel" style="--c:${colorOf(t)}"` : ''}><td>${t}</td><td>${viewPred().standings[trendConf].indexOf(t) + 1}</td>
+            ${cols.map(i => `<td>${snaps[i][t].rank}</td>`).join('')}</tr>`).join('')}
+    </table></div>`;
+}
+
+function drawChart() {
+    const wrap = document.getElementById('chart-wrap');
+    if (!wrap || !wrap.clientWidth || !trend?.dates.length) return; // 非表示タブでは描かない（表示時に描き直す）
+    const { n, from } = pointWindow();
+    const snaps = trend.snaps[trendConf];
+    const sel = selected();
+    const teams = viewPred().standings[trendConf];
+    const W = wrap.clientWidth, H = Math.max(340, Math.min(440, W * .55));
+    const m = { l: 30, r: 46, t: 10, b: 26 };
+    const span = Math.max(trendRange === 'recent' ? RECENT_POINTS - 1 : Math.max(n, 8) - 1, 1);
+    const x = i => m.l + (i - from) * (W - m.l - m.r) / span;
+    const y = r => m.t + (r - 1) * (H - m.t - m.b) / 14;
+    const idx = [];
+    for (let i = from; i < n; i++) idx.push(i);
+    let s = `<svg viewBox="0 0 ${W} ${H}" height="${H}" role="img" aria-label="${CONF[trendConf]} 順位推移">`;
+    const half = (y(2) - y(1)) / 2;
+    const band = (r1, r2, op) => `<rect x="${m.l}" y="${y(r1) - half}" width="${W - m.l - m.r}" height="${y(r2) - y(r1) + half * 2}" fill="#fff" opacity="${op}"/>`;
+    s += band(1, 6, .035) + band(7, 10, .015);
+    for (let r = 1; r <= 15; r++) s += `<text x="${m.l - 10}" y="${y(r) + 3.5}" fill="#8b8b95" font-size="10" text-anchor="end">${r}</text>`;
+    const step = trendRange === 'recent' ? 1 : Math.max(1, Math.ceil(span / (W < 500 ? 4 : 8)));
+    for (let i = from; i < n; i += step) s += `<text x="${x(i)}" y="${H - 6}" fill="#8b8b95" font-size="10" text-anchor="middle">${mdLabel(trend.dates[i])}</text>`;
+    const path = t => idx.map((i, k) => `${k ? 'L' : 'M'}${x(i).toFixed(1)},${y(snaps[i][t].rank).toFixed(1)}`).join('');
+    const isSel = t => sel.some(v => v.team === t);
+    const endY = t => y(snaps[n - 1][t].rank);
+    Object.keys(snaps[n - 1]).filter(t => !isSel(t)).forEach(t => {
+        s += `<path d="${path(t)}" fill="none" stroke="#3a3a44" stroke-width="1.5" stroke-linejoin="round"/>`;
+        s += `<text x="${x(n - 1) + 7}" y="${endY(t) + 3.5}" fill="#6b6b75" font-size="9.5">${t}</text>`;
+    });
+    sel.forEach(v => {
+        const pr = teams.indexOf(v.team) + 1;
+        s += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(pr)}" y2="${y(pr)}" stroke="${v.color}" stroke-width="1.5" stroke-dasharray="5 4" opacity=".75"/>`;
+    });
+    sel.forEach(v => {
+        s += `<path d="${path(v.team)}" fill="none" stroke="${v.color}" stroke-width="2.5" stroke-linejoin="round"/>`;
+        idx.forEach(i => s += `<circle cx="${x(i)}" cy="${y(snaps[i][v.team].rank)}" r="4" fill="${v.color}" stroke="#141418" stroke-width="2"/>`);
+        s += `<rect x="${x(n - 1) + 5}" y="${endY(v.team) - 7}" width="30" height="14" fill="#141418"/>`;
+        s += `<text x="${x(n - 1) + 7}" y="${endY(v.team) + 4}" fill="#f2f2f4" font-size="11" font-weight="700">${v.team}</text>`;
+    });
+    s += `<line id="xh" x1="0" x2="0" y1="${m.t - 6}" y2="${H - m.b + 4}" stroke="#8b8b95" stroke-width="1" opacity="0"/>`;
+    s += `<rect id="hit" x="${m.l - 10}" y="0" width="${W - m.l - m.r + 20}" height="${H}" fill="transparent"/>`;
+    s += '</svg>';
+    wrap.querySelector('svg')?.remove();
+    wrap.insertAdjacentHTML('beforeend', s);
+
+    const tt = document.getElementById('tt'), xh = wrap.querySelector('#xh'), hit = wrap.querySelector('#hit');
+    const show = clientX => {
+        const box = wrap.getBoundingClientRect();
+        const px = (clientX - box.left) * (W / box.width);
+        const i = Math.max(from, Math.min(n - 1, from + Math.round((px - m.l) / ((W - m.l - m.r) / span))));
+        const w = snaps[i];
+        const order = Object.keys(w).sort((a, b) => w[a].rank - w[b].rank);
+        tt.innerHTML = `<div class="tt-h">${mdLabel(trend.dates[i])}時点</div>` + order.map(t => {
+            const c = sel.find(v => v.team === t)?.color;
+            return `<div class="tt-row ${c ? 'sel' : ''}"><span class="r">${w[t].rank}</span>
+                <span class="a">${c ? `<i style="background:${c}"></i>` : ''}${t}</span><span>${w[t].w}-${w[t].l}</span></div>`;
+        }).join('');
+        tt.style.display = 'block';
+        const left = x(i) * box.width / W;
+        tt.style.left = (left > box.width / 2 ? left - tt.offsetWidth - 14 : left + 14) + 'px';
+        tt.style.top = '6px';
+        xh.setAttribute('x1', x(i)); xh.setAttribute('x2', x(i)); xh.setAttribute('opacity', '.6');
+    };
+    const hide = () => { tt.style.display = 'none'; xh.setAttribute('opacity', '0'); };
+    const toggleRange = () => setRange(trendRange === 'recent' ? 'all' : 'recent');
+    // PC: ホバーでツールチップ、クリックで期間切替 ／ スマホ: なぞるとツールチップ、タップで期間切替
+    hit.addEventListener('mousemove', e => show(e.clientX));
+    hit.addEventListener('mouseleave', hide);
+    hit.addEventListener('click', toggleRange);
+    let moved = false;
+    hit.addEventListener('touchstart', () => { moved = false; }, { passive: true });
+    hit.addEventListener('touchmove', e => { moved = true; show(e.touches[0].clientX); }, { passive: true });
+    hit.addEventListener('touchend', e => { if (!moved) { e.preventDefault(); toggleRange(); } else hide(); });
+}
+let rz;
+window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(drawChart, 120); });
+
+/* ══════════════════════════════════════════════
+   Init
+   ══════════════════════════════════════════════ */
+function switchTab(tab) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === `tab-${tab}`));
+    try { sessionStorage.setItem('nba-predict-tab', tab); } catch (e) { /* noop */ }
+    if (tab === 'trends') renderTrends();
+}
+document.querySelectorAll('.tab-btn').forEach(btn => btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
+
+async function init() {
+    try {
+        const [cur, prev] = await Promise.all([fetchStandings(SEASON), fetchStandings(SEASON - 1).catch(() => null)]);
+        ['west', 'east'].forEach(c => cur[c].forEach(t => { TEAMS[t.abbr] = { ...t, conf: c }; ID2ABBR[t.id] = t.abbr; }));
+        if (Object.keys(TEAMS).length !== 30) throw new Error('teams');
+        const all = [...cur.west, ...cur.east];
+        if (all.every(t => t.w + t.l >= 82)) finalOrder = { west: cur.west.map(t => t.abbr), east: cur.east.map(t => t.abbr) };
+        defaultOrder = {};
+        ['west', 'east'].forEach(c => {
+            const prevList = (prev?.[c] || []).map(t => t.abbr).filter(a => TEAMS[a]?.conf === c);
+            defaultOrder[c] = prevList.concat(cur[c].map(t => t.abbr).filter(a => !prevList.includes(a)).sort());
+        });
+    } catch (e) {
+        console.warn('standings error:', e);
+        document.getElementById('tab-season').innerHTML = '<div class="msg error">チーム情報を取得できませんでした。時間をおいて再読み込みしてください</div>';
+        return;
+    }
+    if (!PRED) draft = loadDraft();
+    document.getElementById('last-updated').textContent = `${SEASON_LABEL} Season`;
+    renderSeason();
+    let tab = 'season';
+    try { tab = sessionStorage.getItem('nba-predict-tab') || 'season'; } catch (e) { /* noop */ }
+    switchTab(tab);
+    if (Date.now() >= new Date(PO_SCAN_FROM + 'T00:00:00Z')) {
+        poLoading = true;
+        renderPlayoffs();
+        poLoading = false;
+        await loadPlayoffs();
+        renderSeason();
+    }
+    renderPlayoffs();
+}
+init();
+</script>
+</body>
+</html>
