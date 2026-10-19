@@ -448,6 +448,41 @@
             .t-head-name { font-size: 18px; }
             .t-head-pill { margin-left: 0; }  /* 次の行に回ったときは左にそろえる */
         }
+        /* ── 選手別タブ: 年俸ランキング ── */
+        .pl-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 22px; }
+        .pl-grid .stat-box .val { font-size: 20px; }
+        .pl-grid .stat-box .sub { font-size: 11px; color: var(--muted); margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .pl-rank { list-style: none; margin: 0; padding: 0; }
+        .pl-row {
+            display: grid; grid-template-columns: 28px 36px minmax(150px, 230px) 1fr 92px;
+            align-items: center; gap: 10px; padding: 7px 4px; border-bottom: 1px solid var(--line-soft, var(--border));
+        }
+        .pl-no { font-family: var(--font-score); font-size: 15px; color: var(--muted); text-align: right; }
+        .pl-photo { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; background: var(--surface2); }
+        .pl-who { min-width: 0; }
+        .pl-name { font-size: 13.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .pl-meta { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); margin-top: 2px; flex-wrap: wrap; }
+        .pl-meta img { width: 14px; height: 14px; object-fit: contain; }
+        .pl-tag { border: 1px solid var(--border); border-radius: 4px; padding: 0 5px; font-size: 10px; line-height: 15px; white-space: nowrap; }
+        .pl-tag.ng { color: var(--warn); border-color: var(--warn); }
+        .pl-track { position: relative; height: 14px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
+        .pl-fill { height: 100%; border-radius: 3px; }
+        .pl-amt { text-align: right; }
+        .pl-amt b { font-family: var(--font-score); font-size: 15px; font-weight: 600; display: block; }
+        .pl-amt span { font-size: 10.5px; color: var(--muted); white-space: nowrap; }
+        .pl-mix { display: flex; height: 22px; border-radius: 4px; overflow: hidden; margin: 6px 0 10px; }
+        .pl-mix div { height: 100%; }
+        .pl-mix-legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 12px; color: var(--text-dim, var(--text)); }
+        .pl-mix-legend b { font-weight: 700; }
+        .pl-mix-legend span.n { color: var(--muted); }
+        .pl-note { font-size: 11px; color: var(--muted); padding-top: 14px; line-height: 1.7; }
+        .pl-note a { color: var(--text-dim, var(--text)); }
+        @media (max-width: 640px) {
+            .pl-grid { grid-template-columns: repeat(2, 1fr); }
+            .pl-row { grid-template-columns: 22px 32px 1fr 78px; }
+            .pl-track { grid-column: 2 / 5; grid-row: 2; height: 8px; }
+            .pl-photo { width: 32px; height: 32px; }
+        }
     </style>
 </head>
 <body class="theme-broadcast">
@@ -482,6 +517,21 @@
                 <div class="stat-box"><div class="val">-</div><div class="lbl">2nd Apron<br><span style="opacity:.7;font-size:9px">2ndエプロン</span></div></div>
             </div>
 
+        </div>
+
+        <div class="section" style="margin-bottom:0">
+            <div class="tabs-nav" role="tablist">
+                <button class="tab-btn active" role="tab" data-view="teams" aria-selected="true">チーム別</button>
+                <button class="tab-btn" role="tab" data-view="players" aria-selected="false">選手別</button>
+            </div>
+        </div>
+
+        <!-- ── チーム別 ── -->
+        <div class="tab-panel active" id="view-teams">
+        <div class="section" style="margin-top:0">
+            <div class="section-header">
+                <h2>リーグ全体のサラリー</h2>
+            </div>
             <div id="league-chart-wrap">
                 <div class="msg">全30チームのサラリーを集計中<span class="spinner"></span></div>
             </div>
@@ -504,6 +554,16 @@
             </div>
 
             <div id="team-detail"></div>
+        </div>
+        </div>
+
+        <!-- ── 選手別 ── -->
+        <div class="tab-panel" id="view-players">
+        <div class="section" style="margin-top:0">
+            <div id="player-view">
+                <div class="msg">集計中<span class="spinner"></span></div>
+            </div>
+        </div>
         </div>
 
     </div>
@@ -1168,11 +1228,131 @@ document.addEventListener('click', ev => {
         <div class="sum">${esc(c.tip)}</div>${e ? `<div class="orig">${esc(e.detail)}</div>` : ''}</td></tr>`);
 });
 
+/* ─── 選手別タブ（年俸ランキング） ─── */
+const RANK_TOP_N = 100;
+// 契約の種類（年俸データの type）→ 表示名。意味がはっきりしない種類（ROS・空欄）は「その他」
+const CONTRACT_LABEL = {
+    'FA': 'FA', 'S&T': 'サイン&トレード',
+    'RK-1ST': '新人契約（1巡目）', 'RK-2ND': '新人契約（2巡目）', 'RK': '新人契約',
+    'RK-EXT': '新人延長', 'DRK-EXT': '新人延長（指定選手）', 'rookie-maximum-extension': '新人延長（最高額）',
+    'VET-EXT': 'ベテラン延長', 'DVET-EXT': 'ベテラン延長（指定選手）', 'EXT': '延長',
+};
+// 契約の大きな分類。ランキングの棒と内訳の帯グラフで同じ色を使う（色は PIE_COLORS の先頭から、「その他」は無彩色）
+const CONTRACT_GROUPS = [
+    { key: 'rookie', label: '新人契約',           color: PIE_COLORS[0], test: t => /^RK(-1ST|-2ND)?$/.test(t) },
+    { key: 'ext',    label: '延長',               color: PIE_COLORS[1], test: t => /EXT$|extension/.test(t) },
+    { key: 'fa',     label: 'FA・サイン&トレード', color: PIE_COLORS[2], test: t => t === 'FA' || t === 'S&T' },
+    { key: 'other',  label: 'その他',             color: PIE_OTHER_COLOR, test: () => true },
+];
+const contractLabel = t => CONTRACT_LABEL[t] || 'その他';
+const contractGroup = t => CONTRACT_GROUPS.find(g => g.test(t));
+
+// 年俸データの全選手に、ESPN のロスターから取った顔写真・ポジションとチームのロゴを付ける
+function allPlayers() {
+    const teamByAbbr = new Map(teamIndex.map(t => [t.abbreviation, t]));
+    const out = [];
+    for (const [abbr, sheet] of Object.entries(SALARIES.teams)) {
+        const team = teamByAbbr.get(abbr);
+        const espn = new Map((team ? teamPayroll[team.id]?.players || [] : []).map(p => [p.name, p]));
+        for (const p of sheet.players) {
+            const e = espn.get(p.name);
+            out.push({ ...p, team: abbr, logo: team?.logo || '', headshot: e?.headshot || '', position: e?.position || '' });
+        }
+    }
+    return out.sort((a, b) => b.salary - a.salary);
+}
+
+function renderPlayerView() {
+    const wrap = document.getElementById('player-view');
+    if (!SALARIES?.teams) {
+        wrap.innerHTML = '<div class="msg error">年俸データ（data/salaries.js）を読み込めませんでした</div>';
+        return;
+    }
+    const players = allPlayers();
+    const sum = players.reduce((s, p) => s + p.salary, 0);
+    const mid = players.length % 2
+        ? players[(players.length - 1) / 2].salary
+        : (players[players.length / 2 - 1].salary + players[players.length / 2].salary) / 2;
+    const over = players.filter(p => p.salary >= CAP_DATA.cap * 0.25).length;
+    const top = players[0];
+
+    const statHtml = [
+        { val: String(players.length), lbl: '対象の選手', sub: '年俸データに載っている全員' },
+        { val: fmtUSD(sum / players.length), lbl: '平均年俸', sub: `中央値 ${fmtUSD(mid)}` },
+        { val: fmtUSD(top.salary), lbl: '最高額', sub: `${top.name}（${top.team}）` },
+        { val: String(over), lbl: 'キャップの25%以上', sub: `${fmtUSD(CAP_DATA.cap * 0.25)} 以上の選手` },
+    ].map(d => `<div class="stat-box"><div class="val">${esc(d.val)}</div><div class="lbl">${esc(d.lbl)}</div><div class="sub">${esc(d.sub)}</div></div>`).join('');
+
+    const max = top.salary;
+    const rows = players.slice(0, RANK_TOP_N).map((p, i) => {
+        const photo = `<img class="pl-photo" src="${esc(p.headshot || FALLBACK_IMG)}" alt="" loading="lazy" onerror="this.src='${FALLBACK_IMG}'">`;
+        const tags = `<span class="pl-tag" title="契約の種類">${esc(contractLabel(p.type))}</span>` +
+            (p.nonGuaranteed ? '<span class="pl-tag ng" title="今季の年俸が全額は保証されていない契約">保証なし</span>' : '');
+        return `<li class="pl-row">
+            <span class="pl-no">${i + 1}</span>
+            ${photo}
+            <div class="pl-who">
+                <div class="pl-name">${esc(p.name)}</div>
+                <div class="pl-meta">${p.logo ? `<img src="${esc(p.logo)}" alt="" onerror="this.style.display='none'">` : ''}${esc(p.team)}${p.position ? ` · ${esc(p.position)}` : ''} ${tags}</div>
+            </div>
+            <div class="pl-track"><div class="pl-fill" style="width:${(p.salary / max * 100).toFixed(1)}%;background:${contractGroup(p.type).color}"></div></div>
+            <div class="pl-amt"><b>${fmtUSD(p.salary)}</b><span>キャップ比 ${(p.salary / CAP_DATA.cap * 100).toFixed(1)}%</span></div>
+        </li>`;
+    }).join('');
+
+    // 契約の種類ごとの内訳（リーグ全体の年俸に占める割合）
+    const groups = CONTRACT_GROUPS.map(g => ({ ...g, n: 0, total: 0 }));
+    for (const p of players) {
+        const g = groups.find(x => x.key === contractGroup(p.type).key);
+        g.n++; g.total += p.salary;
+    }
+    const mixBar = groups.filter(g => g.total > 0).map(g =>
+        `<div style="width:${(g.total / sum * 100).toFixed(2)}%;background:${g.color}" title="${esc(`${g.label}: ${fmtUSD(g.total)}（${g.n}人）`)}"></div>`).join('');
+    const mixLegend = groups.filter(g => g.total > 0).map(g => `
+        <div class="chart-legend-item"><span class="chart-legend-swatch" style="background:${g.color}"></span>
+            <span>${esc(g.label)} <b>${(g.total / sum * 100).toFixed(0)}%</b> <span class="n">${fmtUSD(g.total)}・${g.n}人</span></span></div>`).join('');
+
+    wrap.innerHTML = `
+        <div class="pl-grid">${statHtml}</div>
+        <div class="section-header"><h2>年俸ランキング 上位${RANK_TOP_N}人</h2>
+            <span class="section-sub">${esc(SALARIES.season)}シーズン</span></div>
+        <div class="pl-mix-legend" style="margin-bottom:6px">${CONTRACT_GROUPS.map(g =>
+            `<div class="chart-legend-item"><span class="chart-legend-swatch" style="background:${g.color}"></span>${esc(g.label)}</div>`).join('')}
+            <span class="n" style="color:var(--muted)">棒の色＝契約の種類</span></div>
+        <ol class="pl-rank">${rows}</ol>
+        <div class="section-header" style="margin-top:30px"><h2>契約の種類ごとの内訳</h2>
+            <span class="section-sub">リーグ全体の年俸 ${fmtUSD(sum)} に占める割合</span></div>
+        <div class="pl-mix" role="img" aria-label="契約の種類ごとの内訳">${mixBar}</div>
+        <div class="pl-mix-legend">${mixLegend}</div>
+        <div class="pl-note">
+            ※ 年俸は <a href="${esc(SALARIES.source.url)}" target="_blank" rel="noopener">${esc(SALARIES.source.name)}</a>（${esc(SALARIES.sourceAsOf || '-')} 時点）のサラリーキャップ上の金額です。最終更新 ${esc(SALARIES.updatedAt)}。デッドマネーは含みません。<br>
+            ※「指定選手」は、条件を満たした選手だけが結べる高額の延長契約（ローズ・ルール／スーパーマックス）です。「保証なし」は今季の年俸が全額は保証されていない契約です。
+        </div>`;
+}
+
+function switchView(view, pushUrl) {
+    document.querySelectorAll('.tabs-nav .tab-btn').forEach(b => {
+        const on = b.dataset.view === view;
+        b.classList.toggle('active', on);
+        b.setAttribute('aria-selected', String(on));
+    });
+    document.getElementById('view-teams').classList.toggle('active', view === 'teams');
+    document.getElementById('view-players').classList.toggle('active', view === 'players');
+    if (pushUrl) {
+        const url = new URL(window.location.href);
+        if (view === 'players') url.searchParams.set('view', 'players'); else url.searchParams.delete('view');
+        history.replaceState(history.state, '', url);
+    }
+}
+document.querySelectorAll('.tabs-nav .tab-btn').forEach(b => b.addEventListener('click', () => switchView(b.dataset.view, true)));
+if (new URLSearchParams(location.search).get('view') === 'players') switchView('players', false);
+
 /* ─── Init ─── */
 async function init() {
     renderCapStats();
     await fetchAllPayrolls();
     renderLeagueChart();
+    renderPlayerView();
     renderTeamList();
     populateTeamSelect();
 }
