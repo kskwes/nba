@@ -1,4 +1,4 @@
-// 自動生成ファイル（手で編集しない）。.claude/skills/nba-draft-picks-update/update.mjs で更新する。
+// 自動生成ファイル（手で編集しない）。.claude/skills/nba-data-update/picks.mjs で更新する。
 // 各チームの2027〜2033年ドラフト指名権。outgoing: 自チームの指名権の行き先、incoming: 他チームから受け取る指名権
 window.NBA_DRAFT_PICKS = {
  "updatedAt": "2026-10-15",
