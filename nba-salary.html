@@ -510,6 +510,7 @@
 </main>
 
 <script src="data/draft-picks.js"></script>
+<script src="data/salaries.js"></script>
 <script>
 /* ─── Config ─── */
 const ESPN_ROSTER = 'https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams';
@@ -540,14 +541,14 @@ const ZONES = {
 // neutral muted tone rather than a 9th categorical hue.
 const PIE_COLORS = ['#3987e5', '#d95926', '#199e70', '#c98500', '#d55181', '#008300', '#9085e9', '#e66767'];
 const PIE_OTHER_COLOR = '#8b8b95';
+const PIE_DEAD_COLOR = '#55555e';  // デッドマネー（ウェイブした選手の分）。「その他」と同じ無彩色の濃い版
 const PIE_TOP_N = 7;
 
-// League year that just took effect (NBA league year runs Jul 1 – Jun 30)
-const _now = new Date();
-const CAP_SEASON_YEAR = _now.getMonth() >= 6 ? _now.getFullYear() + 1 : _now.getFullYear();
+// 年俸データ（data/salaries.js。スキル nba-data-update で手動更新）
+const SALARIES = window.NBA_SALARIES;
 
 let teamIndex   = [];   // [{id, displayName, abbreviation, location, nickname, logo}]
-let teamPayroll = {};   // id -> { total, players: [{name, jersey, position, headshot, salary}] }
+let teamPayroll = {};   // id -> { total, deadMoney, missingCount, players: [{name, jersey, position, headshot, salary}] }
 let dataReady   = false;
 
 /* ─── Utility ─── */
@@ -612,6 +613,9 @@ function renderSalaryPie(payroll, total) {
     if (restTotal > 0) {
         slices.push({ label: `その他 (${rest.length}名)`, value: restTotal, color: PIE_OTHER_COLOR });
     }
+    if (payroll.deadMoney > 0) {
+        slices.push({ label: 'デッドマネー', value: payroll.deadMoney, color: PIE_DEAD_COLOR });
+    }
 
     // 各スライスは独立した弧として描く。1つの円を stroke-dasharray で区切る描き方だと、
     // 最後のスライスが円の描き始め（継ぎ目）にかかったとき、Chrome が継ぎ目に線の角を描いて形が崩れるため
@@ -669,15 +673,27 @@ function renderCapStats() {
         `${CAP_DATA.seasonLabel}シーズン ・ 出典: <a href="${CAP_DATA.sourceUrl}" target="_blank" rel="noopener">${esc(CAP_DATA.sourceLabel)}</a>`;
 }
 
-/* ─── Per-player salary lookup for a given season year ───
-   Returns null when the feed has no contract data for that year at all
-   (distinct from a real $0 salary), so the UI can show "-" instead of "$0.00M". */
-function salaryForYear(athlete, year) {
-    const arr = athlete.contracts || [];
-    const hit = arr.find(c => c.season?.year === year);
-    if (hit) return hit.salary ?? null;
-    if (athlete.contract?.season?.year === year) return athlete.contract.salary ?? null;
-    return null;
+/* ─── 年俸データと ESPN のロスターの突き合わせ ───
+   表記ゆれ（アクセント記号・Jr. など）を除いた名前で照合し、残りは名字が両側に1人ずつしかいなければ
+   同一人物とみなす（Nic / Nicolas Claxton のような愛称の違いを吸収する）。 */
+const normName = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+    .replace(/[.'’]/g, '').replace(/\b(jr|sr|ii|iii|iv)\b/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+const surnameOf = s => normName(s).split(' ').pop();
+
+function matchRoster(sheetPlayers, athletes) {
+    const byName = new Map(athletes.map(a => [normName(a.fullName || a.displayName || ''), a]));
+    const found = new Map(), unmatched = [];
+    for (const p of sheetPlayers) {
+        const k = normName(p.name);
+        if (byName.has(k)) { found.set(p, byName.get(k)); byName.delete(k); } else unmatched.push(p);
+    }
+    for (const p of unmatched) {
+        const s = surnameOf(p.name);
+        const mine = unmatched.filter(q => surnameOf(q.name) === s);
+        const theirs = [...byName].filter(([k]) => k.split(' ').pop() === s);
+        if (mine.length === 1 && theirs.length === 1) { found.set(p, theirs[0][1]); byName.delete(theirs[0][0]); }
+    }
+    return { found, espnOnly: [...byName.values()] };
 }
 
 /* ─── Fetch all 30 rosters and compute team payrolls ─── */
@@ -701,21 +717,26 @@ async function fetchAllPayrolls() {
             logo:         data.team?.logo || '',
         });
 
-        // salary is null when the feed simply has no contract entry for this season yet —
-        // kept distinct from a real $0 so the roster table can show "-" instead of misreporting
-        // established players (e.g. an expiring vet-min deal not yet re-signed) as making nothing.
-        const players = (data.athletes || []).map(a => ({
-            name:     a.fullName || a.displayName || '',
-            jersey:   a.jersey || '',
-            position: a.position?.abbreviation || '',
-            headshot: a.headshot?.href || '',
-            salary:   salaryForYear(a, CAP_SEASON_YEAR),
-        }));
-        players.sort((a, b) => (b.salary ?? -1) - (a.salary ?? -1));
+        // 年俸と合計は年俸データから、顔写真・背番号・ポジションは ESPN のロスターから取る。
+        // ESPN にしかいない選手（2ウェイ契約など、年俸データに載っていない選手）は salary を null にして「-」で出す
+        const sheet = SALARIES?.teams?.[PICK_ABBR[data.team?.abbreviation] || data.team?.abbreviation];
+        if (!sheet) continue;
+        const athletes = data.athletes || [];
+        const { found, espnOnly } = matchRoster(sheet.players, athletes);
+        const fromEspn = a => ({
+            jersey:   a?.jersey || '',
+            position: a?.position?.abbreviation || '',
+            headshot: a?.headshot?.href || '',
+        });
+        const players = [
+            ...sheet.players.map(p => ({ name: p.name, ...fromEspn(found.get(p)), salary: p.salary })),
+            ...espnOnly.map(a => ({ name: a.fullName || a.displayName || '', ...fromEspn(a), salary: null })),
+        ];
 
         teamPayroll[teamId] = {
-            total: players.reduce((sum, p) => sum + (p.salary || 0), 0),
-            missingCount: players.filter(p => p.salary == null).length,
+            total: sheet.total,
+            deadMoney: sheet.deadMoney || 0,
+            missingCount: espnOnly.length,
             players,
         };
     }
@@ -726,6 +747,10 @@ async function fetchAllPayrolls() {
 /* ─── Render league-wide salary bar chart (sorted ascending, Cap/Tax/Apron reference lines) ─── */
 function renderLeagueChart() {
     const wrap = document.getElementById('league-chart-wrap');
+    if (!SALARIES?.teams) {
+        wrap.innerHTML = '<div class="msg error">年俸データ（data/salaries.js）を読み込めませんでした</div>';
+        return;
+    }
     const entries = teamIndex
         .map(t => ({ team: t, total: teamPayroll[t.id]?.total || 0 }))
         .filter(e => e.total > 0);
@@ -948,7 +973,10 @@ function renderTeamDetail(team) {
             </td>
             <td class="sal-val-col">${fmtUSD(p.salary)}</td>
         </tr>`;
-    }).join('');
+    }).join('') + (payroll.deadMoney > 0 ? `<tr>
+            <td><div class="t-roster-player-cell"><span class="t-roster-name">デッドマネー（ウェイブした選手の残り年俸）</span></div></td>
+            <td class="sal-val-col">${fmtUSD(payroll.deadMoney)}</td>
+        </tr>` : '');
 
     const pieHtml = renderSalaryPie(payroll, total);
 
@@ -980,9 +1008,11 @@ function renderTeamDetail(team) {
         </div>
         <div class="chart-tooltip" id="pie-tooltip" hidden></div>
         <div class="msg" style="text-align:left;padding:14px 2px 0;font-size:11px">
-            ※ ESPN公開APIの契約データに基づく概算値です。直近のFA署名・トレード・ノンギャランティード契約の扱いにより、実際の値と差異が生じる場合があります。<br>
-            ※ このAPIは翌シーズン以降の契約額を公開していないため、複数年での表示はできません（現シーズンの金額のみ）。<br>
-            ※「-」は本当に$0なのではなく、このAPIに${CAP_DATA.seasonLabel}シーズンの契約データがまだ登録されていない選手です（合計サラリーにも含めていません）。${payroll.missingCount ? `このチームは${payroll.missingCount}名が該当します。` : ''}
+            ※ 年俸は <a href="${esc(SALARIES.source.url)}" target="_blank" rel="noopener">${esc(SALARIES.source.name)}</a>（${esc(SALARIES.sourceAsOf || '-')} 時点）のサラリーキャップ上の金額で、
+            <a href="${esc(SALARIES.crossCheck.url)}" target="_blank" rel="noopener">${esc(SALARIES.crossCheck.name)}</a> と照合しています。最終更新 ${esc(SALARIES.updatedAt)}。<br>
+            ※ 合計サラリーにはデッドマネー（ウェイブした選手に払い続ける残り年俸）を含みます。<br>
+            ${SALARIES.season !== CAP_DATA.seasonLabel ? `※ <strong>年俸データは${esc(SALARIES.season)}シーズンのもので、キャップの基準（${CAP_DATA.seasonLabel}）と年度が違います。データの更新が必要です。</strong><br>` : ''}
+            ※「-」は$0ではなく、ESPNのロスターにいるものの年俸データに載っていない選手です（2ウェイ契約・キャンプ契約など。合計サラリーにも含めていません）。${payroll.missingCount ? `このチームは${payroll.missingCount}名が該当します。` : ''}
         </div>
         ${renderDraftPicks(team)}
     `;
