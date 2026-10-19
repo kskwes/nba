@@ -404,7 +404,7 @@ const playInData = { West: [], East: [] };
 const TBD_ID     = '__tbd__';  // placeholder for unresolved play-in opponent
 
 /* ── Helpers ── */
-const ABBR_MAP = { NY: 'NYK', GS: 'GSW', NO: 'NOP', SA: 'SAS', UTAH: 'UTA' };
+const ABBR_MAP = { NY: 'NYK', GS: 'GSW', NO: 'NOP', SA: 'SAS', UTAH: 'UTA', WSH: 'WAS' };
 function normAbbr(a) { return ABBR_MAP[a] || a; }
 
 function etDateStr(d) { return d.toISOString().slice(0, 10).replace(/-/g, ''); }
@@ -649,7 +649,8 @@ function processEvent(event) {
 
     // Update from series object
     if (comp.series) {
-        s.seriesSummary = comp.series.summary || '';
+        // ESPN の文言（例 "NY wins series 4-1"）の先頭の略称も3文字にそろえる
+        s.seriesSummary = (comp.series.summary || '').replace(/^[A-Z]+(?= )/, normAbbr);
         s.completed     = comp.series.completed || false;
         (comp.series.competitors || []).forEach(sc => {
             if (sc.id in s.seriesWins) s.seriesWins[sc.id] = sc.wins;

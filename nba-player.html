@@ -794,6 +794,9 @@ const ESPN_ROSTER     = 'https://site.api.espn.com/apis/site/v2/sports/basketbal
 const CORE_STATS_BASE = 'https://sports.core.api.espn.com/v2/sports/basketball/leagues/nba/seasons';
 const TEAM_IDS        = [1,2,17,30,4,5,6,7,8,9,10,11,12,13,29,14,15,16,3,18,25,19,20,21,22,23,24,28,26,27];
 const FALLBACK_IMG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='78'%3E%F0%9F%8F%80%3C/text%3E%3C/svg%3E";
+// ESPN の略称（GS・UTAH など）→ 3文字の略称
+const ABBR_MAP = { NY: 'NYK', GS: 'GSW', NO: 'NOP', SA: 'SAS', UTAH: 'UTA', WSH: 'WAS' };
+function normAbbr(a) { return ABBR_MAP[a] || a; }
 
 let playerIndex  = [];   // [{id, displayName, team, teamAbbr, position, jersey, headshot}]
 let teamIndex    = [];   // [{id, displayName, abbreviation, location, nickname, logo}]
@@ -823,7 +826,7 @@ async function buildIndex() {
         if (r.status !== 'fulfilled') continue;
         const data = r.value;
         const teamName  = data.team?.displayName  || '';
-        const teamAbbr  = data.team?.abbreviation || '';
+        const teamAbbr  = normAbbr(data.team?.abbreviation || '');
         if (data.team?.id) {
             teams.push({
                 id:           String(data.team.id),
@@ -1691,7 +1694,7 @@ async function loadTeamSchedule(teamId) {
             const result    = completed ? (teamScore > oppScore ? 'W' : 'L') : '';
             games.push({
                 gameDate : ev.date,
-                opponent : oppComp.team?.abbreviation || '?',
+                opponent : normAbbr(oppComp.team?.abbreviation || '?'),
                 atVs     : teamComp.homeAway === 'away' ? '@' : 'vs',
                 result,
             });
@@ -1755,7 +1758,7 @@ function parseGamelog(data, teamGames = []) {
                 if (dk) playerByDate[dk] = {
                     eventId  : eid,
                     gameDate : ev.gameDate || '',
-                    opponent : ev.opponent?.abbreviation || '?',
+                    opponent : normAbbr(ev.opponent?.abbreviation || '?'),
                     atVs     : ev.atVs || 'vs',
                     result   : ev.gameResult || '',
                     score    : ev.score || '',
@@ -1922,7 +1925,7 @@ async function loadTeamScheduleFull(teamId) {
             games.push({
                 eventId: String(ev.id || ''),
                 date: ev.date,
-                opponent: oppComp.team?.abbreviation || '?',
+                opponent: normAbbr(oppComp.team?.abbreviation || '?'),
                 atVs: teamComp.homeAway === 'away' ? '@' : 'vs',
                 scoreStr, result,
                 isPast, isLive, completed,
@@ -2143,7 +2146,7 @@ function renderSlLeaders(athletes, tab) {
         const name        = ath.displayName  || '—';
         // リーダーAPIは背番号を返さないため、ロスター由来の playerIndex から引く
         const jersey      = playerIndex.find(x => x.id === String(ath.id))?.jersey || '';
-        const team        = ath.teamShortName || '';
+        const team        = normAbbr(ath.teamShortName || '');
 
         const photoEl = headshotUrl
             ? `<img class="sl-photo" src="${esc(headshotUrl)}" alt="${esc(name)}" onerror="this.style.display='none'">`

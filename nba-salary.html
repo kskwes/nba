@@ -544,6 +544,10 @@ const PIE_OTHER_COLOR = '#8b8b95';
 const PIE_DEAD_COLOR = '#55555e';  // デッドマネー（ウェイブした選手の分）。「その他」と同じ無彩色の濃い版
 const PIE_TOP_N = 7;
 
+// ESPN の略称（GS・UTAH など）→ 3文字の略称。表示・データの引き当て・URL はすべて3文字にそろえる
+const ABBR_MAP = { NY: 'NYK', GS: 'GSW', NO: 'NOP', SA: 'SAS', UTAH: 'UTA', WSH: 'WAS' };
+const normAbbr = a => ABBR_MAP[a] || a;
+
 // 年俸データ（data/salaries.js。スキル nba-data-update で手動更新）
 const SALARIES = window.NBA_SALARIES;
 
@@ -713,13 +717,13 @@ async function fetchAllPayrolls() {
         teamIndex.push({
             id:           teamId,
             displayName:  data.team?.displayName  || '',
-            abbreviation: data.team?.abbreviation || '',
+            abbreviation: normAbbr(data.team?.abbreviation || ''),
             logo:         data.team?.logo || '',
         });
 
         // 年俸と合計は年俸データから、顔写真・背番号・ポジションは ESPN のロスターから取る。
         // ESPN にしかいない選手（2ウェイ契約など、年俸データに載っていない選手）は salary を null にして「-」で出す
-        const sheet = SALARIES?.teams?.[PICK_ABBR[data.team?.abbreviation] || data.team?.abbreviation];
+        const sheet = SALARIES?.teams?.[normAbbr(data.team?.abbreviation || '')];
         if (!sheet) continue;
         const athletes = data.athletes || [];
         const { found, espnOnly } = matchRoster(sheet.players, athletes);
@@ -891,7 +895,7 @@ function populateTeamSelect() {
     // Deep link: ?team=ABBR
     const qAbbr = new URLSearchParams(location.search).get('team');
     if (qAbbr) {
-        const match = teamIndex.find(t => t.abbreviation.toLowerCase() === qAbbr.toLowerCase());
+        const match = findTeamByAbbr(qAbbr);
         if (match) {
             sel.value = match.id;
             selectTeam(match.id, false);
@@ -919,10 +923,16 @@ function setUrlTeam(abbr) {
     history.pushState({ team: abbr }, '', url);
 }
 
+// ?team= の略称からチームを探す。以前の ESPN 表記のリンク（?team=GS など）も受け付ける
+function findTeamByAbbr(q) {
+    const a = normAbbr(q.toUpperCase());
+    return teamIndex.find(t => t.abbreviation === a);
+}
+
 window.addEventListener('popstate', () => {
     const sel = document.getElementById('team-select');
     const qAbbr = new URLSearchParams(location.search).get('team');
-    const match = qAbbr && teamIndex.find(t => t.abbreviation.toLowerCase() === qAbbr.toLowerCase());
+    const match = qAbbr && findTeamByAbbr(qAbbr);
     sel.value = match ? match.id : '';
     selectTeam(match ? match.id : '', false);
 });
@@ -1036,9 +1046,7 @@ function renderTeamDetail(team) {
 
 /* ─── Draft Picks（保有ドラフト指名権） ─── */
 const DRAFT_PICKS = window.NBA_DRAFT_PICKS;
-// ESPN の略称 → 指名権データの略称
-const PICK_ABBR = { NY: 'NYK', GS: 'GSW', SA: 'SAS', NO: 'NOP', UTAH: 'UTA', WSH: 'WAS' };
-// 指名権データの略称 → ESPN のロゴ URL 用
+// 3文字の略称 → ESPN のロゴ URL 用
 const ESPN_LOGO_ABBR = { NYK: 'ny', GSW: 'gs', SAS: 'sa', NOP: 'no', UTA: 'utah', WAS: 'wsh' };
 const pickLogo = abbr => `https://a.espncdn.com/i/teamlogos/nba/500/${(ESPN_LOGO_ABBR[abbr] || abbr).toLowerCase()}.png`;
 const RND = { 1: '1巡目', 2: '2巡目' };
@@ -1074,7 +1082,7 @@ function pickChip(kind, e, rnd) {
 }
 
 function renderDraftPicks(team) {
-    const abbr = PICK_ABBR[team.abbreviation] || team.abbreviation;
+    const abbr = team.abbreviation;
     const t = DRAFT_PICKS?.teams?.[abbr];
     if (!t) return '';  // データファイルがない・チームが見つからない場合は出さない
 
