@@ -1,0 +1,1162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 個人用サイトのため検索エンジンに載せない -->
+    <meta name="robots" content="noindex, nofollow">
+    <title>NBA Daily — Games</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&display=swap">
+    <link rel="stylesheet" href="../assets/common.css">
+    <style>
+        /* ─── Refresh button ─── */
+        .header-right {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .refresh-btn {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--muted);
+            font-size: 15px;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: color 0.15s, border-color 0.15s, transform 0.3s;
+            flex-shrink: 0;
+            padding: 0;
+            line-height: 1;
+        }
+
+        .refresh-btn:hover:not(:disabled) { color: var(--text); border-color: var(--accent); }
+        .refresh-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .refresh-btn.spinning { animation: spin 0.8s linear infinite; }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ─── Section ─── */
+        .section { margin-bottom: 32px; }
+
+        .section-header {
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .section-header h2 {
+            font-family: var(--font-score); font-size: 17px; font-weight: 600;
+            letter-spacing: 1.5px; text-transform: uppercase;
+        }
+
+        .date-badge {
+            font-family: var(--font-score); font-size: 12px; letter-spacing: 1px;
+            color: var(--muted); text-transform: uppercase;
+        }
+
+        /* ─── Game Grid / Card（放送スコアボード風） ─── */
+        .games-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 10px;
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+            transition: transform 0.15s, border-color 0.15s;
+        }
+        a.card { display: block; color: inherit; text-decoration: none; }
+        .card.clickable { cursor: pointer; }
+        .card.clickable:hover { transform: translateY(-2px); border-color: #3a3a44; }
+        .card.clickable:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+        .card.live {
+            border-color: var(--live);
+            box-shadow: 0 0 0 1px rgba(255,77,66,.35), 0 0 18px rgba(255,77,66,.18);
+        }
+
+        .g-team { display: flex; align-items: center; gap: 10px; padding-right: 12px; min-height: 48px; }
+        .g-team + .g-team { border-top: 1px solid var(--line-soft); }
+        .g-team.lose { opacity: .45; }
+
+        /* --tc / --tc2 / --tc-text は JS でチームカラーから設定 */
+        .g-chip {
+            width: 48px; align-self: stretch; flex-shrink: 0;
+            display: grid; place-items: center;
+            background: var(--tc, var(--surface2));
+            box-shadow: inset 0 -3px 0 var(--tc2, transparent);
+            color: var(--tc-text, #fff);
+            font-family: var(--font-score); font-weight: 600; font-size: 13px; letter-spacing: .5px;
+        }
+
+        .g-info { flex: 1; min-width: 0; padding: 6px 0; }
+        .g-name { font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .g-meta {
+            display: flex; flex-wrap: wrap; gap: 0 5px;
+            font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums;
+        }
+        .g-dot { color: var(--border); }
+        .streak { font-weight: 700; }
+        .streak.w { color: var(--pos); }
+        .streak.l { color: var(--neg); }
+
+        .g-score {
+            font-family: var(--font-score); font-weight: 600; font-size: 28px; line-height: 1;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .g-series {
+            padding: 4px 12px; font-size: 10.5px; color: var(--muted);
+            border-top: 1px solid var(--line-soft);
+        }
+
+        .g-foot {
+            display: flex; justify-content: space-between; align-items: center; gap: 8px;
+            padding: 5px 12px; background: var(--surface-deep); border-top: 1px solid var(--line-soft);
+            font-family: var(--font-score); font-size: 11.5px; letter-spacing: 1px;
+            text-transform: uppercase; color: var(--muted); white-space: pre;
+        }
+        .g-status.final { color: var(--text-dim); }
+        .g-status.live { color: var(--live); }
+        .g-status.live::before {
+            content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+            background: var(--live); margin-right: 6px; vertical-align: 2px;
+            animation: pulse 1.4s ease-in-out infinite;
+        }
+        .g-box { transition: color .15s; }
+        .card.clickable:hover .g-box { color: var(--accent); }
+
+        @keyframes pulse { 50% { opacity: .25; } }
+        @media (prefers-reduced-motion: reduce) {
+            .g-status.live::before { animation: none; }
+            .card.clickable:hover { transform: none; }
+        }
+
+        /* ステータス帯（ボックススコアのモーダルで使用） */
+        .status {
+            text-align: center;
+            font-family: var(--font-score);
+            font-size: 12px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            padding: 3px 0;
+            border-radius: 4px;
+            margin-bottom: 14px;
+            white-space: pre;
+        }
+        .status-final { background: var(--surface2); color: var(--text-dim); }
+        .status-live  { background: rgba(255,77,66,.14); color: var(--live); }
+
+        /* ─── Conf sub-tabs ─── */
+        .conf-tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+
+        .conf-btn {
+            padding: 6px 22px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--muted);
+            font-size: 13px; font-weight: 700;
+            cursor: pointer; transition: all 0.15s;
+            text-decoration: none;
+        }
+
+        .conf-btn.active { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+
+        .conf-panel { display: none; }
+        .conf-panel.active { display: block; }
+        @media (max-width: 600px) {
+            .section-header { flex-wrap: wrap; gap: 8px; }
+            .conf-tabs {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none;
+                flex-wrap: nowrap;
+            }
+            .conf-tabs::-webkit-scrollbar { display: none; }
+            .conf-btn { white-space: nowrap; flex-shrink: 0; }
+        }
+
+        @media (max-width: 480px) {
+            .games-grid { grid-template-columns: 1fr; }
+            .tab-btn { padding: 9px 14px; font-size: 13px; }
+            .conf-btn { font-size: 12px; padding: 5px 14px; }
+        }
+        /* ─── Games layout (左: 試合一覧 / 右: Top Players・Injury) ─── */
+        .games-layout {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+        }
+
+        .games-main { flex: 1 1 0; min-width: 0; }
+        .games-side { flex: 0 0 360px; min-width: 0; }
+
+        .games-main .games-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .top-players-col {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .tp-subtitle {
+            font-size: 10px;
+            color: var(--muted);
+            background: var(--surface2);
+            padding: 2px 8px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+        }
+
+        /* 経験年数の絞り込み（セグメント）と並び順（セレクト）を1行にまとめる */
+        .tp-controls {
+            display: flex; align-items: center; justify-content: space-between;
+            flex-wrap: wrap; gap: 8px; margin: 0 14px 10px;
+        }
+        .tp-filter {
+            display: inline-flex; gap: 2px; margin: 0; padding: 2px;
+            background: var(--surface2); border: 1px solid var(--border); border-radius: 7px;
+        }
+        .tp-sort { display: inline-flex; align-items: center; gap: 6px; position: relative; }
+        .tp-sort-lbl { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+        .tp-sort select {
+            appearance: none; -webkit-appearance: none;
+            background: var(--surface2); color: var(--text);
+            border: 1px solid var(--border); border-radius: 7px;
+            font: inherit; font-size: 11px; font-weight: 700;
+            padding: 4px 22px 4px 9px; cursor: pointer;
+        }
+        .tp-sort select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+        .tp-sort::after {
+            content: ''; position: absolute; right: 9px; top: 50%; margin-top: -2px;
+            border: 4px solid transparent; border-top-color: var(--muted); border-bottom: 0;
+            pointer-events: none;
+        }
+        .off-nights-wrap .tp-item:nth-child(-n+3) .tp-rank { background: var(--surface2); color: var(--muted); }
+        .off-pie { font-family: var(--font-score); font-size: 15px; font-weight: 600; color: var(--text); }
+        .tp-filter .conf-btn { padding: 3px 10px; font-size: 11px; border: 0; border-radius: 5px; background: transparent; }
+        .tp-filter .conf-btn.active { background: var(--accent); color: var(--on-accent); }
+
+        .tp-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 9px;
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--line-soft);
+            box-shadow: inset 3px 0 0 var(--tc, transparent);
+        }
+
+        .tp-item:last-child { border-bottom: none; }
+
+        .tp-rank {
+            flex-shrink: 0;
+            width: 20px;
+            height: 20px;
+            background: var(--surface2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-score);
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--muted);
+            margin-top: 3px;
+        }
+
+        .tp-item:nth-child(-n+3) .tp-rank { background: var(--accent); color: var(--on-accent); }
+
+        .tp-photo {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            object-fit: cover;
+            flex-shrink: 0;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+        }
+
+        .tp-photo-placeholder {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--muted);
+        }
+
+        .tp-body { flex: 1; min-width: 0; }
+
+        .tp-name-row {
+            display: flex;
+            align-items: baseline;
+            gap: 5px;
+            margin-bottom: 2px;
+        }
+
+        .tp-name {
+            font-size: 12px;
+            font-weight: 700;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .tp-team { font-size: 10px; color: var(--muted); flex-shrink: 0; }
+        a.tp-name, a.ip-name { color: inherit; text-decoration: none; }
+        a.tp-name:hover, a.ip-name:hover { color: var(--accent); text-decoration: underline; }
+
+        .tp-main-stats {
+            display: flex;
+            align-items: baseline;
+            gap: 3px;
+            margin-bottom: 5px;
+        }
+
+        .tp-pts-val { font-family: var(--font-score); font-size: 19px; font-weight: 600; line-height: 1; color: var(--accent); }
+        .tp-reb-val, .tp-ast-val { font-family: var(--font-score); font-size: 14px; font-weight: 500; color: var(--text); }
+        .tp-stat-sep { font-size: 10px; color: var(--border); margin: 0 2px; }
+        .tp-stat-lbl { font-size: 9px; color: var(--muted); }
+
+        .tp-total-badge {
+            margin-left: 5px;
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--accent);
+            background: rgba(245,183,0,0.12);
+            padding: 1px 6px;
+            border-radius: 8px;
+        }
+
+        .tp-detail-row { display: flex; flex-wrap: wrap; gap: 3px; }
+
+        .tp-chip {
+            font-size: 9.5px;
+            color: var(--muted);
+            background: var(--surface2);
+            padding: 1px 5px;
+            border-radius: 4px;
+            white-space: nowrap;
+        }
+
+        .tp-chip strong { color: var(--text-dim); }
+
+        .injury-players-col {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .ip-item {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            padding: 8px 14px;
+            border-bottom: 1px solid var(--line-soft);
+        }
+        .ip-item:last-child { border-bottom: none; }
+
+        .ip-photo {
+            width: 30px; height: 30px;
+            border-radius: 50%; object-fit: cover; flex-shrink: 0;
+            background: var(--surface2); border: 1px solid var(--border);
+        }
+        .ip-photo-placeholder {
+            width: 30px; height: 30px;
+            border-radius: 50%; flex-shrink: 0;
+            background: var(--surface2); border: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 12px; font-weight: 700; color: var(--muted);
+        }
+
+        .ip-body { flex: 1; min-width: 0; }
+        .ip-name-row { display: flex; align-items: baseline; gap: 5px; margin-bottom: 1px; }
+        .ip-name {
+            font-size: 11.5px; font-weight: 700;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .ip-team { font-size: 10px; color: var(--muted); flex-shrink: 0; }
+        .ip-reason { font-size: 10px; color: var(--muted); }
+
+        .ip-status {
+            flex-shrink: 0; font-size: 10px; font-weight: 800;
+            padding: 2px 6px; border-radius: 5px; letter-spacing: 0.5px;
+        }
+        .ip-out  { background: rgba(255,77,66,0.14);  color: var(--live); }
+        .ip-q    { background: rgba(255,193,7,0.15);   color: #ffc107; }
+        .ip-d    { background: rgba(255,152,0,0.15);   color: #ff9800; }
+        .ip-dtd  { background: rgba(122,133,163,0.15); color: var(--muted); }
+
+        @media (max-width: 1060px) {
+            .games-layout { flex-direction: column; align-items: stretch; }
+            .games-main, .games-side { flex: none; width: 100%; }
+        }
+
+        @media (max-width: 700px) {
+            .games-main .games-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        @media (max-width: 480px) {
+            .games-main .games-grid { grid-template-columns: 1fr; }
+        }
+
+        /* ─── Mobile: Top 10 / Injury をメインタブに分離 ─── */
+        .tab-btn.mobile-only { display: none; }
+        /* PC 幅では Games しか残らないのでタブ列ごと出さない */
+        @media (min-width: 769px) { .games-tabs { display: none; } .games-layout { margin-top: 20px; } }
+        @media (max-width: 768px) {
+            .tab-btn.mobile-only { display: inline-block; }
+            .tabs-nav { max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+            .tabs-nav::-webkit-scrollbar { display: none; }
+            .tab-btn { white-space: nowrap; flex-shrink: 0; }
+            #tab-games[data-view="games"] .games-side,
+            #tab-games[data-view="top"] .games-main,
+            #tab-games[data-view="top"] .injury-players-wrap,
+            #tab-games[data-view="top"] .off-nights-wrap,
+            #tab-games[data-view="off"] .games-main,
+            #tab-games[data-view="off"] .top-players-wrap,
+            #tab-games[data-view="off"] .injury-players-wrap,
+            #tab-games[data-view="injury"] .games-main,
+            #tab-games[data-view="injury"] .top-players-wrap,
+            #tab-games[data-view="injury"] .off-nights-wrap { display: none; }
+        }
+    </style>
+</head>
+<body class="theme-broadcast">
+
+<header>
+    <a class="site-logo" href="../games/">NBA <em>Daily</em></a>
+    <nav class="site-nav" aria-label="Pages">
+        <a class="on" href="../games/" aria-current="page">Games</a>
+        <a href="../standings/">Standings</a>
+        <a href="../players/">Players</a>
+        <a href="../teams/">Teams</a>
+        <a href="../salary/">Salary</a>
+        <a href="../predict/">Predict</a>
+    </nav>
+    <div class="header-right">
+        <div class="last-updated" id="last-updated"></div>
+        <button class="refresh-btn" id="refresh-btn" aria-label="Refresh">↻</button>
+    </div>
+</header>
+
+<div class="main-wrap">
+
+    <!-- Main tab nav -->
+    <div class="tabs-nav games-tabs">
+        <button class="tab-btn active" data-tab="games">Games</button>
+        <button class="tab-btn mobile-only" data-tab="top">Top 10</button>
+        <button class="tab-btn mobile-only" data-tab="off">Off Nights</button>
+        <button class="tab-btn mobile-only" data-tab="injury">Injury</button>
+    </div>
+    <!-- 試合一覧（スマホでは Top 10 / Off Nights / Injury をタブで切り替える） -->
+    <div class="tab-panel active" id="tab-games" data-view="games">
+        <div class="games-layout">
+            <div class="games-main">
+                <section class="section">
+                    <div class="section-header">
+                        <h2>Today's Games</h2>
+                        <span class="date-badge" id="today-date"></span>
+                    </div>
+                    <div class="games-grid" id="today-games">
+                        <div class="msg">Loading<span class="spinner"></span></div>
+                    </div>
+                </section>
+                <section class="section">
+                    <div class="section-header">
+                        <h2>Tomorrow's Schedule</h2>
+                        <span class="date-badge" id="tomorrow-date"></span>
+                    </div>
+                    <div class="games-grid" id="tomorrow-games">
+                        <div class="msg">Loading<span class="spinner"></span></div>
+                    </div>
+                </section>
+                <section class="section">
+                    <div class="section-header">
+                        <h2>Yesterday's Games</h2>
+                        <span class="date-badge" id="yesterday-date"></span>
+                    </div>
+                    <div class="games-grid" id="yesterday-games">
+                        <div class="msg">Loading<span class="spinner"></span></div>
+                    </div>
+                </section>
+            </div>
+            <aside class="games-side">
+                <section class="section top-players-wrap">
+                    <div class="section-header">
+                        <h2>Top 10 Players</h2>
+                        <span class="date-badge" id="top-players-date"></span>
+                    </div>
+                    <div class="tp-controls">
+                        <div class="conf-tabs tp-filter" data-list="top">
+                            <button class="conf-btn active" data-exp="all">All</button>
+                            <button class="conf-btn" data-exp="rookie">Rookie</button>
+                            <button class="conf-btn" data-exp="sophomore">Sophomore</button>
+                            <button class="conf-btn" data-exp="veteran">Veteran</button>
+                        </div>
+                        <label class="tp-sort">
+                            <span class="tp-sort-lbl">Sort</span>
+                            <select id="top-sort" aria-label="Top 10 の並び順">
+                                <option value="pra">PTS+REB+AST</option>
+                                <option value="pts">PTS</option>
+                                <option value="ast">AST</option>
+                                <option value="reb">REB</option>
+                                <option value="tpm">3PM</option>
+                                <option value="stl">STL</option>
+                                <option value="blk">BLK</option>
+                                <option value="ato">AST/TO</option>
+                            </select>
+                        </label>
+                    </div>
+                    <div class="top-players-col">
+                        <div id="top-players">
+                            <div class="msg">Loading<span class="spinner"></span></div>
+                        </div>
+                    </div>
+                </section>
+                <section class="section off-nights-wrap">
+                    <div class="section-header">
+                        <h2>Off Nights</h2>
+                        <span class="date-badge" id="off-nights-date"></span>
+                    </div>
+                    <div class="tp-subtitle" style="margin: -6px 14px 10px">20分以上出場した選手のうち PIE が低い順</div>
+                    <div class="tp-controls">
+                        <div class="conf-tabs tp-filter" data-list="off">
+                            <button class="conf-btn active" data-exp="all">All</button>
+                            <button class="conf-btn" data-exp="rookie">Rookie</button>
+                            <button class="conf-btn" data-exp="sophomore">Sophomore</button>
+                            <button class="conf-btn" data-exp="veteran">Veteran</button>
+                        </div>
+                    </div>
+                    <div class="top-players-col">
+                        <div id="off-nights">
+                            <div class="msg">Loading<span class="spinner"></span></div>
+                        </div>
+                    </div>
+                </section>
+                <section class="section injury-players-wrap">
+                    <div class="section-header">
+                        <h2>Today's Injury Report</h2>
+                        <span class="date-badge" id="injury-date"></span>
+                    </div>
+                    <div class="injury-players-col">
+                        <div id="injury-players">
+                            <div class="msg">Loading<span class="spinner"></span></div>
+                        </div>
+                    </div>
+                </section>
+            </aside>
+        </div>
+    </div>
+
+</div><!-- /main-wrap -->
+
+<script src="../assets/api.js"></script>
+<script src="../assets/teams.js"></script>
+<script src="../assets/stats.js"></script>
+<script src="../assets/ui.js"></script>
+<script>
+/* ── ET date helpers (America/New_York, handles DST automatically) ── */
+function etDateStr(utcDate) {
+    return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' })
+        .format(utcDate).replace(/-/g, '');
+}
+
+function etDateShift(utcDate, days) {
+    const s = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(utcDate);
+    const [y, m, d] = s.split('-').map(Number);
+    return new Date(Date.UTC(y, m - 1, d + days, 17, 0, 0));
+}
+
+function fmtJstDate(utcDate) {
+    const datePart = new Intl.DateTimeFormat('ja-JP', {
+        year: 'numeric', month: '2-digit', day: '2-digit', timeZone: 'Asia/Tokyo'
+    }).format(utcDate);
+    const weekday = new Intl.DateTimeFormat('en-US', {
+        weekday: 'short', timeZone: 'Asia/Tokyo'
+    }).format(utcDate);
+    return `${datePart} (${weekday})`;
+}
+
+/* ── Tab switching ── */
+function switchTab(tab) {
+    // Top 10 / Off Nights / Injury はスマホ用タブ。中身は右カラムを表示切替する
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+    document.getElementById('tab-games').dataset.view = tab;
+}
+
+document.querySelectorAll('.tab-btn').forEach(btn =>
+    btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
+
+// PC幅に戻ったらスマホ専用タブは存在しないので Games に戻す
+window.matchMedia('(min-width: 769px)').addEventListener('change', e => {
+    const view = document.getElementById('tab-games').dataset.view;
+    if (e.matches && ['top', 'off', 'injury'].includes(view)) switchTab('games');
+});
+document.getElementById('refresh-btn').addEventListener('click', () => init(true));
+
+/* ── Standings（カードの順位・L10・連勝表示に使う） ── */
+const rankMap = {};
+let isPlayoffMode = false;
+
+async function loadStandings() {
+    try {
+        const d = await NBA.api.standings();
+        (d.children || []).forEach(conf => {
+            const confKey = conf.name.toLowerCase().includes('east') ? 'East' : 'West';
+            (conf.standings?.entries || []).forEach(e => {
+                const get = name => e.stats?.find(s => s.name === name)?.displayValue ?? '';
+                const rank = parseInt(get('playoffSeed'));
+                if (!rank) return;
+                rankMap[e.team.id] = { rank, conf: confKey, l10: get('Last Ten Games'), streak: get('streak') };
+            });
+        });
+    } catch (e) { console.warn('standings:', e); }
+}
+
+/* ── Scoreboard ── */
+function fetchEvents(etDate, opts) {
+    return NBA.api.scoreboard(etDateStr(etDate), opts);
+}
+
+function hasResults(events) {
+    return events.some(e => e.status.type.completed || e.status.type.state === 'in');
+}
+
+/* ── Streak helpers ── */
+function streakBadge(streak) {
+    if (!streak) return '';
+    const m = streak.match(/^([WL])\s*(\d+)/);
+    if (!m) return '';
+    return `<span class="streak ${m[1] === 'W' ? 'w' : 'l'}">${m[1]}${m[2]}</span>`;
+}
+
+/* ── Game render ── */
+function renderGames(events, id) {
+    const el = document.getElementById(id);
+    if (!events?.length) { el.innerHTML = '<div class="msg">No games</div>'; return; }
+    const statusPriority = e => {
+        if (e.status.type.state === 'in') return 0;
+        if (e.status.type.completed || e.status.type.state === 'post') return 2;
+        return 1;
+    };
+    const sorted = [...events].sort((a, b) => statusPriority(a) - statusPriority(b));
+    el.innerHTML = '';
+    sorted.forEach(ev => el.appendChild(buildCard(ev)));
+}
+
+function buildCard(event) {
+    const comp = event.competitions[0];
+    const away = comp.competitors.find(c => c.homeAway === 'away') ?? comp.competitors[0];
+    const home = comp.competitors.find(c => c.homeAway === 'home') ?? comp.competitors[1];
+
+    const st = event.status;
+    const isOver = !!st.type.completed || st.type.state === 'post';
+    const isLive = !isOver && st.type.state === 'in';
+
+    const awayScore = away.score != null ? String(away.score) : '';
+    const homeScore = home.score != null ? String(home.score) : '';
+    const awayNum = parseInt(awayScore);
+    const homeNum = parseInt(homeScore);
+    const awayWon = isOver && !isNaN(awayNum) && !isNaN(homeNum) && awayNum > homeNum;
+    const homeWon = isOver && !isNaN(awayNum) && !isNaN(homeNum) && homeNum > awayNum;
+
+    // Playoff series data
+    const series = comp.series;
+    const awaySeriesWins = series?.competitors?.find(c => c.id === away.team.id)?.wins ?? 0;
+    const homeSeriesWins = series?.competitors?.find(c => c.id === home.team.id)?.wins ?? 0;
+    const seriesNote = series
+        ? (comp.notes?.find(n => n.headline && /series|game\s+\d+/i.test(n.headline))?.headline || '')
+        : '';
+
+    // Game number label (e.g. "Game 5") for playoff status bar
+    let gameNumber = '';
+    if (isPlayoffMode && series) {
+        const allText = [st.type.shortDetail, ...(comp.notes || []).map(n => n.headline || '')].join(' ');
+        const m = allText.match(/Game\s+\d+/i);
+        if (m) gameNumber = m[0];
+    }
+
+    let statusLabel, statusClass;
+    if (isOver) {
+        statusLabel = (isPlayoffMode && gameNumber) ? `FINAL  •  ${gameNumber}` : 'FINAL';
+        statusClass = 'final';
+    } else if (isLive) {
+        const tag = (isPlayoffMode && gameNumber) ? `  •  ${gameNumber}` : '';
+        statusLabel = `LIVE  Q${st.period}  ${st.displayClock}${tag}`;
+        statusClass = 'live';
+    } else {
+        const timeStr = new Date(event.date).toLocaleTimeString('en-US', {
+            hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Tokyo'
+        });
+        const tag = (isPlayoffMode && gameNumber) ? `  •  ${gameNumber}` : '';
+        statusLabel = `${timeStr} JST${tag}`;
+        statusClass = 'sched';
+    }
+
+    function info(t, myWins, oppWins) {
+        const rk  = rankMap[t.team.id];
+        const rec = t.records?.find(r => r.type === 'total') ?? t.records?.[0];
+        const base = {
+            abbr:  normAbbr(t.team.abbreviation) || t.team.displayName,
+            short: t.team.shortDisplayName || t.team.name || t.team.displayName,
+            color: t.team.color,
+            alt:   t.team.alternateColor
+        };
+        if (isPlayoffMode && series) {
+            return { ...base, record: `${myWins}-${oppWins}`, rank: rk ? `#${rk.rank} Seed` : '', l10: '', streak: '' };
+        }
+        return {
+            ...base,
+            record: rec?.summary || '',
+            rank:   rk ? `${rk.conf} #${rk.rank}` : '',
+            l10:    rk?.l10 || '',
+            streak: rk?.streak || ''
+        };
+    }
+
+    const aw = info(away, awaySeriesWins, homeSeriesWins);
+    const hw = info(home, homeSeriesWins, awaySeriesWins);
+    const showScore = isOver || isLive;
+
+    function teamRow(d, score, lose) {
+        const meta = [d.record, d.rank, d.l10 ? `L10 ${d.l10}` : '', streakBadge(d.streak)]
+            .filter(Boolean).join('<span class="g-dot">·</span>');
+        return `
+        <div class="g-team ${lose ? 'lose' : ''}" style="${NBA.color.chipVars(d.color, d.alt)}">
+            <span class="g-chip">${d.abbr}</span>
+            <div class="g-info">
+                <div class="g-name">${d.short}</div>
+                ${meta ? `<div class="g-meta">${meta}</div>` : ''}
+            </div>
+            ${showScore ? `<span class="g-score">${score || '-'}</span>` : ''}
+        </div>`;
+    }
+
+    // 試合前も含めて、どのカードも試合ページへ
+    const card = document.createElement('a');
+    card.className = 'card clickable' + (isLive ? ' live' : '');
+    card.href = NBA.link.game(event.id);
+    card.innerHTML = `
+        ${teamRow(aw, awayScore, homeWon)}
+        ${teamRow(hw, homeScore, awayWon)}
+        ${(isPlayoffMode && seriesNote) ? `<div class="g-series">${seriesNote}</div>` : ''}
+        <div class="g-foot">
+            <span class="g-status ${statusClass}">${statusLabel}</span>
+            <span class="g-box">${showScore ? 'Box Score' : 'Preview'} ›</span>
+        </div>`;
+    return card;
+}
+
+/* ── 試合の summary（Top 10 / Off Nights / 怪我人に使う） ── */
+function fetchBoxScore(eventId, opts) {
+    return NBA.api.summary(eventId, opts).catch(() => null);
+}
+
+// チームロスターから選手ごとの NBA 経験年数を取得（athleteId → years）
+const rosterExpCache = new Map();
+function fetchTeamExperience(teamId) {
+    if (!rosterExpCache.has(teamId)) {
+        rosterExpCache.set(teamId, NBA.api.roster(teamId)
+            .then(d => new Map((d.athletes || [])
+                .filter(a => a.experience?.years != null)
+                .map(a => [String(a.id), a.experience.years])))
+            .catch(() => { rosterExpCache.delete(teamId); return new Map(); }));
+    }
+    return rosterExpCache.get(teamId);
+}
+
+// 新人は years が 0 または 1 で返るため両方 Rookie 扱い
+const expClass = years => years == null ? null
+    : years <= 1 ? 'rookie' : years === 2 ? 'sophomore' : 'veteran';
+
+let topPlayersAll = [];
+// 経験年数の絞り込み状態（Top 10 / Off Nights で別々に持つ）
+const playerListFilter = { top: 'all', off: 'all' };
+// Top 10 の並び順。AST/TO は TO=0 のとき AST をそのまま比率として扱う
+const TOP_SORTS = {
+    pra: p => p.total,
+    pts: p => p.pts,
+    ast: p => p.ast,
+    reb: p => p.reb,
+    tpm: p => parseInt(p.threeP) || 0,
+    stl: p => parseInt(p.stl) || 0,
+    blk: p => parseInt(p.blk) || 0,
+    ato: p => p.ast ? p.ast / Math.max(parseInt(p.tov) || 0, 1) : 0,
+};
+let topSort = 'pra';
+const OFF_NIGHTS_MIN = 20;
+
+async function extractTopPlayers(events) {
+    const completed = events.filter(e =>
+        e.status.type.completed || e.status.type.state === 'post'
+    );
+    if (!completed.length) return [];
+
+    const summaries = await Promise.all(completed.map(e => fetchBoxScore(e.id)));
+    const teamIds = [...new Set(summaries.flatMap(d => (d?.boxscore?.players || []).map(t => t.team?.id)).filter(Boolean))];
+    const expMaps = new Map(await Promise.all(teamIds.map(async id => [id, await fetchTeamExperience(id)])));
+    const players = [];
+
+    summaries.forEach(data => {
+        if (!data?.boxscore?.players) return;
+        const gamePie = pieNum(sumBoxLines(data.boxscore.players.map(teamBoxTotals)));
+        data.boxscore.players.forEach(teamData => {
+            const teamAbbr = normAbbr(teamData.team?.abbreviation || '');
+            const expMap = expMaps.get(teamData.team?.id);
+            (teamData.statistics || []).forEach(sg => {
+                const names = sg.names || [];
+                const keys  = sg.keys  || [];
+                const iP   = getStatIdx(names, keys, 'PTS',  'pts');
+                const iR   = getStatIdx(names, keys, 'REB',  'reb');
+                const iA   = getStatIdx(names, keys, 'AST',  'ast');
+                const iFG  = getStatIdx(names, keys, 'FG',   'fg');
+                const i3PT = getStatIdx(names, keys, '3PT',  '3pt');
+                const iOR  = getStatIdx(names, keys, 'OREB', 'oreb');
+                const iDR  = getStatIdx(names, keys, 'DREB', 'dreb');
+                const iS   = getStatIdx(names, keys, 'STL',  'stl');
+                const iB   = getStatIdx(names, keys, 'BLK',  'blk');
+                const iTO  = getStatIdx(names, keys, 'TO',   'to', 'TOV', 'tov');
+                const iPF  = getStatIdx(names, keys, 'PF',   'pf');
+                const iPM  = getStatIdx(names, keys, '+/-',  'plusMinus');
+
+                (sg.athletes || []).forEach(a => {
+                    if (a.didNotPlay) return;
+                    const s = a.stats;
+                    if (!s?.length) return;
+                    const get = i => (i >= 0 && s[i] != null) ? String(s[i]) : '0';
+                    const pts = parseInt(get(iP)) || 0;
+                    const reb = parseInt(get(iR)) || 0;
+                    const ast = parseInt(get(iA)) || 0;
+                    const line = parseBoxLine(sg, a);
+
+                    players.push({
+                        id:     a.athlete?.id || '',
+                        name:   a.athlete?.displayName || '—',
+                        jersey: a.athlete?.jersey || '',
+                        photo:  a.athlete?.headshot?.href || '',
+                        team:   teamAbbr,
+                        teamColor: teamData.team?.color || '',
+                        exp:    expClass(expMap?.get(String(a.athlete?.id))),
+                        pts, reb, ast,
+                        total:  pts + reb + ast,
+                        fg:     get(iFG),
+                        threeP: get(i3PT),
+                        oreb:   get(iOR),
+                        dreb:   get(iDR),
+                        stl:    get(iS),
+                        blk:    get(iB),
+                        tov:    get(iTO),
+                        pf:     get(iPF),
+                        pm:     get(iPM),
+                        min:    line?.min ?? 0,
+                        pie:    line && gamePie ? 100 * pieNum(line) / gamePie : null,
+                    });
+                });
+            });
+        });
+    });
+
+    return players.sort((a, b) => b.total - a.total);
+}
+
+function setTopPlayers(players) {
+    topPlayersAll = players;
+    renderPlayerLists();
+}
+
+document.querySelectorAll('.tp-filter[data-list]').forEach(group =>
+    group.querySelectorAll('.conf-btn').forEach(btn =>
+        btn.addEventListener('click', () => {
+            playerListFilter[group.dataset.list] = btn.dataset.exp;
+            group.querySelectorAll('.conf-btn').forEach(b => b.classList.toggle('active', b === btn));
+            renderPlayerLists();
+        })
+    )
+);
+
+document.getElementById('top-sort')?.addEventListener('change', e => {
+    topSort = e.target.value;
+    renderPlayerLists();
+});
+
+const byExp = list => p => playerListFilter[list] === 'all' || p.exp === playerListFilter[list];
+
+function renderPlayerLists() {
+    // Top 10: 選んだスタッツの多い順（その値が 0 の選手は除外）。同値は AST → PTS+REB+AST の多い順
+    const key = TOP_SORTS[topSort];
+    renderPlayerList('top-players', topPlayersAll
+        .filter(p => key(p) > 0)
+        .filter(byExp('top'))
+        .sort((a, b) => key(b) - key(a)
+            || (topSort === 'ato' ? b.ast - a.ast : 0)
+            || b.total - a.total)
+        .slice(0, 10), 'top');
+    // Off Nights: 20分以上出場した選手を PIE の低い順
+    renderPlayerList('off-nights', topPlayersAll
+        .filter(p => p.min >= OFF_NIGHTS_MIN && p.pie != null)
+        .filter(byExp('off'))
+        .sort((a, b) => a.pie - b.pie)
+        .slice(0, 10), 'off');
+}
+
+function renderPlayerList(elId, players, mode) {
+    const el = document.getElementById(elId);
+    if (!el) return;
+    if (!players.length) {
+        el.innerHTML = '<div class="msg">No data</div>';
+        return;
+    }
+
+    el.innerHTML = players.map((p, i) => {
+        const pmRaw = String(p.pm).replace(/^\+/, '');
+        const pmFmt = pmRaw.startsWith('-') ? pmRaw : (pmRaw === '0' ? '±0' : `+${pmRaw}`);
+        const orebN = parseInt(p.oreb) || 0;
+        const drebN = parseInt(p.dreb) || 0;
+        const rebDetail = (orebN || drebN) ? `${orebN}-${drebN}` : String(p.reb);
+        const fgFmt    = String(p.fg).replace('-', '/');
+        const threeFmt = String(p.threeP).replace('-', '/');
+        const photoEl = p.photo
+            ? `<img class="tp-photo" src="${p.photo}" alt="${p.name}" onerror="this.style.display='none'">`
+            : `<div class="tp-photo-placeholder">${p.name.charAt(0)}</div>`;
+
+        // Top 10 は並び替えに使ったスタッツを先頭に大きく出し、残りの PTS/REB/AST を続ける
+        const base = ['pts', 'reb', 'ast'].map(k => [k, p[k]]);
+        const extra = {
+            tpm: [parseInt(p.threeP) || 0, '3pm'],
+            stl: [p.stl, 'stl'],
+            blk: [p.blk, 'blk'],
+            ato: [TOP_SORTS.ato(p).toFixed(1), 'ast/to'],
+        }[topSort];
+        const leadKey = extra ? null : topSort === 'pra' ? 'pts' : topSort;
+        const [leadVal, leadLbl] = extra || [p[leadKey], leadKey];
+        const rest = base.filter(([k]) => k !== leadKey);
+        // Off Nights は PIE と出場時間を主役に、低評価の理由になる数字をチップで添える
+        const mainStats = mode === 'off'
+            ? `<span class="tp-stat-lbl">PIE</span> <span class="off-pie">${p.pie.toFixed(1)}</span>
+                    <span class="tp-stat-sep">/</span>
+                    <span class="tp-stat-lbl">${p.min} min</span>
+                    <span class="tp-stat-sep">/</span>
+                    <span class="tp-stat-lbl">${p.pts} pts · ${p.reb} reb · ${p.ast} ast</span>`
+            : `<span class="tp-pts-val">${leadVal}</span><span class="tp-stat-lbl">${leadLbl}</span>
+                    ${rest.map(([k, v]) => `<span class="tp-stat-sep">/</span>
+                    <span class="tp-reb-val">${v}</span><span class="tp-stat-lbl">${k}</span>`).join('')}`;
+        const chips = mode === 'off'
+            ? `<span class="tp-chip"><strong>${fgFmt}</strong> FG</span>
+                    <span class="tp-chip"><strong>${threeFmt}</strong> 3P</span>
+                    <span class="tp-chip">TOV <strong>${p.tov}</strong></span>
+                    <span class="tp-chip">PF <strong>${p.pf}</strong></span>
+                    <span class="tp-chip"><strong>${pmFmt}</strong></span>`
+            : `<span class="tp-chip"><strong>${fgFmt}</strong> FG</span>
+                    <span class="tp-chip"><strong>${threeFmt}</strong> 3P</span>
+                    <span class="tp-chip">REB <strong>${rebDetail}</strong></span>
+                    <span class="tp-chip">STL <strong>${p.stl}</strong></span>
+                    <span class="tp-chip">BLK <strong>${p.blk}</strong></span>
+                    <span class="tp-chip">TOV <strong>${p.tov}</strong></span>
+                    <span class="tp-chip">PF <strong>${p.pf}</strong></span>
+                    <span class="tp-chip"><strong>${pmFmt}</strong></span>`;
+
+        return `
+        <div class="tp-item" style="${/^[0-9a-f]{6}$/i.test(p.teamColor) ? `--tc:#${p.teamColor}` : ''}">
+            <div class="tp-rank">${i + 1}</div>
+            ${photoEl}
+            <div class="tp-body">
+                <div class="tp-name-row">
+                    ${p.id ? `<a class="tp-name" href="${NBA.link.player(p.id)}">${p.name}</a>` : `<span class="tp-name">${p.name}</span>`}
+                    ${p.jersey ? `<span class="tp-team">#${p.jersey}</span>` : ''}
+                    <span class="tp-team">${p.team}</span>
+                </div>
+                <div class="tp-main-stats">
+                    ${mainStats}
+                </div>
+                <div class="tp-detail-row">
+                    ${chips}
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+/* ── Injury Report ── */
+async function fetchInjuryPlayers(events) {
+    if (!events?.length) return [];
+    // 怪我人の情報は10分以内のものなら使う（試合中の summary を毎回取り直さない）
+    const summaries = await Promise.all(events.map(e => fetchBoxScore(e.id, { maxAge: 10 * NBA.api.MIN })));
+    const seen = new Set();
+    const players = [];
+
+    summaries.forEach(data => {
+        if (!data?.injuries) return;
+        data.injuries.forEach(teamInj => {
+            const teamAbbr = normAbbr(teamInj.team?.abbreviation || '');
+            (teamInj.injuries || []).forEach(inj => {
+                const pid = inj.athlete?.id;
+                if (pid && seen.has(pid)) return;
+                if (pid) seen.add(pid);
+
+                const details = inj.details || {};
+                const side    = (details.side   || '').replace('Not Specified', '').trim();
+                const type    = (details.type   || '').trim();
+                const detail  = (details.detail || '').trim();
+                const reason  = [side, type || detail].filter(Boolean).join(' ') || '—';
+
+                players.push({
+                    id:     pid || '',
+                    name:   inj.athlete?.displayName || '?',
+                    jersey: inj.athlete?.jersey || '',
+                    photo:  inj.athlete?.headshot?.href || '',
+                    team:   teamAbbr,
+                    status: inj.status || 'Out',
+                    reason,
+                });
+            });
+        });
+    });
+
+    // Sort: Out first, then Doubtful, Questionable, Day-To-Day; within each group by team
+    const order = { 'Out': 0, 'Doubtful': 1, 'Questionable': 2, 'Day-To-Day': 3 };
+    return players.sort((a, b) => {
+        const so = (order[a.status] ?? 9) - (order[b.status] ?? 9);
+        return so !== 0 ? so : a.team.localeCompare(b.team);
+    });
+}
+
+function renderInjuryPlayers(players) {
+    const el = document.getElementById('injury-players');
+    if (!el) return;
+    if (!players.length) {
+        el.innerHTML = '<div class="msg">No injury report</div>';
+        return;
+    }
+
+    const statusCfg = {
+        'Out':        { cls: 'ip-out',  label: 'OUT'   },
+        'Doubtful':   { cls: 'ip-d',    label: 'DOUBT' },
+        'Questionable':{ cls: 'ip-q',   label: 'GTD'   },
+        'Day-To-Day': { cls: 'ip-dtd',  label: 'D2D'   },
+    };
+
+    el.innerHTML = players.map(p => {
+        const cfg = statusCfg[p.status] || { cls: 'ip-out', label: p.status.toUpperCase() };
+        const photoEl = p.photo
+            ? `<img class="ip-photo" src="${p.photo}" alt="${p.name}" onerror="this.style.display='none'">`
+            : `<div class="ip-photo-placeholder">${p.name.charAt(0)}</div>`;
+        return `
+        <div class="ip-item">
+            ${photoEl}
+            <div class="ip-body">
+                <div class="ip-name-row">
+                    ${p.id ? `<a class="ip-name" href="${NBA.link.player(p.id)}">${p.name}</a>` : `<span class="ip-name">${p.name}</span>`}
+                    ${p.jersey ? `<span class="ip-team">#${p.jersey}</span>` : ''}
+                    <span class="ip-team">${p.team}</span>
+                </div>
+                <div class="ip-reason">${p.reason}</div>
+            </div>
+            <span class="ip-status ${cfg.cls}">${cfg.label}</span>
+        </div>`;
+    }).join('');
+}
+
+/* ── Main ── */
+let refreshTimer = null;
+// force: 更新ボタン。今日の試合だけはキャッシュを見ずに取り直す
+async function init(force = false) {
+    clearTimeout(refreshTimer);
+    const btn = document.getElementById('refresh-btn');
+    if (btn) { btn.disabled = true; btn.classList.add('spinning'); }
+
+    const now = new Date();
+
+    // 閲覧がJST環境のため、JST日付を基準にET日付を計算する
+    // NBA試合は7pm+ ET = 翌日8am+ JST のため、JST今日の試合 = ET(JST今日-1日)
+    const jstStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Tokyo' }).format(now);
+    const [jy, jm, jd] = jstStr.split('-').map(Number);
+    const etForJstToday     = new Date(Date.UTC(jy, jm - 1, jd - 1, 17, 0, 0));
+    const etForJstTomorrow  = new Date(Date.UTC(jy, jm - 1, jd,     17, 0, 0));
+    const etForJstYesterday = new Date(Date.UTC(jy, jm - 1, jd - 2, 17, 0, 0));
+
+    document.getElementById('last-updated').textContent =
+        'Updated: ' + now.toLocaleTimeString('en-US', { timeZone: 'Asia/Tokyo' });
+
+    await loadStandings();
+
+    let hasLive = false;
+    try {
+        const [todayEvents, scheduleEvents, yesterdayEvents] = await Promise.all([
+            fetchEvents(etForJstToday, { fresh: force }),
+            fetchEvents(etForJstTomorrow),
+            fetchEvents(etForJstYesterday)
+        ]);
+        const resultsEvents = todayEvents;
+        hasLive = todayEvents.some(e => e.status.type.state === 'in');
+
+        // Playoff auto-detection: competition.series is only present during playoffs
+        isPlayoffMode = [...resultsEvents, ...scheduleEvents]
+            .some(e => e.competitions?.[0]?.series != null);
+
+        // Top Players: 当日完了済み試合があればその結果、なければ前日にフォールバック
+        const todayCompleted = todayEvents.filter(e =>
+            e.status.type.completed || e.status.type.state === 'post'
+        );
+        let topPlayerEvents, topPlayersDate;
+        if (todayCompleted.length > 0) {
+            topPlayerEvents = todayEvents;
+            topPlayersDate  = now;
+        } else {
+            // 当日未開始またはライブ中のみ → 前日スタッツを表示
+            topPlayerEvents = yesterdayEvents;
+            topPlayersDate  = new Date(now.getTime() - 86400000);
+        }
+
+        document.getElementById('today-date').textContent       = resultsEvents.length  ? fmtJstDate(new Date(resultsEvents[0].date))  : fmtJstDate(now);
+        document.getElementById('tomorrow-date').textContent    = scheduleEvents.length ? fmtJstDate(new Date(scheduleEvents[0].date)) : fmtJstDate(new Date(now.getTime() + 86400000));
+        document.getElementById('yesterday-date').textContent   = yesterdayEvents.length ? fmtJstDate(new Date(yesterdayEvents[0].date)) : fmtJstDate(new Date(now.getTime() - 86400000));
+        document.getElementById('top-players-date').textContent = fmtJstDate(topPlayersDate);
+        document.getElementById('off-nights-date').textContent  = fmtJstDate(topPlayersDate);
+        document.getElementById('injury-date').textContent      = todayEvents.length    ? fmtJstDate(new Date(todayEvents[0].date))    : fmtJstDate(now);
+        renderGames(resultsEvents,  'today-games');
+        renderGames(scheduleEvents, 'tomorrow-games');
+        renderGames(yesterdayEvents, 'yesterday-games');
+        extractTopPlayers(topPlayerEvents).then(setTopPlayers);
+        fetchInjuryPlayers(todayEvents).then(renderInjuryPlayers);
+
+    } catch (err) {
+        console.error(err);
+        ['today-games', 'tomorrow-games', 'yesterday-games'].forEach(id => {
+            document.getElementById(id).innerHTML =
+                '<div class="msg error">Failed to load data</div>';
+        });
+    } finally {
+        if (btn) { btn.disabled = false; btn.classList.remove('spinning'); }
+    }
+
+    // 試合中は1分ごとに描き直す（取り直すのは今日の scoreboard だけで、ほかはキャッシュを使う）
+    if (hasLive) refreshTimer = setTimeout(() => init(), NBA.api.MIN);
+}
+
+init();
+</script>
+</body>
+</html>

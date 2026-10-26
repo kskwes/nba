@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 個人用サイトのため検索エンジンに載せない -->
+    <meta name="robots" content="noindex, nofollow">
+    <title>Player — NBA Daily</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&display=swap">
+    <link rel="stylesheet" href="../assets/common.css">
+    <link rel="stylesheet" href="../assets/player-team.css">
+    <style>
+        .main-wrap.single { max-width: 1100px; }
+        @media (max-width: 600px) { .profile-card { align-items: flex-start; } }
+    </style>
+</head>
+<body class="theme-broadcast">
+
+<header>
+    <a class="site-logo" href="../games/">NBA <em>Daily</em></a>
+    <nav class="site-nav" aria-label="Pages">
+        <a href="../games/">Games</a>
+        <a href="../standings/">Standings</a>
+        <a class="on" href="../players/">Players</a>
+        <a href="../teams/">Teams</a>
+        <a href="../salary/">Salary</a>
+        <a href="../predict/">Predict</a>
+    </nav>
+    <div class="header-right">
+        <div class="last-updated" id="last-updated"></div>
+    </div>
+</header>
+
+<main>
+    <div class="main-wrap single">
+        <div class="left-col">
+
+            <div class="lc-search">
+                <div class="search-wrap">
+                    <input type="text" id="q" placeholder="Search player (e.g. LeBron James)">
+                    <ul id="suggestions" class="suggestions"></ul>
+                </div>
+            </div>
+
+            <div id="player-section">
+
+                <!-- Profile + Bio -->
+                <div class="lc-block">
+                    <div class="profile-card static">
+                        <img id="p-photo" class="p-photo" src="" alt="">
+                        <div style="flex:1;min-width:0">
+                            <div id="p-name" class="p-name"></div>
+                            <div id="p-meta" class="p-meta"></div>
+                            <div id="p-bio"></div>
+                            <div id="p-links" class="p-links"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Season stats -->
+                <div class="lc-block">
+                    <div class="section-header">
+                        <h2>Season Stats</h2>
+                        <span id="season-badge" class="badge"></span>
+                    </div>
+                    <div id="stats-big" class="stats-big stats-hero"></div>
+                    <div id="stats-detail" class="stats-detail sd sd-row"></div>
+                </div>
+
+                <!-- Recent Stats -->
+                <div class="lc-block">
+                    <div class="section-header">
+                        <h2>Recent Stats</h2>
+                        <span id="recent-season-badge" class="badge"></span>
+                    </div>
+                    <div id="chart-wrap">
+                        <div class="msg">Select a player to view stats</div>
+                    </div>
+                </div>
+
+            </div><!-- /player-section -->
+        </div>
+    </div>
+</main>
+
+<script src="../assets/api.js"></script>
+<script src="../assets/teams.js"></script>
+<script src="../assets/stats.js"></script>
+<script src="../assets/ui.js"></script>
+<script src="../assets/player-index.js"></script>
+<script>
+/* ─── Season stats（計算は assets/stats.js） ─── */
+// シーズン平均（"7.3-16.0" 形式を含む）から計算用の値を作る
+function seasonLine(S) {
+    const pair = v => String(v || '0-0').split('-').map(x => parseFloat(x) || 0);
+    const [fgm, fga] = pair(S.FG), [tpm] = pair(S['3PT']), [, fta] = pair(S.FT);
+    return { pts: parseFloat(S.PTS) || 0, fgm, fga, tpm, fta, to: parseFloat(S.TO) || 0, min: parseFloat(S.MIN) || 0 };
+}
+
+function addSeasonAdv(S, teamAvg) {
+    const l = seasonLine(S);
+    S['TS%']  = calcTS(l);
+    S['eFG%'] = calcEFG(l);
+    S['USG%'] = calcUSG(l, teamAvg);
+}
+
+// 1チーム・1シーズン分の統計（statName → value）。取れなければ null
+const teamStatsMapCache = new Map();
+function fetchTeamStatsMap(teamId, year) {
+    const key = `${teamId}-${year}`;
+    if (!teamStatsMapCache.has(key)) {
+        teamStatsMapCache.set(key, NBA.api.teamStats(teamId, year)
+            .then(d => {
+                const m = {};
+                (d.splits?.categories || []).forEach(c => (c.stats || []).forEach(x => { m[x.name] = x.value; }));
+                return m;
+            })
+            .catch(() => { teamStatsMapCache.delete(key); return null; }));
+    }
+    return teamStatsMapCache.get(key);
+}
+
+// チームの1試合平均（USG% 用）。チームの出場時間は API が返さないため 240 分固定
+async function fetchTeamSeasonAvg(teamId, year) {
+    const m = await fetchTeamStatsMap(teamId, year);
+    if (!m?.avgFieldGoalsAttempted) return null;
+    return { fga: m.avgFieldGoalsAttempted, fta: m.avgFreeThrowsAttempted || 0, to: m.avgTurnovers || 0, min: 240 };
+}
+
+// 昨季比の表示（▲/▼ と色で増減の向きを示す）
+const shortSeason = year => `${String(year - 1).slice(2)}-${String(year).slice(2)}`;
+function deltaHtml(cur, old, prevLabel) {
+    cur = parseFloat(cur); old = parseFloat(old);
+    if (isNaN(cur) || isNaN(old)) return '';
+    const d = Math.round((cur - old) * 10) / 10;
+    const txt = d > 0 ? `<span class="up">▲ ${d.toFixed(1)}</span>` : d < 0 ? `<span class="down">▼ ${Math.abs(d).toFixed(1)}</span>` : '±0.0';
+    return `<div class="stat-delta">${txt} vs ${esc(prevLabel)}</div>`;
+}
+
+function parsePlayerSeasonStats(data) {
+    const categories = data.categories || [];
+    const avgCat = categories.find(c => c.name === 'averages') || categories[0];
+    if (!avgCat) return null;
+    const labels = avgCat.labels || [];
+    let entry = null, maxYear = 0;
+    for (const s of (avgCat.statistics || [])) {
+        if ((s.season?.year || 0) > maxYear) { maxYear = s.season.year; entry = s; }
+    }
+    if (!entry) return null;
+    const S = { _seasonName: entry.season?.displayName || '', _seasonYear: entry.season?.year };
+    labels.forEach((l, i) => { S[l] = entry.stats?.[i]; });
+    return S;
+}
+
+/* ─── Stats ─── */
+async function loadStats(id, teamId) {
+    try {
+        const data = await NBA.api.athleteStats(id);
+        const year = parsePlayerSeasonStats(data)?._seasonYear;
+        const teamAvg = year && teamId ? await fetchTeamSeasonAvg(teamId, year) : null;
+        renderStats(data, teamAvg);
+    } catch(e) {
+        document.getElementById('stats-big').innerHTML =
+            '<div class="msg error" style="grid-column:1/-1">Failed to load stats</div>';
+        console.error('stats:', e);
+    }
+}
+
+function renderStats(data, teamAvg) {
+    // API structure: data.categories[] with name="averages"
+    // Each category.statistics[] has per-season entries with season.year and stats[]
+    const categories = data.categories || [];
+    const avgCat = categories.find(c => c.name === 'averages') || categories[0];
+
+    const bigEl = document.getElementById('stats-big');
+    if (!avgCat) {
+        bigEl.innerHTML = '<div class="msg" style="grid-column:1/-1">No stats found</div>';
+        return;
+    }
+
+    const labels = avgCat.labels || [];
+
+    // Find current season (highest year in statistics array)
+    let entry = null, maxYear = 0;
+    for (const s of (avgCat.statistics || [])) {
+        if ((s.season?.year || 0) > maxYear) { maxYear = s.season.year; entry = s; }
+    }
+    // 昨季比用: 今季より前で最も新しいシーズン
+    let prev = null;
+    for (const s of (avgCat.statistics || [])) {
+        const y = s.season?.year || 0;
+        if (y < maxYear && y > (prev?.season?.year || 0)) prev = s;
+    }
+    if (!entry) {
+        bigEl.innerHTML = '<div class="msg" style="grid-column:1/-1">No stats found</div>';
+        return;
+    }
+
+    const seasonName = entry.season?.displayName || '';
+    if (seasonName) document.getElementById('season-badge').textContent = seasonName + ' Regular Season';
+
+    // Build stat map  (labels: GP GS MIN FG FG% 3PT 3P% FT FT% OR DR REB AST BLK STL PF TO PTS)
+    const S = {};
+    labels.forEach((l, i) => { S[l] = entry.stats?.[i]; });
+    addSeasonAdv(S, teamAvg);
+
+    const bigDefs = [
+        { key: 'PTS', label: 'Points\nPPG' },
+        { key: 'REB', label: 'Rebounds\nRPG' },
+        { key: 'AST', label: 'Assists\nAPG' },
+        { key: 'STL', label: 'Steals\nSPG' },
+        { key: 'BLK', label: 'Blocks\nBPG' },
+    ];
+
+    const P = {};
+    if (prev) labels.forEach((l, i) => { P[l] = prev.stats?.[i]; });
+    const delta = key => prev ? deltaHtml(S[key], P[key], shortSeason(prev.season.year)) : '';
+
+    bigEl.innerHTML = bigDefs.map((d, i) => {
+        const lines = d.label.split('\n');
+        return `<div class="stat-box ${i === 0 ? 'hero' : ''}">
+            <div class="val">${fmt(d.key, S[d.key])}</div>
+            <div class="lbl">${lines[0]}<br><span style="opacity:.7;font-size:9px">${lines[1] || ''}</span></div>
+            ${delta(d.key)}
+        </div>`;
+    }).join('');
+
+    // 詳細: テーマ別ミニタイル（rate は 0〜100% のバー付き、sub は成功数-試投数）
+    const detGroups = [
+        ['Shooting', [
+            { key: 'FG%', sub: 'FG', rate: true }, { key: '3P%', sub: '3PT', rate: true }, { key: 'FT%', sub: 'FT', rate: true },
+            { key: 'TS%', rate: true }, { key: 'eFG%', rate: true },
+        ]],
+        ['Role', [{ key: 'GP' }, { key: 'MIN' }, { key: 'USG%' }]],
+        ['Ball Security', [{ key: 'TO' }, { key: 'PF' }]],
+    ];
+    const tile = t => {
+        const n = parseFloat(S[t.key]);
+        const bar = t.rate && !isNaN(n) ? `<div class="sd-bar"><span style="width:${Math.max(0, Math.min(100, n))}%"></span></div>` : '';
+        // rate タイルは sub がなくても高さをそろえる
+        const sub = t.sub && S[t.sub] ? `<div class="sd-sub">${esc(String(S[t.sub]))}</div>` : (t.rate ? '<div class="sd-sub">&nbsp;</div>' : '');
+        return `<div class="sd-tile">
+            <div class="sd-val">${fmt(t.key, S[t.key])}</div>${sub}${bar}
+            <div class="sd-lbl">${t.key}</div>
+        </div>`;
+    };
+    document.getElementById('stats-detail').innerHTML = detGroups.map(([title, tiles]) =>
+        `<div class="sd-group" style="--n:${tiles.length}"><div class="sd-title">${title}</div><div class="sd-grid">${tiles.map(tile).join('')}</div></div>`
+    ).join('');
+}
+
+function fmt(key, val) {
+    if (val == null || val === '') return '-';
+    // FG / 3PT / FT come as "made-attempted" strings e.g. "8.1-16.2"
+    if (['FG', '3PT', 'FT'].includes(key)) return val || '-';
+    // Percentages are already 0-100 (e.g. 49.9), not 0-1
+    if (['FG%', '3P%', 'FT%', 'TS%', 'eFG%', 'USG%'].includes(key)) {
+        const n = parseFloat(val);
+        return isNaN(n) ? '-' : n.toFixed(1) + '%';
+    }
+    const n = parseFloat(val);
+    if (isNaN(n)) return val;
+    return Number.isInteger(n) ? String(n) : n.toFixed(1);
+}
+
+/* ─── Gamelog ─── */
+async function loadGamelog(id, teamId) {
+    try {
+        const [gamelogData, teamGames] = await Promise.all([
+            NBA.api.gamelog(id),
+            loadTeamSchedule(teamId),
+        ]);
+        currentGames = parseGamelog(gamelogData, teamGames);
+        // parseGamelog は seasonTypes[0]（最新のシーズン区分）だけを使う
+        const glSeason = gamelogData.seasonTypes?.[0]?.displayName || '';
+        document.getElementById('recent-season-badge').textContent = glSeason && currentGames.length ? `${glSeason} · Last 10` : '';
+        renderTrendTable();
+        loadGameAdv(id, currentGames);
+    } catch(e) {
+        chartWrap.innerHTML = '<div class="msg error">Failed to load game log</div>';
+        console.error('gamelog:', e);
+    }
+}
+
+async function loadTeamSchedule(teamId) {
+    if (!teamId) return [];
+    try {
+        const data = await NBA.api.schedule(teamId);
+        const now = Date.now();
+        const games = [];
+        for (const ev of (data.events || [])) {
+            if (!ev.date) continue;
+            if (new Date(ev.date).getTime() > now) continue;  // skip future
+            const comp  = ev.competitions?.[0];
+            if (!comp) continue;
+            const comps    = comp.competitors || [];
+            const teamComp = comps.find(c => String(c.team?.id) === String(teamId));
+            const oppComp  = comps.find(c => String(c.team?.id) !== String(teamId));
+            if (!teamComp || !oppComp) continue;
+            if (parseInt(teamComp.team?.id) > 30 || parseInt(oppComp.team?.id) > 30) continue;
+            const completed = comp.status?.type?.completed;
+            const teamScore = parseFloat(teamComp.score) || 0;
+            const oppScore  = parseFloat(oppComp.score)  || 0;
+            const result    = completed ? (teamScore > oppScore ? 'W' : 'L') : '';
+            games.push({
+                gameDate : ev.date,
+                opponent : normAbbr(oppComp.team?.abbreviation || '?'),
+                atVs     : teamComp.homeAway === 'away' ? '@' : 'vs',
+                result,
+            });
+        }
+        games.sort((a, b) => new Date(a.gameDate) - new Date(b.gameDate));
+        return games;
+    } catch(e) {
+        console.warn('team schedule:', e);
+        return [];
+    }
+}
+
+function parseGameStatMap(labels, rawStats) {
+    const S = {};
+    labels.forEach((lbl, i) => {
+        const val = rawStats?.[i] ?? '';
+        if (['FG', '3PT', 'FT'].includes(lbl)) {
+            // "made-attempted" format e.g. "8-12"
+            const [mStr, aStr] = (val || '0-0').split('-');
+            const made = parseFloat(mStr) || 0;
+            const att  = parseFloat(aStr) || 0;
+            if (lbl === 'FG')  { S['FGM'] = made; S['FGA'] = att; }
+            if (lbl === '3PT') { S['3PM'] = made; S['3PA'] = att; }
+            if (lbl === 'FT')  { S['FTM'] = made; S['FTA'] = att; }
+        } else {
+            S[lbl] = parseFloat(val) || 0;
+        }
+    });
+    return S;
+}
+
+function normDate(isoStr) {
+    if (!isoStr) return '';
+    // Convert to JST (UTC+9) date string YYYY-MM-DD for consistent matching
+    const d = new Date(new Date(isoStr).getTime() + 9 * 3600 * 1000);
+    return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`;
+}
+
+function parseGamelog(data, teamGames = []) {
+    // Structure:
+    //   data.labels[]        — stat column names (top-level)
+    //   data.events{}        — dict keyed by eventId → game metadata
+    //   data.seasonTypes[0].categories[].events[] → [{eventId, stats[]}]
+    //   categories are split by month within the season
+    const labels    = data.labels || [];
+    const eventsMap = data.events || {};
+    if (!labels.includes('PTS')) return [];
+
+    // Build player game map keyed by JST date
+    const playerByDate = {};
+    const currentST = (data.seasonTypes || [])[0];
+    if (currentST) {
+        for (const cat of (currentST.categories || [])) {
+            for (const ce of (cat.events || [])) {
+                const eid = String(ce.eventId);
+                const ev  = eventsMap[eid] || {};
+                if (parseInt(ev.homeTeamId) > 30 || parseInt(ev.awayTeamId) > 30) continue;
+                const stats = parseGameStatMap(labels, ce.stats);
+                if (isNaN(stats['PTS'])) continue;
+                const dk = normDate(ev.gameDate || '');
+                if (dk) playerByDate[dk] = {
+                    eventId  : eid,
+                    gameDate : ev.gameDate || '',
+                    opponent : normAbbr(ev.opponent?.abbreviation || '?'),
+                    atVs     : ev.atVs || 'vs',
+                    result   : ev.gameResult || '',
+                    score    : ev.score || '',
+                    stats,
+                };
+            }
+        }
+    }
+
+    // チーム日程が選手の gamelog と1試合も重ならないとき（新シーズンのプレシーズン開始直後など）は
+    // 日程を使うと全試合 DNP になるため、選手の試合だけで表を作る
+    const overlaps = teamGames.some(tg => playerByDate[normDate(tg.gameDate)]);
+    if (teamGames.length > 0 && overlaps) {
+        // Use team schedule as x-axis; stats = null when player didn't play
+        return teamGames.map(tg => {
+            const dk = normDate(tg.gameDate);
+            const pg = dk ? playerByDate[dk] : null;
+            return {
+                eventId  : pg?.eventId,
+                gameDate : tg.gameDate,
+                opponent : pg?.opponent ?? tg.opponent,
+                atVs     : pg?.atVs     ?? tg.atVs,
+                result   : pg?.result   || tg.result || '',
+                score    : pg?.score    ?? '',
+                stats    : pg ? pg.stats : null,  // null = DNP
+            };
+        });
+    }
+
+    // Fallback: player-only (no team schedule available)
+    const games = Object.values(playerByDate);
+    games.sort((a, b) => new Date(a.gameDate) - new Date(b.gameDate));
+    return games;
+}
+
+// 直近10試合の USG% / PIE を summary API から取得して表を描き直す
+let gameAdvSeq = 0;
+async function loadGameAdv(athleteId, games) {
+    const seq = ++gameAdvSeq;
+    const targets = games.slice(-10).filter(g => g.stats && g.eventId);
+    await Promise.all(targets.map(async g => {
+        g.adv = boxAdvForPlayer(await NBA.api.summary(g.eventId).catch(() => null), athleteId);
+    }));
+    if (seq === gameAdvSeq && games === currentGames) renderTrendTable();
+}
+
+/* ─── Trend Table ─── */
+
+function jstDate(isoStr) {
+    if (!isoStr) return '';
+    const d = new Date(new Date(isoStr).getTime() + 9 * 3600 * 1000);
+    return `${String(d.getUTCMonth()+1).padStart(2,'0')}/${String(d.getUTCDate()).padStart(2,'0')}`;
+}
+
+function fmtGameVal(key, val) {
+    if (val == null || isNaN(val)) return '-';
+    if (['FG%', '3P%', 'FT%'].includes(key)) return val.toFixed(1) + '%';
+    if (key === 'MIN') return val.toFixed(1);
+    return Number.isInteger(val) ? String(val) : val.toFixed(0);
+}
+
+function renderTrendTable() {
+    const games = currentGames.slice(-10).reverse(); // newest first, last 10 games
+
+    if (!games.length) {
+        chartWrap.innerHTML = '<div class="msg">No game data available</div>';
+        return;
+    }
+
+    const statCols = [
+        { key: 'MIN',  label: 'MIN' },
+        { key: 'PTS',  label: 'PTS' },
+        { key: 'REB',  label: 'REB' },
+        { key: 'AST',  label: 'AST' },
+        { key: 'STL',  label: 'STL' },
+        { key: 'BLK',  label: 'BLK' },
+        { key: 'FGM',  label: 'FGM' },
+        { key: 'FGA',  label: 'FGA' },
+        { key: 'FG%',  label: 'FG%' },
+        { key: '3PM',  label: '3PM' },
+        { key: '3PA',  label: '3PA' },
+        { key: '3P%',  label: '3P%' },
+        { key: 'FTM',  label: 'FTM' },
+        { key: 'FTA',  label: 'FTA' },
+        { key: 'FT%',  label: 'FT%' },
+        { key: 'TO',   label: 'TO'  },
+        { key: 'PF',   label: 'PF'  },
+    ];
+    const advCols = ['TS%', 'eFG%', 'USG%', 'PIE'];
+    const advVals = g => {
+        const s = g.stats;
+        const l = { pts: s.PTS || 0, fgm: s.FGM || 0, fga: s.FGA || 0, tpm: s['3PM'] || 0, fta: s.FTA || 0 };
+        const pct = x => x == null ? '-' : x.toFixed(1) + '%';
+        return [pct(calcTS(l)), pct(calcEFG(l)), pct(g.adv?.usg), g.adv?.pie == null ? '-' : g.adv.pie.toFixed(1)];
+    };
+
+    const thead = `<thead><tr>
+        <th class="left-col">Date</th>
+        <th class="left-col">Opp</th>
+        <th>Result</th>
+        ${statCols.map(c => `<th>${c.label}</th>`).join('')}
+        ${advCols.map(c => `<th>${c}</th>`).join('')}
+    </tr></thead>`;
+
+    const tbody = '<tbody>' + games.map(g => {
+        const dnp    = g.stats === null;
+        const dateLbl = jstDate(g.gameDate);
+        const atLbl  = g.atVs === '@' ? '@' : 'vs';
+        const oppLbl = `${atLbl} ${esc(g.opponent)}`;
+        const result = g.result || '';
+        const score  = g.score  || '';
+        const resCls = result === 'W' ? 'res-w' : result === 'L' ? 'res-l' : '';
+        const resTxt = score ? esc(score) : (result || '-');
+        const statCells = dnp
+            ? `<td colspan="${statCols.length + advCols.length}" style="color:var(--muted);font-style:italic">DNP</td>`
+            : statCols.map(c => `<td>${fmtGameVal(c.key, g.stats?.[c.key])}</td>`).join('')
+              + advVals(g).map(v => `<td>${v}</td>`).join('');
+        const gameLink = txt => g.eventId ? `<a href="${NBA.link.game(g.eventId)}">${txt}</a>` : txt;
+        return `<tr class="${dnp ? 'dnp' : ''}">
+            <td class="left-col">${gameLink(esc(dateLbl))}</td>
+            <td class="left-col">${gameLink(oppLbl)}</td>
+            <td class="${resCls}">${resTxt}</td>
+            ${statCells}
+        </tr>`;
+    }).join('') + '</tbody>';
+
+    chartWrap.innerHTML = `<div class="trend-table-wrap"><table class="trend-table">${thead}${tbody}</table></div>`;
+}
+
+/* ═══════════════════════════════════════════════
+   選手ページ: players/player.html?id=<ESPNの選手ID>
+   ═══════════════════════════════════════════════ */
+const PLAYER_ID = NBA.url.get('id');
+let currentGames = [];
+const chartWrap = document.getElementById('chart-wrap');
+
+NBA.playerSearch(document.getElementById('q'), document.getElementById('suggestions'));
+
+// "30/12/1984" のような ESPN の表記は日付の順がまちまちなので、ロスターの ISO 形式を優先する
+function fmtDob(iso, display) {
+    if (iso) {
+        const d = new Date(iso);
+        return `${d.getUTCFullYear()}/${d.getUTCMonth() + 1}/${d.getUTCDate()}`;
+    }
+    return display || '';
+}
+
+function bioHTML(a, ix) {
+    const dob = fmtDob(ix?.dob, a.displayDOB);
+    const items = [
+        ['Age', a.age != null ? `${a.age}${dob ? `（${dob}）` : ''}` : dob],
+        ['Draft', a.displayDraft || ''],
+        ['Experience', a.displayExperience || ''],
+        ['Height / Weight', [a.displayHeight, a.displayWeight].filter(Boolean).join(' · ')],
+        ['College', a.college?.name || ''],
+        ['Birthplace', a.displayBirthPlace || ''],
+    ].filter(([, v]) => v);
+    return items.length ? `<dl class="p-bio">${items.map(([k, v]) => `<div><dt>${k}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>` : '';
+}
+
+async function loadProfile() {
+    const [data, ix] = await Promise.all([
+        NBA.api.athlete(PLAYER_ID).catch(() => null),
+        NBA.playerIndex().catch(() => null),
+    ]);
+    const a = data?.athlete;
+    const fromIndex = ix?.players.find(p => p.id === String(PLAYER_ID));
+    if (!a && !fromIndex) {
+        document.getElementById('player-section').innerHTML = '<div class="msg error">Player not found</div>';
+        return null;
+    }
+    const name = a?.displayName || fromIndex.displayName;
+    const team = a?.team || (fromIndex && { id: fromIndex.teamId, abbreviation: fromIndex.teamAbbr, displayName: fromIndex.team });
+    const teamAbbr = team?.abbreviation ? normAbbr(team.abbreviation) : '';
+    const photo = a?.headshot?.href || fromIndex?.headshot || FALLBACK_IMG;
+    const position = a?.position?.abbreviation || fromIndex?.position || '';
+    const jersey = a?.jersey || fromIndex?.jersey || '';
+
+    document.title = `${name} — NBA Daily`;
+    const photoEl = document.getElementById('p-photo');
+    photoEl.src = photo;
+    photoEl.onerror = () => { photoEl.src = FALLBACK_IMG; };
+    document.getElementById('p-name').textContent = name;
+    // チーム名はチームページへ
+    document.getElementById('p-meta').innerHTML = [
+        team?.displayName ? `<span><a class="plain-link" href="${NBA.link.team(teamAbbr)}">${esc(team.displayName)}</a></span>` : '',
+        position ? `<span>${esc(position)}</span>` : '',
+        jersey ? `<span>#${esc(jersey)}</span>` : '',
+    ].join('');
+    document.getElementById('p-bio').innerHTML = a ? bioHTML(a, fromIndex) : '';
+    document.getElementById('p-links').innerHTML = `
+        <a class="p-link-btn" href="${NBA.link.espnPlayer(PLAYER_ID)}" target="_blank" rel="noopener">ESPN ↗</a>
+        ${teamAbbr ? `<a class="p-link-btn" href="${NBA.link.salary(teamAbbr)}">${esc(teamAbbr)} Salary</a>` : ''}`;
+    return { teamId: team?.id ? String(team.id) : '' };
+}
+
+async function init() {
+    if (!PLAYER_ID) {
+        document.getElementById('player-section').innerHTML = '<div class="msg">選手を検索してください</div>';
+        return;
+    }
+    document.getElementById('stats-big').innerHTML = '<div class="msg" style="grid-column:1/-1">Loading<span class="spinner"></span></div>';
+    chartWrap.innerHTML = '<div class="msg">Loading<span class="spinner"></span></div>';
+    const p = await loadProfile();
+    if (!p) return;
+    await Promise.all([loadStats(PLAYER_ID, p.teamId), loadGamelog(PLAYER_ID, p.teamId)]);
+}
+
+init();
+document.getElementById('last-updated').textContent =
+    new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' });
+</script>
+</body>
+</html>

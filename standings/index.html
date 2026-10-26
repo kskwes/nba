@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 個人用サイトのため検索エンジンに載せない -->
+    <meta name="robots" content="noindex, nofollow">
+    <title>Standings — NBA Daily</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&display=swap">
+    <link rel="stylesheet" href="../assets/common.css">
+    <style>
+        /* ─── Conf sub-tabs ─── */
+        .conf-tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+
+        .conf-btn {
+            padding: 6px 22px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--muted);
+            font-size: 13px; font-weight: 700;
+            cursor: pointer; transition: all 0.15s;
+            text-decoration: none;
+        }
+
+        .conf-btn.active { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+
+        .conf-panel { display: none; }
+        .conf-panel.active { display: block; }
+
+        /* ─── Standings table ─── */
+        .standings-wrap { overflow-x: auto; }
+
+        .st-table { width: 100%; border-collapse: collapse; font-size: 12.5px; white-space: nowrap; }
+
+        .st-table th {
+            color: var(--muted); font-weight: 600; font-size: 11px; letter-spacing: 0.5px;
+            padding: 7px 10px; text-align: right; border-bottom: 2px solid var(--border);
+        }
+
+        .st-table th:nth-child(1) { text-align: center; width: 30px; }
+        .st-table th:nth-child(2) { text-align: left; }
+
+        .st-table td {
+            padding: 8px 10px; text-align: right;
+            border-bottom: 1px solid var(--line-soft);
+        }
+
+        .st-table td:nth-child(1) { text-align: center; color: var(--muted); font-size: 11px; }
+        .st-table td:nth-child(2) { text-align: left; }
+
+        .st-team { display: flex; align-items: center; gap: 8px; }
+
+        .st-logo { width: 22px; height: 22px; object-fit: contain; flex-shrink: 0; }
+
+        .st-abbr { font-weight: 700; }
+
+        .st-table tr.edge-playoff td { border-bottom: 2px solid var(--accent); }
+        .st-table tr.edge-playin td  { border-bottom: 1px dashed var(--border); }
+
+        /* ─── Standings + Lottery side-by-side ─── */
+        /* 左右を同じグリッド行に置き、Standings 表とロッタリー表の高さをそろえる
+           （1行目: 切替ボタン / 見出し、2行目: 表、3行目: ロッタリーの説明） */
+        .standings-lottery-wrap {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+            column-gap: 28px;
+        }
+        .standings-col, .lottery-section { display: contents; }
+        .standings-col > .conf-tabs { grid-column: 1; grid-row: 1; }
+        .standings-col > .conf-panel { grid-column: 1; grid-row: 2; }
+        .lottery-section > h3 { grid-column: 2; grid-row: 1; }
+        #lottery-list { grid-column: 2; grid-row: 2; }
+        #lottery-note { grid-column: 2; grid-row: 3; }
+        /* 低い方の表は行が伸びて、高い方に合わせる */
+        .conf-panel > .standings-wrap, .conf-panel .st-table, #lottery-list .lt-table { height: 100%; }
+
+        /* ─── Lottery section ─── */
+        .lottery-section h3 {
+            font-family: var(--font-score); font-size: 17px; font-weight: 600;
+            letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 20px;
+            align-self: center;
+        }
+
+        /* ルールの要点 */
+        .lt-rules { list-style: none; display: grid; gap: 6px; margin-top: 14px; font-size: 12px; line-height: 1.6; color: var(--text-dim); }
+        .lt-rules li { padding-left: 14px; position: relative; }
+        .lt-rules li::before { content: ''; position: absolute; left: 0; top: .6em; width: 5px; height: 5px; border-radius: 50%; background: var(--muted); }
+        .lt-rules b { color: var(--text); }
+
+        .lt-table { width: 100%; border-collapse: collapse; font-size: 12.5px; white-space: nowrap; }
+        .lt-table th {
+            color: var(--muted); font-weight: 600; font-size: 11px; letter-spacing: 0.5px;
+            padding: 7px 8px; text-align: right; border-bottom: 2px solid var(--border);
+        }
+        .lt-table td {
+            padding: 5px 8px; text-align: right; font-variant-numeric: tabular-nums;
+            border-bottom: 1px solid var(--line-soft);
+        }
+        .lt-table .lt-l { text-align: left; }
+        /* 区分の見出し行（ボール数の理由を兼ねる） */
+        .lt-table .lt-grp td {
+            text-align: left; padding: 10px 8px 4px; border-bottom: 1px solid var(--border);
+            font-size: 11.5px; font-weight: 700; color: var(--text-dim); white-space: normal;
+        }
+        .lt-grp-sub { color: var(--muted); font-weight: 600; margin-left: 4px; }
+        .lt-seed { color: var(--muted); font-size: 10px; font-weight: 600; }
+        .lt-dots { display: inline-flex; gap: 3px; vertical-align: middle; }
+        .lt-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); }
+        .lt-dot.off { background: none; box-shadow: inset 0 0 0 1.5px var(--border); }
+        .lt-pct { color: var(--pos); font-weight: 700; }
+        .lt-zero { color: var(--muted); font-weight: 600; }
+        .lt-flag { font-size: 9.5px; font-weight: 700; color: var(--warn); border: 1px solid var(--warn); border-radius: 4px; padding: 0 4px; }
+        .lottery-note { font-size: 10.5px; color: var(--muted); margin-top: 12px; line-height: 1.6; }
+
+        /* ─── Responsive ─── */
+        @media (max-width: 768px) {
+            .standings-lottery-wrap { grid-template-columns: minmax(0, 1fr); }
+            .standings-col > .conf-tabs, .standings-col > .conf-panel, .lottery-section > h3,
+            #lottery-list, #lottery-note { grid-column: auto; grid-row: auto; }
+            .lottery-section > h3 { border-top: 1px solid var(--border); padding-top: 28px; margin-top: 28px; }
+            #lottery-list { overflow-x: auto; }
+        }
+        @media (max-width: 420px) {
+            .lt-table { font-size: 12px; }
+            .lt-table th, .lt-table td { padding-left: 4px; padding-right: 4px; }
+            .lt-table .st-logo { width: 17px; height: 17px; }
+            .lt-table .st-team { gap: 5px; }
+            .lt-flag { display: none; }
+            .lt-seed { font-size: 9px; }
+        }
+
+        @media (max-width: 600px) {
+            .section-header { flex-wrap: wrap; gap: 8px; }
+            .conf-tabs {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none;
+                flex-wrap: nowrap;
+            }
+            .conf-tabs::-webkit-scrollbar { display: none; }
+            .conf-btn { white-space: nowrap; flex-shrink: 0; }
+        }
+
+        @media (max-width: 480px) {
+            .games-grid { grid-template-columns: 1fr; }
+            .tab-btn { padding: 9px 14px; font-size: 13px; }
+            .conf-btn { font-size: 12px; padding: 5px 14px; }
+        }
+        a.st-team { color: inherit; text-decoration: none; }
+        a.st-team:hover .st-abbr { color: var(--accent); text-decoration: underline; }
+    </style>
+</head>
+<body class="theme-broadcast">
+
+<header>
+    <a class="site-logo" href="../games/">NBA <em>Daily</em></a>
+    <nav class="site-nav" aria-label="Pages">
+        <a href="../games/">Games</a>
+        <a class="on" href="../standings/" aria-current="page">Standings</a>
+        <a href="../players/">Players</a>
+        <a href="../teams/">Teams</a>
+        <a href="../salary/">Salary</a>
+        <a href="../predict/">Predict</a>
+    </nav>
+    <div class="header-right">
+        <div class="last-updated" id="last-updated"></div>
+    </div>
+</header>
+
+<div class="main-wrap">
+
+    <!-- 区分内のタブ: Standings | Playoffs | Play-In（後の2つは playoffs.html） -->
+    <div class="tabs-nav">
+        <span class="tab-btn active">Standings</span>
+        <a class="tab-btn" href="playoffs.html">Playoffs</a>
+        <a class="tab-btn" href="playoffs.html?tab=playin">Play-In</a>
+    </div>
+
+        <div class="standings-lottery-wrap">
+
+            <!-- 順位 -->
+            <div class="standings-col">
+                <!-- East / West conf sub-tabs -->
+                <div class="conf-tabs">
+                    <button class="conf-btn active" data-conf="west">West</button>
+                    <button class="conf-btn" data-conf="east">East</button>
+                    <a class="conf-btn" href="https://www.nba.com/standings" target="_blank" rel="noopener">NBA Standings</a>
+                </div>
+
+                <div class="conf-panel active" id="conf-west">
+                    <div class="msg">Loading<span class="spinner"></span></div>
+                </div>
+                <div class="conf-panel" id="conf-east">
+                    <div class="msg">Loading<span class="spinner"></span></div>
+                </div>
+            </div><!-- /standings-col -->
+
+            <!-- Lottery section -->
+            <div class="lottery-section">
+            <h3>Draft Lottery Projections</h3>
+            <div id="lottery-list">
+                <div class="msg">Loading<span class="spinner"></span></div>
+            </div>
+            <div id="lottery-note"></div>
+        </div><!-- /lottery-section -->
+
+        </div><!-- /standings-lottery-wrap -->
+
+</div><!-- /main-wrap -->
+
+<script src="../assets/api.js"></script>
+<script src="../assets/teams.js"></script>
+<script src="../assets/ui.js"></script>
+<script>
+const rankMap = {};
+const standingsData = { East: [], West: [] };
+let isPlayoffMode = false;
+
+
+// 3-2-1 Lottery（2027〜2029年ドラフト）: 16チームの1〜16位をすべて抽選で決める
+// https://www.nba.com/news/nba-board-governors-approve-new-draft-lottery-system
+const LOTTERY_GROUPS = [
+    { key: 'rel',   balls: 2, label: 'Bottom 3', sub: 'guaranteed a top-12 pick' },
+    { key: 'mid',   balls: 3, label: '4th–10th worst' },
+    { key: 'pi910', balls: 2, label: 'Play-In 9/10 seeds' },
+    { key: 'pi78',  balls: 1, label: 'Play-In 7-vs-8 losers' },
+];
+const LOTTERY_REL_FLOOR = 12;  // ワースト3はこの順位より後にならない
+// 連続制限（元の指名権が2年連続1位・3年連続トップ5にならない）。minPick より前で当たったら minPick に移る。2027年ドラフト用
+const LOTTERY_RESTRICTIONS = {
+    WAS: { minPick: 2, label: 'No #1',    note: 'WAS can\'t land #1 (No. 1 pick in 2026).' },
+    UTA: { minPick: 6, label: 'No Top 5', note: 'UTA can\'t land a top-5 pick (top 5 in 2025 and 2026).' },
+};
+
+/* ── Conf switching ── */
+function switchConf(conf) {
+    document.querySelectorAll('.conf-btn[data-conf]').forEach(b => b.classList.toggle('active', b.dataset.conf === conf));
+    document.querySelectorAll('.conf-panel').forEach(p => p.classList.toggle('active', p.id === `conf-${conf}`));
+}
+document.querySelectorAll('.conf-btn[data-conf]').forEach(btn =>
+    btn.addEventListener('click', () => switchConf(btn.dataset.conf)));
+
+/* ── API ── */
+async function loadStandings() {
+    standingsData.East = [];
+    standingsData.West = [];
+    try {
+        const d = await NBA.api.standings();
+        (d.children || []).forEach(conf => {
+            const isEast = conf.name.toLowerCase().includes('east');
+            const confKey = isEast ? 'East' : 'West';
+            (conf.standings?.entries || []).forEach(e => {
+                const get = name => e.stats?.find(s => s.name === name)?.displayValue ?? '';
+                const rank = parseInt(get('playoffSeed'));
+                if (!rank) return;
+                rankMap[e.team.id] = { rank, conf: confKey, l10: get('Last Ten Games'), streak: get('streak') };
+                standingsData[confKey].push({
+                    rank,
+                    id:     e.team.id,
+                    abbr:   normAbbr(e.team.abbreviation || ''),
+                    logo:   e.team.logos?.[0]?.href || '',
+                    wins:   parseInt(get('wins'))   || 0,
+                    losses: parseInt(get('losses')) || 0,
+                    pct:    get('winPercent'),
+                    gb:     get('gamesBehind'),
+                    home:   get('Home'),
+                    road:   get('Road'),
+                    conf:   get('vs. Conf.'),
+                    l10:    get('Last Ten Games'),
+                    streak: get('streak'),
+                });
+            });
+            standingsData[confKey].sort((a, b) => a.rank - b.rank);
+        });
+    } catch (e) { console.warn('standings:', e); }
+}
+
+/* ── Standings table render ── */
+function renderStandingsTable(conf) {
+    const el = document.getElementById(`conf-${conf.toLowerCase()}`);
+    const teams = standingsData[conf];
+    if (!el || !teams.length) return;
+
+    const rows = teams.map(t => {
+        let cls = '';
+        if (t.rank === 6)  cls = 'edge-playoff';
+        if (t.rank === 10) cls = 'edge-playin';
+
+        return `<tr class="${cls}">
+            <td>${t.rank}</td>
+            <td><a class="st-team" href="${NBA.link.team(t.abbr)}">
+                <img class="st-logo" src="${t.logo}" alt="${t.abbr}" onerror="this.style.display='none'">
+                <span class="st-abbr">${t.abbr}</span>
+            </a></td>
+            <td>${t.wins}</td>
+            <td>${t.losses}</td>
+            <td>${t.pct}</td>
+            <td>${t.gb || '-'}</td>
+            <td>${t.home}</td>
+            <td>${t.road}</td>
+            <td>${t.conf}</td>
+            <td>${t.l10}</td>
+            <td>${t.streak}</td>
+        </tr>`;
+    }).join('');
+
+    el.innerHTML = `
+        <div class="standings-wrap">
+            <table class="st-table">
+                <thead><tr>
+                    <th>#</th><th>Team</th>
+                    <th>W</th><th>L</th><th>PCT</th><th>GB</th>
+                    <th>Home</th><th>Away</th><th>Conf</th><th>L10</th><th>Strk</th>
+                </tr></thead>
+                <tbody>${rows}</tbody>
+            </table>
+        </div>`;
+}
+
+/* ── Lottery ── */
+// 各チームが各順位になる確率（%）を、抽選の全パターンをたどって厳密に計算する。
+// ・1位から順に、残っているチームのボールから1個引く
+// ・ワースト3は、12位までの空き枠と未抽選のワースト3が同数になった時点でその中だけから引く
+// ・連続制限のあるチームが入れない順位で当たったら、入れる一番早い順位に移し、その順位は引き直す
+//   （NBA の運用: https://www.nba.com/news/what-nba-had-in-mind-with-draft-lottery-reform）
+function lotteryOdds(teams) {
+    const n = teams.length;
+    const dist = teams.map(() => new Array(n).fill(0));
+    // 状態: 順位が決まったチーム（mask）と、先の順位を確保済みのチーム（held: [チーム, 順位]）
+    const keyOf = (mask, held) => mask + '|' + held.map(h => h.join(':')).join(',');
+    let states = new Map([[keyOf(0, []), { mask: 0, held: [], p: 1 }]]);
+
+    for (let pick = 1; pick <= n; pick++) {
+        const next = new Map();
+        const push = (map, mask, held, p) => {
+            const k = keyOf(mask, held);
+            const st = map.get(k);
+            if (st) st.p += p; else map.set(k, { mask, held, p });
+        };
+        // 引き直しで同じ順位の状態が増えるので、空になるまで処理する
+        while (states.size) {
+            const [k, { mask, held, p }] = states.entries().next().value;
+            states.delete(k);
+
+            const h = held.find(x => x[1] === pick);
+            if (h) {
+                dist[h[0]][pick - 1] += p * 100;
+                push(next, mask, held.filter(x => x !== h), p);
+                continue;
+            }
+            let pool = [];
+            for (let i = 0; i < n; i++) if (!(mask & (1 << i))) pool.push(i);
+            if (!pool.length) continue;
+
+            const rel = pool.filter(i => teams[i].group === 'rel');
+            let freeSlots = 0;
+            for (let s = pick; s <= LOTTERY_REL_FLOOR; s++) if (!held.some(x => x[1] === s)) freeSlots++;
+            if (rel.length && rel.length === freeSlots) pool = rel;
+
+            const total = pool.reduce((a, i) => a + teams[i].balls, 0);
+            for (const i of pool) {
+                const q = p * teams[i].balls / total;
+                if (pick >= teams[i].minPick) {
+                    dist[i][pick - 1] += q * 100;
+                    push(next, mask | (1 << i), held, q);
+                } else {
+                    let slot = teams[i].minPick;
+                    while (held.some(x => x[1] === slot)) slot++;
+                    push(states, mask | (1 << i), [...held, [i, slot]], q);
+                }
+            }
+        }
+        states = next;
+    }
+    return dist;
+}
+
+// 今の順位から抽選に参加する16チームと区分を決める
+function lotteryTeams() {
+    const winPct = t => t.wins / (t.wins + t.losses || 1);
+    const worstFirst = (a, b) => (winPct(a) - winPct(b)) || (b.losses - a.losses);
+    const all = [...standingsData.West, ...standingsData.East];
+    const seedLabel = t => `${standingsData.East.includes(t) ? 'E' : 'W'}${t.rank}`;
+
+    const nonPlayIn = all.filter(t => t.rank > 10).sort(worstFirst);
+    const teams = [
+        ...nonPlayIn.map((t, i) => ({ t, group: i < 3 ? 'rel' : 'mid' })),
+        ...all.filter(t => t.rank === 9 || t.rank === 10).sort(worstFirst).map(t => ({ t, group: 'pi910', seed: seedLabel(t) })),
+        // 7位・8位決定戦の敗者は確定前なので、下のシード（8位）が負けると仮定する
+        ...all.filter(t => t.rank === 8).sort(worstFirst).map(t => ({ t, group: 'pi78', seed: seedLabel(t) + '†' })),
+    ];
+    return teams.map(x => {
+        const g = LOTTERY_GROUPS.find(g => g.key === x.group);
+        const r = LOTTERY_RESTRICTIONS[x.t.abbr];
+        return { ...x, balls: g.balls, minPick: r?.minPick || 1, restriction: r };
+    });
+}
+
+function renderLottery() {
+    const el = document.getElementById('lottery-list');
+    if (!el) return;
+
+    const teams = lotteryTeams();
+    if (!teams.length) { el.innerHTML = '<div class="msg">No data</div>'; return; }
+    const dist = lotteryOdds(teams);
+    const pct = v => v < 0.05 ? '<span class="lt-zero">—</span>' : `<span class="lt-pct">${v.toFixed(1)}%</span>`;
+
+    const rows = LOTTERY_GROUPS.map(g => {
+        const members = teams.map((x, i) => ({ x, d: dist[i] })).filter(m => m.x.group === g.key);
+        if (!members.length) return '';
+        const head = `<tr class="lt-grp"><td colspan="6">${g.label}${g.sub ? `<span class="lt-grp-sub">(${g.sub})</span>` : ''}</td></tr>`;
+        return head + members.map(({ x, d }) => {
+            const possible = d.map(p => p > 1e-6);
+            const best = possible.indexOf(true) + 1, worst = possible.lastIndexOf(true) + 1;
+            return `<tr>
+                <td class="lt-l"><a class="st-team" href="${NBA.link.team(x.t.abbr)}">
+                    <img class="st-logo" src="${x.t.logo}" alt="${x.t.abbr}" onerror="this.style.display='none'">
+                    <span class="st-abbr">${x.t.abbr}</span>
+                    ${x.seed ? `<span class="lt-seed">${x.seed}</span>` : ''}
+                    ${x.restriction ? `<span class="lt-flag">${x.restriction.label}</span>` : ''}
+                </a></td>
+                <td>${x.t.wins}-${x.t.losses}</td>
+                <td class="lt-l"><span class="lt-dots">${'<span class="lt-dot"></span>'.repeat(g.balls)}${'<span class="lt-dot off"></span>'.repeat(3 - g.balls)}</span></td>
+                <td>${pct(d[0])}</td>
+                <td>${pct(d.slice(0, 4).reduce((a, b) => a + b, 0))}</td>
+                <td>${best}–${worst}</td>
+            </tr>`;
+        }).join('');
+    }).join('');
+
+    const restrictionNotes = teams.filter(x => x.restriction).map(x => x.restriction.note);
+
+    el.innerHTML = `
+        <table class="lt-table">
+            <thead><tr>
+                <th class="lt-l">Team</th><th>Record</th><th class="lt-l">Balls</th><th>#1</th><th>Top 4</th><th>Range</th>
+            </tr></thead>
+            <tbody>${rows}</tbody>
+        </table>`;
+    document.getElementById('lottery-note').innerHTML = `
+        <ul class="lt-rules">
+            <li>Picks <b>1–16</b> go to <b>16 teams</b> — the 10 that miss the Play-In plus 6 Play-In teams — and are all decided by a drawing.</li>
+            <li>Each team gets <b>1–3 lottery balls</b> based on its finish. More balls mean better odds of an early pick.</li>
+            <li>The bottom 3 teams lose one ball, but can't fall below <b>#12</b>.</li>
+        </ul>
+        <div class="lottery-note">
+            #1 and Top 4 are the chances of landing that pick. Range is every pick the team can end up with.<br>
+            † Projected: assumes the lower seed loses the 7-vs-8 Play-In game.<br>
+            ${restrictionNotes.map(n => n + '<br>').join('')}
+            Projections based on current standings. Rules:
+            <a href="https://www.nba.com/news/nba-board-governors-approve-new-draft-lottery-system" target="_blank" rel="noopener"
+               style="color:var(--muted);text-decoration:underline">NBA.com</a>
+        </div>`;
+}
+
+async function init() {
+    document.getElementById('last-updated').textContent =
+        'Updated: ' + new Date().toLocaleTimeString('en-US', { timeZone: 'Asia/Tokyo' });
+    await loadStandings();
+    renderStandingsTable('West');
+    renderStandingsTable('East');
+    renderLottery();
+}
+
+init();
+</script>
+</body>
+</html>

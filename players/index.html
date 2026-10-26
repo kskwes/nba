@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 個人用サイトのため検索エンジンに載せない -->
+    <meta name="robots" content="noindex, nofollow">
+    <title>Players — NBA Daily</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&display=swap">
+    <link rel="stylesheet" href="../assets/common.css">
+    <link rel="stylesheet" href="../assets/player-team.css">
+    <style>
+        /* 選手一覧では Player / Leaders の切り替えはスマホ幅だけ */
+        @media (min-width: 961px) { #mode-toggle { display: none; } }
+    </style>
+</head>
+<body class="theme-broadcast">
+
+<header>
+    <a class="site-logo" href="../games/">NBA <em>Daily</em></a>
+    <nav class="site-nav" aria-label="Pages">
+        <a href="../games/">Games</a>
+        <a href="../standings/">Standings</a>
+        <a class="on" href="../players/" aria-current="page">Players</a>
+        <a href="../teams/">Teams</a>
+        <a href="../salary/">Salary</a>
+        <a href="../predict/">Predict</a>
+    </nav>
+    <div class="header-right">
+        <div class="last-updated" id="last-updated"></div>
+    </div>
+</header>
+
+<main>
+    <div class="main-wrap" id="main-wrap">
+
+        <!-- ── Left: Search + Rookies ── -->
+        <div class="left-col">
+
+            <!-- スマホ幅では Stats Leaders を切り替えて表示する -->
+            <div class="mode-toggle" id="mode-toggle">
+                <button class="mode-btn active" id="mode-player" onclick="setMode('player')">Players</button>
+                <button class="mode-btn" id="mode-leaders" onclick="setMode('leaders')">Leaders</button>
+            </div>
+
+            <div class="lc-search" id="player-search-wrap">
+                <div class="search-wrap">
+                    <input type="text" id="q" placeholder="Search player (e.g. LeBron James)">
+                    <ul id="suggestions" class="suggestions"></ul>
+                </div>
+            </div>
+
+            <div id="rookie-list" class="lc-block">
+                <div class="section-header">
+                    <h2>Rookies</h2>
+                    <span id="rookie-count" class="badge"></span>
+                </div>
+                <div id="rookie-list-body" class="rl-grid"><div class="msg">Loading<span class="spinner"></span></div></div>
+            </div>
+
+        </div><!-- /left-col -->
+
+        <!-- ── Right: Stats Leaders ── -->
+        <div class="right-col">
+            <div class="sl-panel">
+                <div class="sl-header">
+                    <div class="sl-title-row">
+                        <h2 class="sl-title">Stats Leaders</h2>
+                        <span class="sl-season-badge" id="sl-season-badge"></span>
+                    </div>
+                    <div class="sl-tabs" id="sl-tabs"></div>
+                </div>
+                <div id="sl-list"><div class="msg">Loading<span class="spinner"></span></div></div>
+            </div>
+        </div><!-- /right-col -->
+
+    </div><!-- /main-wrap -->
+</main>
+
+<script src="../assets/api.js"></script>
+<script src="../assets/teams.js"></script>
+<script src="../assets/ui.js"></script>
+<script src="../assets/player-index.js"></script>
+<script>
+let playerIndex = [];   // 背番号・経験年数を引くため
+let teamIndex   = [];
+const indexReady = NBA.playerIndex().then(ix => { playerIndex = ix.players; teamIndex = ix.teams; });
+
+/* ─── Mode toggle（スマホ幅のみ） ─── */
+const mainWrap = document.getElementById('main-wrap');
+function setMode(mode) {
+    mainWrap.classList.toggle('leaders-mode', mode === 'leaders');
+    ['player', 'leaders'].forEach(m => document.getElementById('mode-' + m).classList.toggle('active', m === mode));
+}
+// Leaders 表示中に PC 幅へ広げたら、切り替えが消えるので元に戻す
+matchMedia('(max-width: 960px)').addEventListener('change', e => {
+    if (!e.matches) setMode('player');
+});
+
+/* ─── Search ─── */
+NBA.playerSearch(document.getElementById('q'), document.getElementById('suggestions'), {
+    onClear: () => { rookieListEl.hidden = false; },
+});
+
+/* ─── Rookie List（今季の新人をチームごとに表示） ─── */
+const rookieListEl = document.getElementById('rookie-list');
+const rookieBodyEl = document.getElementById('rookie-list-body');
+
+function renderRookieList() {
+    // 新人は expYears が 0 または 1 で返るため両方 Rookie 扱い（slExpClass と同じ基準）
+    const rookies = playerIndex.filter(p => p.expYears != null && p.expYears <= 1);
+    if (!rookies.length) {
+        rookieBodyEl.innerHTML = '<div class="msg">No rookie data available</div>';
+        return;
+    }
+    document.getElementById('rookie-count').textContent = `${rookies.length} players`;
+    rookieBodyEl.innerHTML = teamIndex.map(t => {
+        const players = rookies.filter(p => p.teamId === t.id);
+        if (!players.length) return '';
+        return `<div class="rl-team">
+            <div class="rl-team-head">
+                <img class="tl-logo" src="${esc(t.logo || FALLBACK_IMG)}" alt="" onerror="this.src='${FALLBACK_IMG}'">
+                <div class="sd-title">${esc(t.displayName)}</div>
+            </div>
+            <div class="tl-teams">${players.map(p => `
+                <a class="tl-team" href="${NBA.link.player(p.id)}">
+                    <img class="rl-photo" src="${esc(p.headshot || FALLBACK_IMG)}" alt="" onerror="this.src='${FALLBACK_IMG}'">
+                    <div class="t-roster-name-row">
+                        <span class="rl-name">${esc(p.displayName)}</span>
+                        ${p.jersey ? `<span class="t-roster-pos">#${esc(p.jersey)}</span>` : ''}
+                        ${p.position ? `<span class="t-roster-pos">${esc(p.position)}</span>` : ''}
+                    </div>
+                </a>`).join('')}
+            </div>
+        </div>`;
+    }).join('');
+}
+
+indexReady.then(renderRookieList);
+
+/* ─── Stats Leaders ─── */
+
+// NBA season year: season starting in Oct uses next calendar year (e.g. 2025-26 → 2026)
+const _now = new Date();
+const SL_YEAR  = _now.getMonth() >= 9 ? _now.getFullYear() + 1 : _now.getFullYear();
+const SL_TYPE  = 2;  // Regular Season
+
+// Configurable tab definitions — edit freely
+const SL_TABS = [
+    { key: 'PTS',  label: 'PTS',  sort: 'offensive.avgPoints:desc',                   catName: 'offensive', statName: 'avgPoints',                  sub: 'PPG' },
+    { key: '3P%',  label: '3P%',  sort: 'offensive.threePointFieldGoalPct:desc',       catName: 'offensive', statName: 'threePointFieldGoalPct',      sub: '3PT%', isPct: true, madeStatName: 'avgThreePointFieldGoalsMade', attStatName: 'avgThreePointFieldGoalsAttempted' },
+    { key: 'FTA',  label: 'FTA',  sort: 'offensive.avgFreeThrowsAttempted:desc',       catName: 'offensive', statName: 'avgFreeThrowsAttempted',       sub: 'per game' },
+    { key: 'FT%',  label: 'FT%',  sort: 'offensive.freeThrowPct:desc',                catName: 'offensive', statName: 'freeThrowPct',                 sub: 'FT%', isPct: true, madeStatName: 'avgFreeThrowsMade', attStatName: 'avgFreeThrowsAttempted' },
+    { key: 'AST',  label: 'AST',  sort: 'offensive.avgAssists:desc',                  catName: 'offensive', statName: 'avgAssists',                   sub: 'APG' },
+    { key: 'STL',  label: 'STL',  sort: 'defensive.avgSteals:desc',                   catName: 'defensive', statName: 'avgSteals',                    sub: 'SPG' },
+    { key: 'BLK',  label: 'BLK',  sort: 'defensive.avgBlocks:desc',                   catName: 'defensive', statName: 'avgBlocks',                    sub: 'BPG' },
+    { key: 'TO',   label: 'TO',   sort: 'offensive.avgTurnovers:desc',                catName: 'offensive', statName: 'avgTurnovers',                  sub: 'per game' },
+    { key: 'DD2',  label: 'DD2',  sort: 'general.doubleDouble:desc',                  catName: 'general',   statName: 'doubleDouble',                  sub: 'total', isInt: true },
+    { key: 'TD3',  label: 'TD3',  sort: 'general.tripleDouble:desc',                  catName: 'general',   statName: 'tripleDouble',                  sub: 'total', isInt: true },
+    { key: 'BSA',  label: 'BSA (Basic Stat Aggregate)',  sort: 'offensive.avgPoints:desc', catName: 'offensive', statName: 'avgPoints', sub: 'BSA', isPRA: true },
+];
+
+let slCache     = {};       // `${key}|${exp}` → athletes[]
+let slRawCache  = {};       // key → 絞り込み用の上位200人（Rookie〜Veteran で共有）
+let slExp       = 'all';    // 経験年数の絞り込み
+const SL_EXP_LIMIT  = 200;
+const SL_EXP_MIN_GP = 20;   // 絞り込み時は20試合以上出場した選手のみ
+let slCatMap    = null;     // category name → { statName → index }
+let slActiveKey = SL_TABS[0].key;
+
+function buildSlCatMap(categories) {
+    const map = {};
+    for (const cat of categories) {
+        map[cat.name] = {};
+        (cat.names || []).forEach((name, i) => { map[cat.name][name] = i; });
+    }
+    return map;
+}
+
+function getSlVal(athlete, catName, statName) {
+    if (!slCatMap) return null;
+    const idx = slCatMap[catName]?.[statName];
+    if (idx == null) return null;
+    const athCat = (athlete.categories || []).find(c => c.name === catName);
+    return athCat?.values?.[idx] ?? null;
+}
+
+function fmtSlVal(val, tab) {
+    if (val == null || isNaN(val)) return '-';
+    if (tab.isInt)  return String(Math.round(val));
+    if (tab.isPct)  return val.toFixed(1) + '%';
+    return val.toFixed(1);
+}
+
+// 今季のランキングがまだない（プレシーズンなど）ときは前のシーズンに切り替える
+let slYear = SL_YEAR;
+async function fetchSlLeaders(tab, limit = tab.isPRA ? 50 : 10) {
+    const load = year => NBA.api.leaders(`season=${year}&seasontype=${SL_TYPE}&limit=${limit}&qualified=true&sort=${encodeURIComponent(tab.sort)}`);
+    let data = await load(slYear);
+    if (!data.athletes?.length && slYear === SL_YEAR) {
+        slYear = SL_YEAR - 1;
+        data = await load(slYear);
+    }
+    if (!slCatMap && data.categories) {
+        slCatMap = buildSlCatMap(data.categories);
+    }
+    const rs = data.requestedSeason;
+    if (rs?.displayName) {
+        document.getElementById('sl-season-badge').textContent = `${rs.displayName} ${rs.type?.name || 'Regular Season'}`;
+    }
+    let athletes = data.athletes || [];
+    if (tab.isPRA) {
+        athletes = athletes
+            .map(a => {
+                const pts = getSlVal(a, 'offensive', 'avgPoints')         ?? 0;
+                const reb = getSlVal(a, 'general',   'avgRebounds')       ?? 0;
+                const ast = getSlVal(a, 'offensive', 'avgAssists')        ?? 0;
+                const blk = getSlVal(a, 'defensive', 'avgBlocks')         ?? 0;
+                const stl = getSlVal(a, 'defensive', 'avgSteals')         ?? 0;
+                const tov = getSlVal(a, 'offensive', 'avgTurnovers')      ?? 0;
+                const pf  = getSlVal(a, 'general',   'avgFouls')  ?? 0;
+                return { ...a, _pra: pts + reb + ast + blk + stl - tov - pf };
+            })
+            .sort((a, b) => b._pra - a._pra)
+            .slice(0, limit === SL_EXP_LIMIT ? limit : 10);
+    }
+    return athletes;
+}
+
+// ロスターの経験年数（今季時点）を、表示中のシーズン時点に戻して判定する
+function slExpClass(athleteId) {
+    const p = playerIndex.find(x => x.id === String(athleteId));
+    if (p?.expYears == null) return null;
+    const years = p.expYears - (SL_YEAR - slYear);
+    return years <= 1 ? 'rookie' : years === 2 ? 'sophomore' : 'veteran';
+}
+
+async function fetchSlLeadersByExp(tab, exp) {
+    if (!slRawCache[tab.key]) slRawCache[tab.key] = await fetchSlLeaders(tab, SL_EXP_LIMIT);
+    await indexReady;
+    return slRawCache[tab.key]
+        .filter(a => (getSlVal(a, 'general', 'gamesPlayed') ?? 0) >= SL_EXP_MIN_GP)
+        .filter(a => slExpClass(a.athlete?.id) === exp)
+        .slice(0, 10);
+}
+
+function renderSlLeaders(athletes, tab) {
+    const el = document.getElementById('sl-list');
+    slShown = athletes;
+    if (!athletes.length) { el.innerHTML = '<div class="msg">No data</div>'; return; }
+
+    el.innerHTML = athletes.map((a, i) => {
+        const ath     = a.athlete || {};
+        const mainVal = getSlVal(a, tab.catName, tab.statName);
+        const pts     = getSlVal(a, 'offensive', 'avgPoints');
+        const reb     = getSlVal(a, 'general',   'avgRebounds');
+        const ast     = getSlVal(a, 'offensive', 'avgAssists');
+
+        const headshotUrl = ath.headshot?.href || '';
+        const name        = ath.displayName  || '—';
+        // リーダーAPIは背番号を返さないため、ロスター由来の playerIndex から引く
+        const jersey      = playerIndex.find(x => x.id === String(ath.id))?.jersey || '';
+        const team        = normAbbr(ath.teamShortName || '');
+
+        const photoEl = headshotUrl
+            ? `<img class="sl-photo" src="${esc(headshotUrl)}" alt="${esc(name)}" onerror="this.style.display='none'">`
+            : `<div class="sl-photo-placeholder">${esc(name.charAt(0) || '?')}</div>`;
+
+        const chips = [];
+        if (!tab.isPRA && tab.key !== 'PTS')  chips.push(`<span class="sl-chip"><strong>${pts  != null ? pts.toFixed(1)  : '-'}</strong> pts</span>`);
+        if (!tab.isPRA && tab.key !== 'AST')  chips.push(`<span class="sl-chip"><strong>${ast  != null ? ast.toFixed(1)  : '-'}</strong> ast</span>`);
+        if (!tab.isPRA) chips.push(`<span class="sl-chip"><strong>${reb != null ? reb.toFixed(1) : '-'}</strong> reb</span>`);
+
+        let statValHtml, statSubHtml, mainStatStyle = '';
+        if (tab.isPRA) {
+            const blk = getSlVal(a, 'defensive', 'avgBlocks')        ?? 0;
+            const stl = getSlVal(a, 'defensive', 'avgSteals')        ?? 0;
+            const tov = getSlVal(a, 'offensive', 'avgTurnovers')     ?? 0;
+            const pf  = getSlVal(a, 'general',   'avgFouls') ?? 0;
+            const praVal = a._pra ?? ((pts ?? 0) + (reb ?? 0) + (ast ?? 0) + blk + stl - tov - pf);
+            const f = v => v != null ? v.toFixed(1) : '-';
+            mainStatStyle = 'flex-direction:column;align-items:flex-start;';
+            statValHtml = `<span class="sl-stat-val">${praVal.toFixed(1)}</span>`;
+            statSubHtml = `<span class="sl-stat-sub">(${f(pts)}+${f(reb)}+${f(ast)}+${blk.toFixed(1)}+${stl.toFixed(1)}-${tov.toFixed(1)}-${pf.toFixed(1)})</span>`;
+        } else if (tab.madeStatName && tab.attStatName) {
+            const madeVal = getSlVal(a, tab.catName, tab.madeStatName);
+            const attVal  = getSlVal(a, tab.catName, tab.attStatName);
+            const madeStr = madeVal != null ? madeVal.toFixed(1) : '-';
+            const attStr  = attVal  != null ? attVal.toFixed(1)  : '-';
+            statValHtml = `<span class="sl-stat-val">${esc(fmtSlVal(mainVal, tab))}</span>`;
+            statSubHtml = `<span class="sl-stat-sub">(${madeStr}/${attStr})</span>`;
+        } else {
+            statValHtml = `<span class="sl-stat-val">${esc(fmtSlVal(mainVal, tab))}</span>`;
+            statSubHtml = `<span class="sl-stat-sub">${esc(tab.sub)}</span>`;
+        }
+
+        return `
+        <div class="sl-item" data-idx="${i}">
+            <div class="sl-rank">${i + 1}</div>
+            ${photoEl}
+            <div class="sl-body">
+                <div class="sl-name-row">
+                    <span class="sl-name">${esc(name)}</span>
+                    ${jersey ? `<span class="sl-team">#${esc(jersey)}</span>` : ''}
+                    <span class="sl-team">${esc(team)}</span>
+                </div>
+                <div class="sl-main-stat" style="${mainStatStyle}">
+                    ${statValHtml}
+                    ${statSubHtml}
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+// 選手をクリックしたら選手ページへ
+let slShown = [];  // 表示中のリーダー一覧（data-idx から元データを引くため）
+document.getElementById('sl-list').addEventListener('click', e => {
+    const item = e.target.closest('.sl-item');
+    const ath = item && slShown[item.dataset.idx]?.athlete;
+    if (ath?.id) location.href = NBA.link.player(ath.id);
+});
+
+async function switchSlTab(key) {
+    slActiveKey = key;
+    const sel = document.getElementById('sl-tab-select');
+    if (sel && sel.value !== key) sel.value = key;
+
+    const tab = SL_TABS.find(t => t.key === key);
+    if (!tab) return;
+
+    const exp = slExp;
+    const cacheKey = `${key}|${exp}`;
+    document.getElementById('sl-exp-note').hidden = exp === 'all';
+    if (slCache[cacheKey]) { renderSlLeaders(slCache[cacheKey], tab); return; }
+
+    const el = document.getElementById('sl-list');
+    el.innerHTML = '<div class="msg">Loading<span class="spinner"></span></div>';
+    try {
+        const athletes = exp === 'all' ? await fetchSlLeaders(tab) : await fetchSlLeadersByExp(tab, exp);
+        await indexReady;  // 背番号を playerIndex から引くため
+        slCache[cacheKey] = athletes;
+        // 読み込み中に別のタブや絞り込みへ切り替えられていたら描画しない
+        if (slActiveKey !== key || slExp !== exp) return;
+        renderSlLeaders(athletes, tab);
+    } catch(e) {
+        el.innerHTML = '<div class="msg error">Failed to load</div>';
+        console.error('leaders:', e);
+    }
+}
+
+function initSlTabs() {
+    const tabsEl = document.getElementById('sl-tabs');
+    tabsEl.innerHTML = `<select id="sl-tab-select" class="sl-tab-select">
+        ${SL_TABS.map(t => `<option value="${t.key}"${t.key === slActiveKey ? ' selected' : ''}>${t.label}</option>`).join('')}
+    </select>
+    <div class="sl-exp">
+        ${['all', 'rookie', 'sophomore', 'veteran'].map(x =>
+            `<button class="sl-exp-btn${x === slExp ? ' active' : ''}" data-exp="${x}">${x === 'all' ? 'All' : x[0].toUpperCase() + x.slice(1)}</button>`).join('')}
+    </div>
+    <div class="sl-exp-note" id="sl-exp-note" hidden>${SL_EXP_MIN_GP}試合以上出場した選手のみ</div>`;
+    tabsEl.querySelector('#sl-tab-select').addEventListener('change', e => {
+        switchSlTab(e.target.value);
+    });
+    tabsEl.querySelectorAll('.sl-exp-btn').forEach(btn => btn.addEventListener('click', () => {
+        slExp = btn.dataset.exp;
+        tabsEl.querySelectorAll('.sl-exp-btn').forEach(b => b.classList.toggle('active', b === btn));
+        switchSlTab(slActiveKey);
+    }));
+    switchSlTab(slActiveKey);
+}
+
+
+initSlTabs();
+
+document.getElementById('last-updated').textContent =
+    new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' });
+</script>
+</body>
+</html>

@@ -1,0 +1,652 @@
+/* ═══════════════════════════════════════════════
+   選手・チームのページ（players/ と teams/）で共通のスタイル
+   元は nba-player.html のページ内スタイル
+   ═══════════════════════════════════════════════ */
+/* ─── Player page overrides ─── */
+.msg { padding: 36px 20px; font-size: 14px; }
+.spinner { width: 16px; height: 16px; border-width: 2px; margin-left: 6px; }
+
+.section {
+    max-width: 1300px;
+    margin: 28px auto;
+    padding: 0 20px;
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+.section-header h2 { font-size: 18px; font-weight: 800; }
+
+.badge {
+    font-size: 12px;
+    color: var(--muted);
+    background: var(--surface2);
+    padding: 3px 10px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+}
+
+/* ── Search ── */
+.search-wrap { position: relative; max-width: 540px; }
+
+#q, #tq {
+    width: 100%;
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 18px;
+    font-size: 16px;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.2s;
+}
+#q:focus, #tq:focus { border-color: var(--blue); }
+#q::placeholder, #tq::placeholder { color: var(--muted); }
+
+.suggestions {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0; right: 0;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    z-index: 100;
+    list-style: none;
+    box-shadow: 0 8px 24px rgba(0,0,0,.5);
+}
+.suggestions:empty { display: none; }
+.suggestions li {
+    padding: 10px 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.1s;
+}
+.suggestions li:last-child { border-bottom: none; }
+.suggestions li:hover { background: rgba(255,255,255,0.06); }
+
+.sugg-photo {
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: var(--surface);
+    flex-shrink: 0;
+}
+.sugg-name { font-size: 14px; font-weight: 700; }
+.sugg-sub  { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+/* ── Profile ── */
+.profile-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px 28px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    text-decoration: none;
+    color: inherit;
+}
+.profile-card:hover {
+    border-color: var(--blue);
+    background: var(--surface2);
+}
+.p-photo {
+    width: 100px; height: 100px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid var(--blue);
+    flex-shrink: 0;
+    background: var(--surface2);
+}
+.p-name { font-family: var(--font-score); font-size: 30px; font-weight: 600; letter-spacing: .5px; line-height: 1.15; margin-bottom: 8px; }
+.p-meta { display: flex; gap: 8px; flex-wrap: wrap; }
+.p-meta span {
+    font-size: 12px;
+    color: var(--muted);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 3px 10px;
+    border-radius: 8px;
+}
+
+/* ── Stats ── */
+.stats-big {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+    margin-bottom: 12px;
+}
+.stat-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 10px;
+    text-align: center;
+}
+.stat-box .val { font-size: 28px; font-weight: 900; line-height: 1.1; }
+.stat-box .lbl { font-size: 10px; color: var(--muted); margin-top: 5px; text-transform: uppercase; letter-spacing: .5px; }
+
+.stats-detail {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+}
+/* 選手の Season Stats: PTS を大きく、REB/AST/STL/BLK を2段に */
+.stats-big.stats-hero { grid-template-columns: 1.6fr 1fr 1fr; grid-template-rows: auto auto; }
+.stats-hero .stat-box { display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 12px 8px; }
+.stats-hero .stat-box.hero { grid-row: span 2; }
+.stats-hero .stat-box .val { font-size: 24px; }
+.stats-hero .stat-box.hero .val { font-size: 48px; }
+.stats-hero .stat-box.hero .lbl { font-size: 11px; }
+.stat-delta { font-size: 10.5px; color: var(--muted); margin-top: 4px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.stat-delta .up { color: var(--pos); font-weight: 700; }
+.stat-delta .down { color: var(--neg); font-weight: 700; }
+.stat-box.hero .stat-delta { font-size: 12px; margin-top: 8px; }
+
+/* Season Stats の詳細: テーマ別ミニタイル */
+.stats-detail.sd { background: none; border: none; display: grid; gap: 12px; overflow: visible; }
+.sd-title { color: var(--muted); font-size: 10.5px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px; }
+.sd-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+.sd-tile { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 10px; text-align: center; }
+.sd-val { font-family: var(--font-score); font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.sd-sub { color: var(--muted); font-size: 10.5px; margin-top: 2px; font-variant-numeric: tabular-nums; }
+.sd-bar { height: 4px; background: var(--surface2); border-radius: 4px; margin-top: 7px; overflow: hidden; }
+.sd-bar span { display: block; height: 100%; background: var(--accent); border-radius: 4px; }
+.sd-lbl { color: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: .5px; margin-top: 6px; }
+/* Season Stats の詳細（選手・チーム共通）: グループを横に並べ、幅をタイル数に比例させる。
+   折り返してもタイルが伸びて埋めるので空きができない */
+.stats-detail.sd-row { display: flex; flex-wrap: wrap; }
+.sd-row .sd-group { flex: var(--n) 1 calc(var(--n) * 60px + (var(--n) - 1) * 8px); min-width: 0; }
+.sd-row .sd-grid { display: flex; flex-wrap: wrap; }
+.sd-row .sd-tile { flex: 1 1 60px; min-width: 0; padding: 10px 4px; }
+/* 同じ行のグループはタイルの高さをそろえ、中身は縦中央に置く */
+.sd-row .sd-group { display: flex; flex-direction: column; }
+.sd-row .sd-grid { flex: 1; }
+.sd-row .sd-tile { display: flex; flex-direction: column; justify-content: center; align-items: center; }
+.sd-row .sd-bar { align-self: stretch; }
+
+/* ── Team List（Team タブの初期表示） ── */
+.team-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; }
+.team-list[hidden] { display: none; }  /* display: grid が hidden 属性を打ち消すため */
+.tl-div + .tl-div { margin-top: 14px; }
+.tl-teams { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.tl-team {
+    display: flex; align-items: center; gap: 10px; width: 100%;
+    padding: 8px 12px; background: none; border: none; border-bottom: 1px solid var(--border);
+    color: inherit; font: inherit; font-size: 13px; font-weight: 600; text-align: left; cursor: pointer;
+    transition: background 0.1s;
+}
+.tl-team:last-child { border-bottom: none; }
+.tl-team:hover { background: rgba(255,255,255,0.06); }
+.tl-logo { width: 28px; height: 28px; object-fit: contain; flex-shrink: 0; }
+
+/* ── Rookie List（Player タブの初期表示） ── */
+/* 段組みで詰めて並べ、チームごとの人数差で隙間ができないようにする */
+.rl-grid { columns: 240px; column-gap: 14px; }
+.rl-team { break-inside: avoid; margin-bottom: 14px; }
+.rl-team-head { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+.rl-team-head .tl-logo { width: 18px; height: 18px; }
+.rl-team-head .sd-title { margin-bottom: 0; }
+.rl-photo { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; background: var(--surface2); flex-shrink: 0; }
+.rl-team .t-roster-name-row { min-width: 0; }
+.rl-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.stats-row {
+    display: grid;
+    gap: 2px;
+    padding: 11px 16px;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+}
+.stats-row:last-child { border-bottom: none; }
+.stats-row.hd { color: var(--muted); font-size: 11px; font-weight: 700; text-transform: uppercase; }
+.stats-row.dt { font-weight: 600; }
+
+
+#chart-wrap {
+    overflow: hidden;
+    min-height: 100px;
+}
+
+/* ── Trend Table ── */
+.trend-table-wrap {
+    overflow-x: auto;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+}
+.trend-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    min-width: 900px;
+}
+.trend-table th {
+    background: var(--surface2);
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 9px 8px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+    position: sticky;
+    top: 0;
+}
+.trend-table th.left-col { text-align: left; padding-left: 12px; }
+.trend-table td {
+    padding: 7px 8px;
+    text-align: center;
+    border-bottom: 1px solid var(--line-soft);
+    font-weight: 600;
+    font-size: 11px;
+    white-space: nowrap;
+}
+.trend-table tr:last-child td { border-bottom: none; }
+.trend-table tbody tr:hover td { background: rgba(255,255,255,0.03); }
+.trend-table td.left-col { text-align: left; padding-left: 12px; }
+.trend-table .dnp td { opacity: 0.45; }
+.trend-table .res-w { color: var(--pos); font-weight: 800; }
+.trend-table .res-l { color: var(--neg); font-weight: 800; }
+
+
+@media (max-width: 600px) {
+    .stats-big { grid-template-columns: repeat(3, 1fr); }
+    .p-name { font-size: 20px; }
+    .p-photo { width: 72px; height: 72px; }
+    .stat-box .val { font-size: 22px; }
+    .stats-big.stats-hero { grid-template-columns: 1.4fr 1fr 1fr; }
+    .stats-hero .stat-box .val { font-size: 20px; }
+    .stats-hero .stat-box.hero .val { font-size: 40px; }
+    header h1 { font-size: 20px; }
+}
+
+@media (max-width: 480px) {
+    .profile-card { padding: 16px 18px; gap: 16px; }
+    .main-wrap { padding: 16px 12px 32px; }
+    .section-header { flex-wrap: wrap; gap: 8px; }
+}
+
+@media (max-width: 380px) {
+    .stats-big { grid-template-columns: repeat(2, 1fr); }
+    .stats-big.stats-hero { grid-template-columns: 1.3fr 1fr 1fr; }
+}
+
+/* ── Two-column main layout ── */
+.main-wrap {
+    padding: 24px 20px 40px;
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+}
+
+.left-col { flex: 1; min-width: 0; }
+
+.right-col {
+    flex: 0 0 360px;
+    min-width: 0;
+    position: sticky;
+    top: 70px;
+    max-height: calc(100vh - 86px);
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+
+.lc-search { margin-bottom: 20px; }
+.lc-block  { margin-bottom: 24px; }
+.lc-block:last-child { margin-bottom: 0; }
+
+/* ── Stats Leaders Panel ── */
+.sl-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.sl-header { padding: 14px 16px 0; }
+
+.sl-title-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.sl-title { font-family: var(--font-score); font-size: 16px; font-weight: 600; letter-spacing: 1.2px; text-transform: uppercase; }
+
+.sl-season-badge {
+    font-size: 10px;
+    color: var(--muted);
+    background: var(--surface2);
+    padding: 2px 8px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    margin-left: auto;
+}
+
+.sl-tabs {
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+}
+
+.sl-tab-select {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 7px 10px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    outline: none;
+}
+.sl-tab-select:focus { border-color: var(--blue); }
+.sl-exp { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.sl-exp-btn {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 6px;
+    color: var(--muted); font-size: 11px; font-weight: 700; padding: 4px 10px; cursor: pointer;
+}
+.sl-exp-btn.active { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.sl-exp-note { font-size: 10px; color: var(--muted); margin-top: 6px; }
+
+/* Player rows */
+.sl-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    padding: 10px 14px;
+    min-height: 72px;
+    border-bottom: 1px solid var(--line-soft);
+    transition: background 0.1s;
+    cursor: pointer;
+}
+
+.sl-item:last-child { border-bottom: none; }
+.sl-item:hover { background: rgba(255,255,255,0.03); }
+
+.sl-rank {
+    flex-shrink: 0;
+    width: 20px; height: 20px;
+    background: var(--surface2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-score);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    margin-top: 3px;
+}
+
+.sl-item:nth-child(-n+3) .sl-rank { background: var(--accent); color: var(--on-accent); }
+
+.sl-photo {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+}
+
+.sl-photo-placeholder {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--muted);
+}
+
+.sl-body { flex: 1; min-width: 0; }
+
+.sl-name-row {
+    display: flex;
+    align-items: baseline;
+    gap: 5px;
+    margin-bottom: 2px;
+}
+
+.sl-name {
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sl-team { font-size: 10px; color: var(--muted); flex-shrink: 0; }
+
+.sl-main-stat {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    margin-bottom: 4px;
+}
+
+.sl-stat-val { font-family: var(--font-score); font-size: 19px; font-weight: 600; line-height: 1; color: var(--accent); }
+.sl-stat-sub { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; }
+
+.sl-chips { display: flex; flex-wrap: wrap; gap: 3px; min-height: 18px; }
+
+.sl-chip {
+    font-size: 9.5px;
+    color: var(--muted);
+    background: var(--surface2);
+    padding: 1px 5px;
+    border-radius: 4px;
+    white-space: nowrap;
+}
+
+.sl-chip strong { color: var(--text-dim); }
+
+@media (max-width: 960px) {
+    .main-wrap { flex-direction: column; }
+    .left-col { width: 100%; }
+    .right-col { flex: none; width: 100%; position: static; max-height: none; }
+}
+
+/* ── Mode toggle ── */
+.mode-toggle {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+.mode-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 700;
+    padding: 8px 20px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.mode-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--on-accent);
+}
+.mode-btn:hover:not(.active) {
+    background: var(--surface2);
+    color: var(--text);
+}
+/* PC 幅では Stats Leaders を右カラムに常に出すので、Leaders タブは不要 */
+#mode-leaders { display: none; }
+@media (max-width: 960px) {
+    /* 1カラムになる幅では Stats Leaders を3つ目のタブに切り替える */
+    #mode-leaders { display: inline-block; }
+    .main-wrap:not(.leaders-mode) .right-col { display: none; }
+    .main-wrap.leaders-mode { gap: 0; }
+    .main-wrap.leaders-mode .left-col > :not(.mode-toggle) { display: none; }
+}
+
+/* ── Rank badge ── */
+.rank-badge {
+    font-size: 9px;
+    font-weight: 800;
+    padding: 2px 5px;
+    border-radius: 4px;
+    display: inline-block;
+    margin-top: 4px;
+    letter-spacing: 0.3px;
+}
+.rank-badge.top3  { background: var(--accent); color: var(--on-accent); }
+.rank-badge.top10 { background: rgba(245,183,0,0.14); color: var(--accent); }
+.rank-badge.other { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }
+
+/* ── Roster Stats Table ── */
+.t-roster-wrap {
+    overflow-x: auto;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+}
+.t-roster-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    min-width: 800px;
+}
+.t-roster-table th {
+    background: var(--surface2);
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 9px 8px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+    position: sticky;
+    top: 0;
+}
+.t-roster-table th.player-col { text-align: left; padding-left: 14px; min-width: 160px; }
+.t-roster-table td {
+    padding: 7px 8px;
+    text-align: center;
+    border-bottom: 1px solid var(--line-soft);
+    font-weight: 600;
+    font-size: 11px;
+}
+.t-roster-table tr:last-child td { border-bottom: none; }
+.t-roster-table tbody tr:hover td { background: rgba(255,255,255,0.03); }
+.t-roster-player-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-left: 6px;
+    white-space: nowrap;
+}
+.t-roster-photo {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    flex-shrink: 0;
+}
+.t-roster-name-row { display: flex; align-items: baseline; gap: 6px; }
+.t-roster-name { font-size: 12px; font-weight: 700; }
+.t-roster-pos  { font-size: 10px; color: var(--muted); }
+
+/* ── Team Schedule ── */
+.t-schedule-list {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow-x: hidden;
+}
+.t-sched-row {
+    display: grid;
+    grid-template-columns: 52px 1fr auto;
+    align-items: center;
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--line-soft);
+    font-size: 13px;
+    font-weight: 600;
+    gap: 8px;
+}
+.t-sched-row:last-child { border-bottom: none; }
+.t-sched-row.past { opacity: 0.38; }
+.t-sched-row.live { background: rgba(255,77,66,0.08); }
+.t-sched-date { color: var(--muted); font-size: 12px; white-space: nowrap; }
+.t-sched-opp { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.t-sched-score { text-align: right; font-size: 12px; white-space: nowrap; }
+.t-sched-score.win  { color: var(--pos); font-weight: 800; }
+.t-sched-score.loss { color: var(--neg); font-weight: 800; }
+.t-sched-live-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    color: var(--live);
+    font-weight: 700;
+}
+.t-sched-live-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--live);
+    flex-shrink: 0;
+    animation: sched-pulse 1.2s ease-in-out infinite;
+}
+@keyframes sched-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%       { opacity: 0.3; transform: scale(0.75); }
+}
+.t-schedule-list {
+    height: 380px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+.t-schedule-list::-webkit-scrollbar { width: 4px; }
+.t-schedule-list::-webkit-scrollbar-track { background: transparent; }
+.t-schedule-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* ─── リンク（選手名・チーム名・試合） ─── */
+a.plain-link { color: inherit; text-decoration: none; }
+a.plain-link:hover { color: var(--accent); text-decoration: underline; }
+a.tl-team { text-decoration: none; }
+
+/* ─── Bio（選手ページのプロフィール） ─── */
+.profile-card.static { cursor: default; }
+.profile-card.static:hover { border-color: var(--border); background: var(--surface); }
+.p-bio { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px 18px; margin-top: 14px; }
+.p-bio div { font-size: 12.5px; color: var(--text-dim); }
+.p-bio dt { font-size: 10px; color: var(--muted); font-weight: 700; letter-spacing: .5px; text-transform: uppercase; margin-bottom: 2px; }
+.p-bio dd { margin: 0; font-variant-numeric: tabular-nums; }
+.p-links { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.p-link-btn {
+    font-size: 11.5px; font-weight: 700; color: var(--text-dim); text-decoration: none;
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 7px; padding: 5px 10px;
+}
+.p-link-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+/* ─── 予定表・直近の試合から試合ページへ ─── */
+a.t-sched-row, .trend-table a { color: inherit; text-decoration: none; }
+a.t-sched-row:hover { background: rgba(255,255,255,0.04); }
+.trend-table a:hover { color: var(--accent); text-decoration: underline; }

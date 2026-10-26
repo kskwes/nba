@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 個人用サイトのため検索エンジンに載せない -->
+    <meta name="robots" content="noindex, nofollow">
+    <title>Team — NBA Daily</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&display=swap">
+    <link rel="stylesheet" href="../assets/common.css">
+    <link rel="stylesheet" href="../assets/player-team.css">
+    <style>
+        .main-wrap.single { max-width: 1100px; }
+        .t-two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; }
+        @media (max-width: 760px) { .t-two { grid-template-columns: minmax(0, 1fr); } }
+        .t-inj-list { height: auto; max-height: 380px; }
+        .t-inj-row { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: center; padding: 9px 14px; border-bottom: 1px solid var(--line-soft); font-size: 13px; font-weight: 600; }
+        .t-inj-row:last-child { border-bottom: none; }
+        .t-inj-status { font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 5px; letter-spacing: .5px; }
+        .t-inj-status.out { background: rgba(255,77,66,0.14); color: var(--live); }
+        .t-inj-status.q   { background: rgba(255,193,7,0.15); color: #ffc107; }
+        .t-inj-status.d   { background: rgba(255,152,0,0.15); color: #ff9800; }
+        .t-inj-status.dtd { background: rgba(122,133,163,0.15); color: var(--muted); }
+    </style>
+</head>
+<body class="theme-broadcast">
+
+<header>
+    <a class="site-logo" href="../games/">NBA <em>Daily</em></a>
+    <nav class="site-nav" aria-label="Pages">
+        <a href="../games/">Games</a>
+        <a href="../standings/">Standings</a>
+        <a href="../players/">Players</a>
+        <a class="on" href="../teams/">Teams</a>
+        <a href="../salary/">Salary</a>
+        <a href="../predict/">Predict</a>
+    </nav>
+    <div class="header-right">
+        <div class="last-updated" id="last-updated"></div>
+    </div>
+</header>
+
+<main>
+    <div class="main-wrap single">
+        <div class="left-col">
+            <div id="team-section">
+
+                <!-- Team Profile -->
+                <div class="lc-block">
+                    <div class="profile-card static">
+                        <img id="t-logo" class="p-photo" src="" alt="" style="border-radius:8px;object-fit:contain;background:rgba(255,255,255,0.08);padding:4px">
+                        <div>
+                            <div id="t-name" class="p-name"></div>
+                            <div id="t-meta" class="p-meta"></div>
+                            <div id="t-links" class="p-links"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Season Stats -->
+                <div class="lc-block">
+                    <div class="section-header">
+                        <h2>Season Stats</h2>
+                        <span id="t-season-badge" class="badge"></span>
+                    </div>
+                    <div id="t-stats-big" class="stats-big stats-hero"></div>
+                    <div id="t-stats-detail" class="stats-detail sd sd-row"></div>
+                </div>
+
+                <!-- Roster Stats -->
+                <div class="lc-block">
+                    <div class="section-header">
+                        <h2>Roster Stats</h2>
+                        <span id="t-roster-season-badge" class="badge"></span>
+                    </div>
+                    <div id="t-roster-table-wrap" class="t-roster-wrap"></div>
+                </div>
+
+                <div class="t-two">
+                    <!-- Schedule -->
+                    <div class="lc-block" id="t-schedule-block">
+                        <div class="section-header">
+                            <h2>Schedule</h2>
+                            <span id="t-schedule-season-badge" class="badge"></span>
+                        </div>
+                        <div id="t-schedule-wrap"><div class="msg">Loading<span class="spinner"></span></div></div>
+                    </div>
+
+                    <!-- Injuries -->
+                    <div class="lc-block">
+                        <div class="section-header">
+                            <h2>Injuries</h2>
+                        </div>
+                        <div id="t-injuries"><div class="msg">Loading<span class="spinner"></span></div></div>
+                    </div>
+                </div>
+
+            </div><!-- /team-section -->
+        </div>
+    </div>
+</main>
+
+<script src="../assets/api.js"></script>
+<script src="../assets/teams.js"></script>
+<script src="../assets/stats.js"></script>
+<script src="../assets/ui.js"></script>
+<script>
+/* ─── Team Standings (rank / record / streak) ─── */
+let standingsCache = null;
+
+async function fetchStandingsMap() {
+    if (standingsCache) return standingsCache;
+    const data = await NBA.api.standings();
+    const map = {};
+    for (const conf of (data.children || [])) {
+        const confKey = conf.name?.toLowerCase().includes('east') ? 'E' : 'W';
+        for (const entry of (conf.standings?.entries || [])) {
+            const teamId = String(entry.team?.id || '');
+            if (!teamId) continue;
+            const get = name => entry.stats?.find(s => s.name === name)?.displayValue ?? '';
+            map[teamId] = {
+                rank:   parseInt(get('playoffSeed')) || null,
+                conf:   confKey,
+                record: get('overall'),
+                streak: get('streak'),
+            };
+        }
+    }
+    standingsCache = map;
+    return map;
+}
+
+function streakBadge(streak) {
+    if (!streak) return '';
+    const m = streak.match(/^([WL])\s*(\d+)/);
+    if (!m) return '';
+    const type = m[1], count = parseInt(m[2]);
+    if (type === 'W') return `<span>${count}連勝 🔥</span>`;
+    if (type === 'L') return `<span>${count}連敗 🥶</span>`;
+    return '';
+}
+
+async function loadTeamStandingsInfo(teamId, abbreviation) {
+    try {
+        const map = await fetchStandingsMap();
+        const info = map[String(teamId)];
+        const metaEl = document.getElementById('t-meta');
+        const rankHtml   = info?.rank   ? `<span>${info.conf} #${info.rank}</span>` : '';
+        const recordHtml = info?.record ? `<span>${esc(info.record)}</span>` : '';
+        const streakHtml = info?.streak ? streakBadge(info.streak) : '';
+        metaEl.innerHTML = `<span>${esc(abbreviation)}</span>${rankHtml}${recordHtml}${streakHtml}`;
+    } catch(e) {
+        console.warn('standings info:', e);
+    }
+}
+
+/* ─── Season stats（計算は assets/stats.js） ─── */
+// シーズン平均（"7.3-16.0" 形式を含む）から計算用の値を作る
+function seasonLine(S) {
+    const pair = v => String(v || '0-0').split('-').map(x => parseFloat(x) || 0);
+    const [fgm, fga] = pair(S.FG), [tpm] = pair(S['3PT']), [, fta] = pair(S.FT);
+    return { pts: parseFloat(S.PTS) || 0, fgm, fga, tpm, fta, to: parseFloat(S.TO) || 0, min: parseFloat(S.MIN) || 0 };
+}
+
+function addSeasonAdv(S, teamAvg) {
+    const l = seasonLine(S);
+    S['TS%']  = calcTS(l);
+    S['eFG%'] = calcEFG(l);
+    S['USG%'] = calcUSG(l, teamAvg);
+}
+
+// 1チーム・1シーズン分の統計（statName → value）。取れなければ null
+const teamStatsMapCache = new Map();
+function fetchTeamStatsMap(teamId, year) {
+    const key = `${teamId}-${year}`;
+    if (!teamStatsMapCache.has(key)) {
+        teamStatsMapCache.set(key, NBA.api.teamStats(teamId, year)
+            .then(d => {
+                const m = {};
+                (d.splits?.categories || []).forEach(c => (c.stats || []).forEach(x => { m[x.name] = x.value; }));
+                return m;
+            })
+            .catch(() => { teamStatsMapCache.delete(key); return null; }));
+    }
+    return teamStatsMapCache.get(key);
+}
+
+// チームの1試合平均（USG% 用）。チームの出場時間は API が返さないため 240 分固定
+async function fetchTeamSeasonAvg(teamId, year) {
+    const m = await fetchTeamStatsMap(teamId, year);
+    if (!m?.avgFieldGoalsAttempted) return null;
+    return { fga: m.avgFieldGoalsAttempted, fta: m.avgFreeThrowsAttempted || 0, to: m.avgTurnovers || 0, min: 240 };
+}
+
+// 昨季比の表示（▲/▼ と色で増減の向きを示す）
+const shortSeason = year => `${String(year - 1).slice(2)}-${String(year).slice(2)}`;
+function deltaHtml(cur, old, prevLabel) {
+    cur = parseFloat(cur); old = parseFloat(old);
+    if (isNaN(cur) || isNaN(old)) return '';
+    const d = Math.round((cur - old) * 10) / 10;
+    const txt = d > 0 ? `<span class="up">▲ ${d.toFixed(1)}</span>` : d < 0 ? `<span class="down">▼ ${Math.abs(d).toFixed(1)}</span>` : '±0.0';
+    return `<div class="stat-delta">${txt} vs ${esc(prevLabel)}</div>`;
+}
+
+/* ─── Team Stats (ESPN core API: /seasons/{year}/types/2/teams/{id}/statistics) ─── */
+// 全30チーム分の統計（順位計算用）。シーズンごとにキャッシュ
+const allTeamStatsCache = new Map();
+function fetchAllTeamStats(year) {
+    if (!allTeamStatsCache.has(year)) {
+        allTeamStatsCache.set(year, Promise.all(NBA.teams.ids.map(id => fetchTeamStatsMap(id, year))).then(maps => {
+            const cache = {};
+            maps.forEach((m, i) => { if (m && Object.keys(m).length) cache[NBA.teams.ids[i]] = { stats: m }; });
+            return cache;
+        }));
+    }
+    return allTeamStatsCache.get(year);
+}
+
+async function loadTeamStats(teamId) {
+    try {
+        // 今季のデータがまだない（プレシーズンなど）ときは前のシーズンを表示
+        let year  = NBA.SEASON;
+        let cache = await fetchAllTeamStats(year);
+        if (!Object.keys(cache).length) {
+            year  = NBA.SEASON - 1;
+            cache = await fetchAllTeamStats(year);
+        }
+        const prevStats = await fetchTeamStatsMap(teamId, year - 1);
+        renderTeamStats(cache, teamId, prevStats, year);
+    } catch(e) {
+        document.getElementById('t-stats-big').innerHTML =
+            '<div class="msg error" style="grid-column:1/-1">Failed to load stats</div>';
+        console.error('team stats:', e);
+    }
+}
+
+function rankBadge(rank) {
+    if (!rank) return '';
+    const cls = rank <= 3 ? 'top3' : rank <= 10 ? 'top10' : 'other';
+    return `<span class="rank-badge ${cls}">#${rank}</span>`;
+}
+
+function renderTeamStats(cache, teamId, prevStats, year) {
+    const teamData = cache[String(teamId)];
+    if (!teamData) {
+        document.getElementById('t-stats-big').innerHTML =
+            '<div class="msg" style="grid-column:1/-1">No stats found</div>';
+        return;
+    }
+
+    function getVal(statName) {
+        return teamData.stats[statName] ?? null;
+    }
+
+    function getRank(statName, lowerIsBetter = false) {
+        const vals = Object.entries(cache)
+            .map(([id, d]) => ({ id, val: d.stats[statName] ?? null }))
+            .filter(x => x.val != null);
+        vals.sort((a, b) => lowerIsBetter ? a.val - b.val : b.val - a.val);
+        const pos = vals.findIndex(x => x.id === String(teamId));
+        return pos >= 0 ? pos + 1 : null;
+    }
+
+    document.getElementById('t-season-badge').textContent =
+        `${year - 1}-${String(year).slice(2)} Regular Season`;
+
+    // ── Big 5 ── (core API stat names confirmed)
+    const bigStats = [
+        { statName: 'avgPoints',   line1: 'Points',   line2: 'PPG' },
+        { statName: 'avgRebounds', line1: 'Rebounds', line2: 'RPG' },
+        { statName: 'avgAssists',  line1: 'Assists',  line2: 'APG' },
+        { statName: 'avgSteals',   line1: 'Steals',   line2: 'SPG' },
+        { statName: 'avgBlocks',   line1: 'Blocks',   line2: 'BPG' },
+    ];
+
+    const delta = statName => prevStats ? deltaHtml(getVal(statName), prevStats[statName], shortSeason(year - 1)) : '';
+
+    document.getElementById('t-stats-big').innerHTML = bigStats.map((d, i) => {
+        const val  = getVal(d.statName);
+        const rank = getRank(d.statName);
+        const v    = val != null ? val.toFixed(1) : '-';
+        return `<div class="stat-box ${i === 0 ? 'hero' : ''}">
+            <div class="val">${v}</div>
+            <div class="lbl">${d.line1}<br><span style="opacity:.7;font-size:9px">${d.line2}</span></div>
+            ${rankBadge(rank)}
+            ${delta(d.statName)}
+        </div>`;
+    }).join('');
+
+    // ── Detail: テーマ別ミニタイル（rate は 0〜100% のバー付き、sub は成功数-試投数）
+    const n1 = statName => { const v = getVal(statName); return v == null ? '' : v.toFixed(1); };
+    const detGroups = [
+        ['Shooting', [
+            { lbl: 'FG%',  statName: 'fieldGoalPct',           sub: () => `${n1('avgFieldGoalsMade')}-${n1('avgFieldGoalsAttempted')}` },
+            { lbl: '3P%',  statName: 'threePointFieldGoalPct', sub: () => `${n1('avgThreePointFieldGoalsMade')}-${n1('avgThreePointFieldGoalsAttempted')}` },
+            { lbl: 'FT%',  statName: 'freeThrowPct',           sub: () => `${n1('avgFreeThrowsMade')}-${n1('avgFreeThrowsAttempted')}` },
+            { lbl: 'TS%',  statName: 'trueShootingPct' },
+            { lbl: 'eFG%', statName: 'effectiveFGPct' },
+        ], true],
+        ['Rebounding', [
+            { lbl: 'OREB', statName: 'avgOffensiveRebounds' },
+            { lbl: 'DREB', statName: 'avgDefensiveRebounds' },
+        ]],
+        ['Ball Security', [
+            { lbl: 'TO', statName: 'avgTurnovers', lowerIsBetter: true },
+            { lbl: 'PF', statName: 'avgFouls',     lowerIsBetter: true },
+        ]],
+    ];
+    const tile = (d, rate) => {
+        const val = getVal(d.statName);
+        const v   = val == null ? '-' : rate ? val.toFixed(1) + '%' : val.toFixed(1);
+        const sub = rate ? `<div class="sd-sub">${d.sub && val != null ? d.sub() : '&nbsp;'}</div>` : '';
+        const bar = rate && val != null ? `<div class="sd-bar"><span style="width:${Math.max(0, Math.min(100, val))}%"></span></div>` : '';
+        return `<div class="sd-tile">
+            <div class="sd-val">${v}</div>${sub}${bar}
+            <div class="sd-lbl">${d.lbl}</div>
+            ${rankBadge(getRank(d.statName, d.lowerIsBetter || false))}
+        </div>`;
+    };
+    document.getElementById('t-stats-detail').innerHTML = detGroups.map(([title, tiles, rate]) =>
+        `<div class="sd-group" style="--n:${tiles.length}"><div class="sd-title">${title}</div><div class="sd-grid">${tiles.map(d => tile(d, rate)).join('')}</div></div>`
+    ).join('');
+}
+
+/* ─── Roster Stats ─── */
+async function loadTeamRosterStats(teamId, rosterData) {
+    const wrap = document.getElementById('t-roster-table-wrap');
+    const rosterPlayers = (rosterData?.athletes || []).map(p => ({
+        id: String(p.id), displayName: p.displayName || p.fullName || '', jersey: p.jersey || '',
+        position: p.position?.abbreviation || '', headshot: p.headshot?.href || '',
+    }));
+    if (!rosterPlayers.length) {
+        wrap.innerHTML = '<div class="msg">No roster data available</div>';
+        return;
+    }
+
+    const results = await Promise.allSettled(
+        rosterPlayers.map(p => NBA.api.athleteStats(p.id))
+    );
+
+    const rows = [];
+    let seasonName = '';
+    for (let i = 0; i < rosterPlayers.length; i++) {
+        const p = rosterPlayers[i];
+        const r = results[i];
+        if (r.status !== 'fulfilled') continue;
+        const parsed = parsePlayerSeasonStats(r.value);
+        if (!parsed) continue;
+        if (!seasonName && parsed._seasonName) seasonName = parsed._seasonName;
+        rows.push({ player: p, stats: parsed });
+    }
+
+    if (seasonName) document.getElementById('t-roster-season-badge').textContent = seasonName + ' Regular Season';
+
+    const seasonYear = rows.find(r => r.stats._seasonYear)?.stats._seasonYear;
+    const teamAvg = seasonYear ? await fetchTeamSeasonAvg(teamId, seasonYear) : null;
+    rows.forEach(r => addSeasonAdv(r.stats, teamAvg));
+
+    renderRosterTable(rows, wrap);
+}
+
+function parsePlayerSeasonStats(data) {
+    const categories = data.categories || [];
+    const avgCat = categories.find(c => c.name === 'averages') || categories[0];
+    if (!avgCat) return null;
+    const labels = avgCat.labels || [];
+    let entry = null, maxYear = 0;
+    for (const s of (avgCat.statistics || [])) {
+        if ((s.season?.year || 0) > maxYear) { maxYear = s.season.year; entry = s; }
+    }
+    if (!entry) return null;
+    const S = { _seasonName: entry.season?.displayName || '', _seasonYear: entry.season?.year };
+    labels.forEach((l, i) => { S[l] = entry.stats?.[i]; });
+    return S;
+}
+
+// 列見出しをクリックで並び替え（最初は PTS の多い順）。選手名は選手ページへ
+function renderRosterTable(rows, wrap) {
+    if (!rows.length) {
+        wrap.innerHTML = '<div class="msg">No stats available</div>';
+        return;
+    }
+    const keys = ['PTS', 'REB', 'AST', 'STL', 'BLK', 'GP', 'MIN', 'FG%', '3P%', 'FT%', 'FG', '3PT', 'FT', 'TO', 'PF', 'TS%', 'eFG%', 'USG%'];
+    const num = v => { const n = parseFloat(v); return isNaN(n) ? null : n; };
+    // 成功-試投（"8.1-16.2"）は成功数で並べる。TO・PF は少ない方が上
+    const cols = [
+        { key: 'name', label: 'Player', cls: 'player-col', get: r => r.player.displayName, asc: true },
+        ...keys.map(k => ({ key: k, label: k, get: r => num(String(r.stats[k] ?? '').split('-')[0]), asc: ['TO', 'PF'].includes(k) })),
+    ];
+    wrap.innerHTML = '<table class="t-roster-table"><thead></thead><tbody></tbody></table>';
+    NBA.ui.sortable(wrap, {
+        rows, cols, initial: { key: 'PTS', asc: false },
+        render: ({ player, stats }) => {
+            const photo = `<img class="t-roster-photo" src="${esc(player.headshot || FALLBACK_IMG)}" alt="" onerror="this.src='${FALLBACK_IMG}'">`;
+            return `<tr>
+                <td class="player-col">
+                    <div class="t-roster-player-cell">
+                        ${photo}
+                        <div class="t-roster-name-row"><a class="t-roster-name plain-link" href="${NBA.link.player(player.id)}">${esc(player.displayName)}</a>${player.jersey ? `<span class="t-roster-pos">#${esc(player.jersey)}</span>` : ''}</div>
+                    </div>
+                </td>
+                ${keys.map(k => `<td>${fmt(k, stats[k])}</td>`).join('')}
+            </tr>`;
+        },
+    });
+}
+
+function fmt(key, val) {
+    if (val == null || val === '') return '-';
+    // FG / 3PT / FT come as "made-attempted" strings e.g. "8.1-16.2"
+    if (['FG', '3PT', 'FT'].includes(key)) return val || '-';
+    // Percentages are already 0-100 (e.g. 49.9), not 0-1
+    if (['FG%', '3P%', 'FT%', 'TS%', 'eFG%', 'USG%'].includes(key)) {
+        const n = parseFloat(val);
+        return isNaN(n) ? '-' : n.toFixed(1) + '%';
+    }
+    const n = parseFloat(val);
+    if (isNaN(n)) return val;
+    return Number.isInteger(n) ? String(n) : n.toFixed(1);
+}
+
+function normDate(isoStr) {
+    if (!isoStr) return '';
+    // Convert to JST (UTC+9) date string YYYY-MM-DD for consistent matching
+    const d = new Date(new Date(isoStr).getTime() + 9 * 3600 * 1000);
+    return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`;
+}
+
+/* ─── Team Full Schedule ─── */
+async function loadTeamScheduleFull(teamId) {
+    const wrap = document.getElementById('t-schedule-wrap');
+    try {
+        // seasontype=2 → Regular Season only
+        const data = await NBA.api.schedule(teamId, '?seasontype=2');
+
+        const seasonName = data.season?.displayName || '';
+        if (seasonName) document.getElementById('t-schedule-season-badge').textContent = seasonName + ' Regular Season';
+
+        const now = Date.now();
+        const games = [];
+
+        for (const ev of (data.events || [])) {
+            if (!ev.date) continue;
+            const comp = ev.competitions?.[0];
+            if (!comp) continue;
+            const comps    = comp.competitors || [];
+            const teamComp = comps.find(c => String(c.team?.id) === String(teamId));
+            const oppComp  = comps.find(c => String(c.team?.id) !== String(teamId));
+            if (!teamComp || !oppComp) continue;
+            if (parseInt(teamComp.team?.id) > 30 || parseInt(oppComp.team?.id) > 30) continue;
+
+            const gameTime   = new Date(ev.date).getTime();
+            const statusState = comp.status?.type?.state || '';
+            const statusName  = comp.status?.type?.name  || '';
+            const completed   = comp.status?.type?.completed || false;
+            const isLive      = statusState === 'in' || statusName === 'STATUS_IN_PROGRESS';
+            const isPast      = completed || (!isLive && gameTime < now);
+            const teamScoreNum = teamComp.score?.value ?? parseFloat(teamComp.score);
+            const oppScoreNum  = oppComp.score?.value  ?? parseFloat(oppComp.score);
+            const hasScore = !isNaN(teamScoreNum) && !isNaN(oppScoreNum);
+            const scoreStr = hasScore ? `${Math.round(teamScoreNum)}-${Math.round(oppScoreNum)}` : '';
+            const result = (completed && hasScore) ? (teamScoreNum > oppScoreNum ? 'W' : 'L') : '';
+
+            games.push({
+                eventId: String(ev.id || ''),
+                date: ev.date,
+                opponent: normAbbr(oppComp.team?.abbreviation || '?'),
+                atVs: teamComp.homeAway === 'away' ? '@' : 'vs',
+                scoreStr, result,
+                isPast, isLive, completed,
+                teamId: String(teamComp.team?.id || ''),
+            });
+        }
+
+        // Supplement live scores from scoreboard API (schedule API returns null scores for in-progress)
+        const liveGames = games.filter(g => g.isLive);
+        if (liveGames.length) {
+            try {
+                const sb = await NBA.api.json(NBA.api.URLS.scoreboardToday(), { ttl: 30 * NBA.api.SEC });
+                const sbMap = {};
+                for (const ev of (sb.events || [])) {
+                    const comp = ev.competitions?.[0];
+                    if (!comp) continue;
+                    const comps = comp.competitors || [];
+                    sbMap[String(ev.id)] = comps;
+                }
+                for (const g of liveGames) {
+                    const comps = sbMap[g.eventId];
+                    if (!comps) continue;
+                    const tc = comps.find(c => String(c.team?.id) === g.teamId);
+                    const oc = comps.find(c => String(c.team?.id) !== g.teamId);
+                    if (!tc || !oc) continue;
+                    const ts = parseFloat(tc.score);
+                    const os = parseFloat(oc.score);
+                    if (!isNaN(ts) && !isNaN(os)) {
+                        g.scoreStr = `${Math.round(ts)}-${Math.round(os)}`;
+                    }
+                }
+            } catch(e) {
+                console.warn('scoreboard fetch failed:', e);
+            }
+        }
+
+        // Ascending order (chronological)
+        games.sort((a, b) => new Date(a.date) - new Date(b.date));
+        renderTeamSchedule(games, wrap);
+    } catch(e) {
+        wrap.innerHTML = '<div class="msg error">Failed to load schedule</div>';
+        console.error('team schedule full:', e);
+    }
+}
+
+function renderTeamSchedule(games, wrap) {
+    if (!games.length) {
+        wrap.innerHTML = '<div class="msg">No schedule available</div>';
+        return;
+    }
+
+    // Determine scroll target: today's game, or next upcoming game
+    const todayJST = normDate(new Date().toISOString());
+    let targetIdx = games.findIndex(g => normDate(g.date) === todayJST);
+    if (targetIdx === -1) targetIdx = games.findIndex(g => !g.isPast && !g.isLive);
+    if (targetIdx === -1) targetIdx = games.length - 1; // all past: scroll to last
+
+    const rows = games.map((g, i) => {
+        const d = new Date(new Date(g.date).getTime() + 9 * 3600 * 1000);
+        const dateLbl = `${d.getUTCMonth() + 1}/${String(d.getUTCDate()).padStart(2, '0')}`;
+        const oppLbl  = `${g.atVs} ${esc(g.opponent)}`;
+
+        let scoreHtml;
+        if (g.isLive) {
+            const liveScore = g.scoreStr ? ` ${g.scoreStr}` : '';
+            scoreHtml = `<span class="t-sched-score">
+                <span class="t-sched-live-badge">
+                    <span class="t-sched-live-dot"></span>試合中${esc(liveScore)}
+                </span>
+            </span>`;
+        } else if (g.completed) {
+            const cls = g.result === 'W' ? 'win' : 'loss';
+            const scorePart = g.scoreStr ? ` ${g.scoreStr}` : '';
+            scoreHtml = `<span class="t-sched-score ${cls}">${g.result}${esc(scorePart)}</span>`;
+        } else {
+            scoreHtml = `<span class="t-sched-score" style="color:var(--muted)">-</span>`;
+        }
+
+        const rowCls = g.isLive ? 'live' : g.isPast ? 'past' : '';
+        const target = i === targetIdx ? ' data-sched-target' : '';
+        // 各試合は試合ページへ（試合前はプレビュー）
+        return `<a class="t-sched-row ${rowCls}"${target} href="${NBA.link.game(g.eventId)}">
+            <span class="t-sched-date">${dateLbl}</span>
+            <span class="t-sched-opp">${oppLbl}</span>
+            ${scoreHtml}
+        </a>`;
+    }).join('');
+
+    wrap.innerHTML = `<div class="t-schedule-list">${rows}</div>`;
+
+    // Scroll target row to top of the list
+    const list = wrap.querySelector('.t-schedule-list');
+    const targetEl = wrap.querySelector('[data-sched-target]');
+    if (list && targetEl) {
+        // offsetTop は一覧の外の要素が基準になることがあるので、画面上の位置の差で決める
+        list.scrollTop += targetEl.getBoundingClientRect().top - list.getBoundingClientRect().top;
+    }
+}
+
+/* ═══════════════════════════════════════════════
+   チームページ: teams/team.html?team=<略称（BOS など）>
+   ═══════════════════════════════════════════════ */
+const TEAM = NBA.teams.byAbbr(NBA.url.get('team'));
+
+// 怪我人（ロスターの injuries。状態だけで部位は返らない）
+const INJ_STATUS = {
+    'Out':          { cls: 'out', label: 'OUT' },
+    'Doubtful':     { cls: 'd',   label: 'DOUBT' },
+    'Questionable': { cls: 'q',   label: 'GTD' },
+    'Day-To-Day':   { cls: 'dtd', label: 'D2D' },
+};
+function renderInjuries(rosterData) {
+    const el = document.getElementById('t-injuries');
+    const hurt = (rosterData?.athletes || []).filter(a => a.injuries?.length);
+    el.innerHTML = hurt.length ? `<div class="t-schedule-list t-inj-list">${hurt.map(a => {
+        const st = a.injuries[0].status;
+        const cfg = INJ_STATUS[st] || { cls: 'out', label: String(st || 'OUT').toUpperCase() };
+        return `<div class="t-inj-row">
+            <a class="plain-link" href="${NBA.link.player(a.id)}">${esc(a.displayName)}</a>
+            <span class="t-roster-pos">${a.jersey ? '#' + esc(a.jersey) : ''} ${esc(a.position?.abbreviation || '')}</span>
+            <span class="t-inj-status ${cfg.cls}">${cfg.label}</span>
+        </div>`;
+    }).join('')}</div>` : '<div class="msg" style="padding:16px">No injuries reported</div>';
+}
+
+async function init() {
+    if (!TEAM) {
+        document.getElementById('team-section').innerHTML = '<div class="msg error">Team not found</div>';
+        return;
+    }
+    const rosterData = await NBA.api.roster(TEAM.id).catch(() => null);
+    const t = rosterData?.team || {};
+    const name = t.displayName || TEAM.abbr;
+    document.title = `${name} — NBA Daily`;
+    const logoEl = document.getElementById('t-logo');
+    logoEl.src = t.logo || t.logos?.[0]?.href || TEAM.logo;
+    logoEl.onerror = () => { logoEl.src = FALLBACK_IMG; };
+    document.getElementById('t-name').textContent = name;
+    document.getElementById('t-meta').innerHTML = `<span>${esc(TEAM.abbr)}</span>`;
+    document.getElementById('t-links').innerHTML = `
+        <a class="p-link-btn" href="${NBA.link.espnTeam(TEAM.id)}" target="_blank" rel="noopener">ESPN ↗</a>
+        <a class="p-link-btn" href="${NBA.link.salary(TEAM.abbr)}">Salary &amp; Draft Picks</a>`;
+    renderInjuries(rosterData);
+
+    await Promise.all([
+        loadTeamStats(TEAM.id),
+        loadTeamRosterStats(TEAM.id, rosterData),
+        loadTeamScheduleFull(TEAM.id),
+        loadTeamStandingsInfo(TEAM.id, TEAM.abbr),
+    ]);
+}
+
+init();
+document.getElementById('last-updated').textContent =
+    new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' });
+</script>
+</body>
+</html>

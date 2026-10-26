@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 個人用サイトのため検索エンジンに載せない -->
+    <meta name="robots" content="noindex, nofollow">
+    <title>Teams — NBA Daily</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&display=swap">
+    <link rel="stylesheet" href="../assets/common.css">
+    <link rel="stylesheet" href="../assets/player-team.css">
+    <style>
+        .main-wrap.single { max-width: 1300px; display: block; }
+        /* ─── リーグ全体のチームスタッツ表 ─── */
+        .lt-controls { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+        .lt-note { font-size: 11px; color: var(--muted); }
+        .league-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
+        .league-table { width: 100%; border-collapse: collapse; font-size: 12.5px; white-space: nowrap; min-width: 900px; }
+        .league-table th {
+            background: var(--surface2); color: var(--muted); font-size: 10.5px; font-weight: 700; letter-spacing: .5px;
+            padding: 9px 8px; text-align: right; border-bottom: 1px solid var(--border); position: sticky; top: 0;
+        }
+        .league-table td { padding: 7px 8px; text-align: right; border-bottom: 1px solid var(--line-soft); font-variant-numeric: tabular-nums; font-weight: 600; }
+        .league-table tr:last-child td { border-bottom: none; }
+        .league-table tbody tr:hover td { background: rgba(255,255,255,0.03); }
+        .league-table .lt-rank { text-align: center; color: var(--muted); width: 34px; font-size: 11px; }
+        .league-table th.team-col, .league-table td.team-col { text-align: left; }
+        .league-table td.team-col { position: sticky; left: 0; background: var(--surface); }
+        .league-table .lt-team { display: inline-flex; align-items: center; gap: 8px; color: inherit; text-decoration: none; font-weight: 700; }
+        .league-table .lt-team:hover { color: var(--accent); }
+        .league-table .lt-team img { width: 22px; height: 22px; object-fit: contain; }
+        .league-table td.sorted-col { color: var(--accent); }
+        .league-table .neg { color: var(--neg); }
+        .league-table .pos { color: var(--pos); }
+        .lt-conf { font-size: 10px; color: var(--muted); font-weight: 600; margin-left: 2px; }
+    </style>
+</head>
+<body class="theme-broadcast">
+
+<header>
+    <a class="site-logo" href="../games/">NBA <em>Daily</em></a>
+    <nav class="site-nav" aria-label="Pages">
+        <a href="../games/">Games</a>
+        <a href="../standings/">Standings</a>
+        <a href="../players/">Players</a>
+        <a class="on" href="../teams/" aria-current="page">Teams</a>
+        <a href="../salary/">Salary</a>
+        <a href="../predict/">Predict</a>
+    </nav>
+    <div class="header-right">
+        <div class="last-updated" id="last-updated"></div>
+    </div>
+</header>
+
+<main>
+    <div class="main-wrap single">
+
+        <!-- リーグ全体のチームスタッツ（列見出しで並び替え） -->
+        <div class="lc-block">
+            <div class="section-header">
+                <h2>Team Stats</h2>
+                <span id="season-badge" class="badge"></span>
+            </div>
+            <div class="lt-controls">
+                <div class="sl-exp" id="conf-filter" style="margin-top:0">
+                    <button class="sl-exp-btn active" data-conf="all">All</button>
+                    <button class="sl-exp-btn" data-conf="East">East</button>
+                    <button class="sl-exp-btn" data-conf="West">West</button>
+                </div>
+                <div class="lt-note">列見出しをクリックで並び替え（もう一度で逆順）・1試合平均</div>
+            </div>
+            <div class="league-wrap" id="league-wrap">
+                <table class="league-table"><thead></thead><tbody><tr><td><div class="msg">Loading<span class="spinner"></span></div></td></tr></tbody></table>
+            </div>
+        </div>
+
+        <!-- チーム一覧（カンファレンス → ディビジョン） -->
+        <div id="team-list" class="team-list lc-block"><div class="msg">Loading<span class="spinner"></span></div></div>
+
+    </div>
+</main>
+
+<script src="../assets/api.js"></script>
+<script src="../assets/teams.js"></script>
+<script src="../assets/ui.js"></script>
+<script>
+/* ═══════════════════════════════════════════════
+   チーム一覧: リーグ全体のスタッツ表 + ディビジョン別のチーム
+   ═══════════════════════════════════════════════ */
+let teams = [];   // [{ id, abbr, name, location, nickname, logo, conf, w, l, ... }]
+
+// standings から成績・得失点、core API からスタッツ（assets/teams.js。どちらも共通キャッシュ）
+async function loadTeams() {
+    const lg = await NBA.teams.leagueStats();
+    teams = lg.teams;
+    document.getElementById('season-badge').textContent = `${lg.year - 1}-${String(lg.year).slice(2)} Regular Season`;
+}
+
+/* ── スタッツ表 ── */
+const f1 = v => v == null ? '-' : v.toFixed(1);
+const LEAGUE_COLS = [
+    { key: 'name', label: 'Team', cls: 'team-col', get: t => t.name, asc: true },
+    { key: 'w',    label: 'W',    get: t => t.w,    fmt: t => t.w ?? '-' },
+    { key: 'l',    label: 'L',    get: t => t.l,    fmt: t => t.l ?? '-', asc: true },
+    { key: 'pct',  label: 'PCT',  get: t => t.pct,  fmt: t => t.pct == null ? '-' : t.pct.toFixed(3).replace(/^0/, '') },
+    { key: 'ppg',  label: 'PPG',  get: t => t.ppg,  fmt: t => f1(t.ppg) },
+    { key: 'opp',  label: 'OPP PPG', get: t => t.opp, fmt: t => f1(t.opp), asc: true },
+    { key: 'diff', label: 'DIFF', get: t => t.diff, fmt: t => t.diff == null ? '-' : `<span class="${t.diff > 0 ? 'pos' : t.diff < 0 ? 'neg' : ''}">${t.diff > 0 ? '+' : ''}${t.diff.toFixed(1)}</span>` },
+    { key: 'rpg',  label: 'RPG',  get: t => t.rpg,  fmt: t => f1(t.rpg) },
+    { key: 'apg',  label: 'APG',  get: t => t.apg,  fmt: t => f1(t.apg) },
+    { key: 'spg',  label: 'SPG',  get: t => t.spg,  fmt: t => f1(t.spg) },
+    { key: 'bpg',  label: 'BPG',  get: t => t.bpg,  fmt: t => f1(t.bpg) },
+    { key: 'tov',  label: 'TOV',  get: t => t.tov,  fmt: t => f1(t.tov), asc: true },
+    { key: 'fg',   label: 'FG%',  get: t => t.fg,   fmt: t => f1(t.fg) },
+    { key: 'tp',   label: '3P%',  get: t => t.tp,   fmt: t => f1(t.tp) },
+    { key: 'ft',   label: 'FT%',  get: t => t.ft,   fmt: t => f1(t.ft) },
+    { key: 'ts',   label: 'TS%',  get: t => t.ts,   fmt: t => f1(t.ts) },
+];
+let confFilter = NBA.url.get('conf') || 'all';
+let table = null;
+const shownTeams = () => confFilter === 'all' ? teams : teams.filter(t => t.conf === confFilter);
+
+function renderLeagueTable() {
+    const wrap = document.getElementById('league-wrap');
+    const sortParam = NBA.url.get('sort');   // 例: ppg / -opp（- は小さい順）
+    const initKey = sortParam?.replace(/^-/, '') || 'pct';
+    const col0 = LEAGUE_COLS.find(c => c.key === initKey) || LEAGUE_COLS[3];
+    table = NBA.ui.sortable(wrap, {
+        rows: shownTeams(), cols: LEAGUE_COLS,
+        head: '<th class="lt-rank">#</th>',
+        initial: { key: col0.key, asc: sortParam ? sortParam.startsWith('-') : !!col0.asc },
+        // 並び順は URL に残す（戻ったときに同じ並びで開く）
+        onSort: (key, asc) => NBA.url.set({ sort: (asc ? '-' : '') + key }),
+        render: (t, i, col) => `<tr>
+            <td class="lt-rank">${i + 1}</td>
+            ${LEAGUE_COLS.map(c => c.key === 'name'
+                ? `<td class="team-col"><a class="lt-team" href="${NBA.link.team(t.abbr)}"><img src="${esc(t.logo)}" alt="" onerror="this.style.display='none'">${esc(t.name)}</a><span class="lt-conf">${t.conf[0]}${t.seed || ''}</span></td>`
+                : `<td class="${col?.key === c.key ? 'sorted-col' : ''}">${c.fmt(t)}</td>`).join('')}
+        </tr>`,
+    });
+}
+
+document.querySelectorAll('#conf-filter button').forEach(b => {
+    b.classList.toggle('active', b.dataset.conf === confFilter);
+    b.addEventListener('click', () => {
+        confFilter = b.dataset.conf;
+        document.querySelectorAll('#conf-filter button').forEach(x => x.classList.toggle('active', x === b));
+        NBA.url.set({ conf: confFilter === 'all' ? null : confFilter });
+        table?.set(shownTeams());
+    });
+});
+
+/* ── チーム一覧（カンファレンス → ディビジョン） ── */
+function renderTeamList() {
+    const byId = new Map(teams.map(t => [t.id, t]));
+    document.getElementById('team-list').innerHTML = NBA.teams.DIVISIONS.map(([conf, , divs]) => `
+        <div>
+            <div class="section-header"><h2>${conf}</h2></div>
+            ${divs.map(([div, ids]) => {
+                const list = ids.map(id => byId.get(String(id))).filter(Boolean).sort((a, b) => a.name.localeCompare(b.name));
+                return `<div class="tl-div">
+                    <div class="sd-title">${div}</div>
+                    <div class="tl-teams">${list.map(t => `
+                        <a class="tl-team" href="${NBA.link.team(t.abbr)}">
+                            <img class="tl-logo" src="${esc(t.logo || FALLBACK_IMG)}" alt="" onerror="this.src='${FALLBACK_IMG}'">
+                            <span>${esc(t.name)}</span>
+                        </a>`).join('')}
+                    </div>
+                </div>`;
+            }).join('')}
+        </div>`).join('');
+}
+
+async function init() {
+    await loadTeams();
+    renderLeagueTable();
+    renderTeamList();
+}
+init();
+document.getElementById('last-updated').textContent =
+    new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' });
+</script>
+</body>
+</html>
