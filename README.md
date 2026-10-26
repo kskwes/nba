@@ -1,3 +1,3 @@
 # nba
 ### URL
-https://kskwes.github.io/nba/nba-daily
+https://kskwes.github.io/nba/games/
