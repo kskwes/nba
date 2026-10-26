@@ -191,7 +191,7 @@
         .placeholder .big { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
         .placeholder .sub { font-size: 12.5px; color: var(--muted); }
 
-        /* ─── Bracket（nba-playoff.html のカードに準拠） ─── */
+        /* ─── Bracket（standings/playoffs.html のカードに準拠） ─── */
         .bracket-outer { overflow-x: auto; padding-bottom: 12px; }
         .bracket { min-width: max-content; }
         .bracket-cols { display: flex; }
@@ -924,7 +924,7 @@ function bindSearch(input) {
 function seasonExportText() {
     const out = { season: SEASON_LABEL, lockedAt: LOCK_AT.toISOString(), exportedAt: new Date().toISOString(),
         standings: draft.standings, finals: draft.finals, awards: draft.awards };
-    return `// ${SEASON_LABEL} シーズン予想。このファイルがあると nba-predict.html は表示専用になる\nwindow.NBA_PREDICTIONS = ${JSON.stringify(out, null, 2)};\n`;
+    return `// ${SEASON_LABEL} シーズン予想。このファイルがあると predict/ は表示専用になる\nwindow.NBA_PREDICTIONS = ${JSON.stringify(out, null, 2)};\n`;
 }
 let exportState = null;
 function openExport(state) {
