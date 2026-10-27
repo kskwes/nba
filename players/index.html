@@ -85,6 +85,7 @@
 
 <script src="../assets/api.js"></script>
 <script src="../assets/teams.js"></script>
+<script src="../assets/stats.js"></script>
 <script src="../assets/ui.js"></script>
 <script src="../assets/player-index.js"></script>
 <script>
@@ -146,9 +147,9 @@ indexReady.then(renderRookieList);
 const SL_YEAR = NBA.SEASON;
 const SL_TYPE = 2;  // Regular Season
 
-// カテゴリー。Game Score は PTS の上位50人からシーズン平均で計算して並べ直す
+// カテゴリー。calc があるもの（Game Score・Fantasy）は PTS の上位100人からシーズン平均で計算して並べ直す
 const SL_TABS = [
-    { key: 'GS',  title: 'Game Score', note: 'シーズン平均・REB の内訳は近似', sort: 'offensive.avgPoints:desc', catName: 'offensive', statName: 'avgPoints', isGS: true },
+    { key: 'GS',  title: 'Game Score', note: 'シーズン平均・REB の内訳は近似', sort: 'offensive.avgPoints:desc', calc: a => gsOf(a) },
     { key: 'PTS', title: 'Points',   sort: 'offensive.avgPoints:desc',   catName: 'offensive', statName: 'avgPoints' },
     { key: 'REB', title: 'Rebounds', sort: 'general.avgRebounds:desc',   catName: 'general',   statName: 'avgRebounds' },
     { key: 'AST', title: 'Assists',  sort: 'offensive.avgAssists:desc',  catName: 'offensive', statName: 'avgAssists' },
@@ -162,6 +163,7 @@ const SL_TABS = [
     { key: 'TO',  title: 'Turnovers', sort: 'offensive.avgTurnovers:desc', catName: 'offensive', statName: 'avgTurnovers', note: '多い順' },
     { key: 'DD2', title: 'Double-Doubles', sort: 'general.doubleDouble:desc', catName: 'general', statName: 'doubleDouble', isInt: true, note: '合計' },
     { key: 'TD3', title: 'Triple-Doubles', sort: 'general.tripleDouble:desc', catName: 'general', statName: 'tripleDouble', isInt: true, note: '合計' },
+    { key: 'FP',  title: 'Fantasy', note: 'シーズン平均・nba-fantasy と同じ配点', sort: 'offensive.avgPoints:desc', calc: a => fpOf(a) },
 ];
 
 const slCache    = {};      // `${key}|${exp}` → athletes[]
@@ -198,7 +200,14 @@ function gsOf(a) {
         + 0.7 * v('defensive', 'avgBlocks') - 0.4 * v('general', 'avgFouls') - v('offensive', 'avgTurnovers');
 }
 
-async function fetchSlLeaders(tab, limit = tab.isGS ? 50 : 10) {
+// ファンタジーポイントのシーズン平均（配点は assets/stats.js の FANTASY_SCORING）
+function fpOf(a) {
+    const v = (c, n) => getSlVal(a, c, n) ?? 0;
+    return fantasyPoints({ pts: v('offensive', 'avgPoints'), oreb: v('general', 'avgRebounds'), dreb: 0,
+        ast: v('offensive', 'avgAssists'), stl: v('defensive', 'avgSteals'), blk: v('defensive', 'avgBlocks'), to: v('offensive', 'avgTurnovers') });
+}
+
+async function fetchSlLeaders(tab, limit = tab.calc ? 100 : 10) {
     const load = year => NBA.api.leaders(`season=${year}&seasontype=${SL_TYPE}&limit=${limit}&qualified=true&sort=${encodeURIComponent(tab.sort)}`);
     let data = await load(slYear);
     if (!data.athletes?.length && slYear === SL_YEAR) {
@@ -209,7 +218,7 @@ async function fetchSlLeaders(tab, limit = tab.isGS ? 50 : 10) {
     const rs = data.requestedSeason;
     if (rs?.displayName) document.getElementById('sl-season-badge').textContent = `${rs.displayName} ${rs.type?.name || 'Regular Season'}`;
     let athletes = data.athletes || [];
-    if (tab.isGS) athletes = athletes.map(a => ({ ...a, _gs: gsOf(a) })).sort((a, b) => b._gs - a._gs);
+    if (tab.calc) athletes = athletes.map(a => ({ ...a, _v: tab.calc(a) })).sort((a, b) => b._v - a._v);
     // 回数を数えるカテゴリー（DD2 / TD3）は0回の選手を出さない
     if (tab.isInt) athletes = athletes.filter(a => (getSlVal(a, tab.catName, tab.statName) ?? 0) > 0);
     return limit === SL_EXP_LIMIT ? athletes : athletes.slice(0, 10);
@@ -236,7 +245,7 @@ async function fetchSlLeadersByExp(tab, exp) {
 /* ── カード ── */
 const f1 = v => v == null || isNaN(v) ? '-' : v.toFixed(1);
 function slMainVal(a, tab) {
-    const v = tab.isGS ? a._gs : getSlVal(a, tab.catName, tab.statName);
+    const v = tab.calc ? a._v : getSlVal(a, tab.catName, tab.statName);
     if (v == null || isNaN(v)) return '-';
     if (tab.isInt) return String(Math.round(v));
     if (tab.isPct) return v.toFixed(1) + '%';
