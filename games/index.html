@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&display=swap">
-    <link rel="stylesheet" href="../assets/common.css">
+    <link rel="stylesheet" href="../assets/common.css?v=20261028">
     <style>
         /* ─── Refresh button ─── */
         .header-right {
@@ -382,10 +382,10 @@
 
 </div><!-- /main-wrap -->
 
-<script src="../assets/api.js"></script>
-<script src="../assets/teams.js"></script>
-<script src="../assets/stats.js"></script>
-<script src="../assets/ui.js"></script>
+<script src="../assets/api.js?v=20261028"></script>
+<script src="../assets/teams.js?v=20261028"></script>
+<script src="../assets/stats.js?v=20261028"></script>
+<script src="../assets/ui.js?v=20261028"></script>
 <script>
 /* ── ET date helpers (America/New_York, handles DST automatically) ── */
 function etDateStr(utcDate) {
@@ -906,8 +906,13 @@ async function init(force = false) {
         renderGames(resultsEvents,  'today-games');
         renderGames(scheduleEvents, 'tomorrow-games');
         renderGames(yesterdayEvents, 'yesterday-games');
-        extractTopPlayers(topPlayerEvents).then(setTopPlayers);
-        fetchInjuryPlayers(todayEvents).then(renderInjuryPlayers);
+        // 失敗しても Loading のまま止まらないよう、エラー表示にする
+        const showError = (id, label) => err => {
+            console.error(label, err);
+            document.getElementById(id).innerHTML = '<div class="msg error">Failed to load data</div>';
+        };
+        extractTopPlayers(topPlayerEvents).then(setTopPlayers).catch(showError('rankings', 'top players:'));
+        fetchInjuryPlayers(todayEvents).then(renderInjuryPlayers).catch(showError('injury-players', 'injuries:'));
 
     } catch (err) {
         console.error(err);

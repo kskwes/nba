@@ -70,6 +70,12 @@ function advStats(l, tm, game) {
 const gameScore = l => l.pts + 0.4 * l.fgm - 0.7 * l.fga - 0.4 * (l.fta - l.ftm)
     + 0.7 * l.oreb + 0.3 * l.dreb + l.stl + 0.7 * l.ast + 0.7 * l.blk - 0.4 * l.pf - l.to;
 
+// ファンタジーポイント: nba-fantasy と同じ配点（Yahoo 標準。nba-fantasy/app.js の CONFIG.SCORING）
+// 配点を変えるときは両方を合わせて直す
+const FANTASY_SCORING = { pts: 1, reb: 1.2, ast: 1.5, stl: 3, blk: 3, to: -1 };
+const fantasyPoints = l => FANTASY_SCORING.pts * l.pts + FANTASY_SCORING.reb * (l.oreb + l.dreb) + FANTASY_SCORING.ast * l.ast
+    + FANTASY_SCORING.stl * l.stl + FANTASY_SCORING.blk * l.blk + FANTASY_SCORING.to * l.to;
+
 // シーズン平均など（数値）。l: { pts, fgm, fga, tpm, fta, to, min }
 const advPct = (n, d) => d > 0 ? 100 * n / d : null;
 const calcTS  = l => advPct(l.pts, 2 * (l.fga + 0.44 * l.fta));
