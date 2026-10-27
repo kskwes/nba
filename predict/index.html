@@ -1163,9 +1163,12 @@ async function loadTrends() {
                     const gs = games[a].filter(g => g.date <= day);
                     rec[a] = { w: gs.filter(g => g.win).length, l: gs.filter(g => !g.win).length };
                 });
-                const pct = a => rec[a].w + rec[a].l ? rec[a].w / (rec[a].w + rec[a].l) : 0;
+                // まだ試合をしていないチームは勝率5割として、勝ったチームと負けたチームの間に置く
+                const pct = a => rec[a].w + rec[a].l ? rec[a].w / (rec[a].w + rec[a].l) : 0.5;
                 const snap = {};
-                Object.keys(rec).sort((a, b) => pct(b) - pct(a) || rec[b].w - rec[a].w || a.localeCompare(b))
+                // 同率は昨季の順位順（名前順のような意味のない並びにしない）
+                const prev = a => { const i = (defaultOrder?.[c] || []).indexOf(a); return i < 0 ? 99 : i; };
+                Object.keys(rec).sort((a, b) => pct(b) - pct(a) || rec[b].w - rec[a].w || prev(a) - prev(b) || a.localeCompare(b))
                     .forEach((a, i) => snap[a] = { rank: i + 1, ...rec[a] });
                 snaps[c].push(snap);
             });
@@ -1271,7 +1274,7 @@ function renderTrends(animFrom) {
                 <span class="lg"><i class="pred"></i>予想順位</span>
                 <button class="btn" id="tbl-toggle">${showTable ? '表を閉じる' : '表で見る'}</button>
             </div>
-            <div class="chart-note">${trendRange === 'recent' ? 'グラフをクリックするとシーズン全体を表示' : 'グラフをクリックすると直近1ヶ月に戻る'} ・ 毎週日曜時点（最後は最新の試合日）・ 順位は勝率のみで算出（タイブレーク未考慮）</div>
+            <div class="chart-note">${trendRange === 'recent' ? 'グラフをクリックするとシーズン全体を表示' : 'グラフをクリックすると直近1ヶ月に戻る'} ・ 毎週日曜時点（最後は最新の試合日）・ 順位は勝率で算出（同率は昨季の順位順。公式のタイブレークは未考慮）</div>
             ${showTable ? rankTable() : ''}
         </div>
         ${deltaPanel(!!animFrom)}
