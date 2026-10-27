@@ -95,6 +95,11 @@
         .ts-val.right { text-align: right; }
         .ts-val.lead { color: var(--text); font-weight: 600; }
         .ts-val small { font-family: inherit; font-size: 11px; color: var(--muted); margin: 0 4px; }
+        /* Leading Players の選手名（数字は Oswald、名前は本文の書体） */
+        .ts-player { font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif; font-size: 12.5px; font-weight: 600; color: var(--text-dim); text-decoration: none; }
+        a.ts-player:hover { color: var(--accent); text-decoration: underline; }
+        .ts-player.l { margin-right: 6px; }
+        .ts-player.r { margin-left: 6px; }
         /* 件数: 両チームの比率を1本のバーで */
         .ts-bar { display: flex; gap: 2px; height: 6px; }
         .ts-bar span { min-width: 0; }
@@ -117,6 +122,9 @@
             position: sticky; left: 0;
         }
         .box-dnp td { color: var(--muted); }
+        /* チーム合計の行 */
+        .box-total td { font-weight: 700; border-top: 2px solid var(--border); background: var(--surface2); }
+        .box-total td.box-name { background: var(--surface2); text-transform: uppercase; letter-spacing: 1px; font-size: 10.5px; color: var(--text-dim); }
         .box-dnp td:not(.box-name) { text-align: left; font-style: italic; }
         .box-line { margin-bottom: 4px; }
         .box-line .box-name { min-width: 60px; }
@@ -410,12 +418,60 @@ function boxTeamStats(awayTeam, homeTeam) {
 
     return `<div class="ts-legend">
         <span><i class="ts-sw a"></i>${abA}</span><span>${abH}<i class="ts-sw h"></i></span>
-    </div>${groups}`;
+    </div>${leadingPlayersHTML(awayTeam?.team?.id, homeTeam?.team?.id)}${groups}`;
+}
+
+// Leading Players: 両チームの PTS / REB / AST の最多の選手（ボックススコアから。同じ数字なら出場時間の長い選手）
+function leadingPlayersHTML(awayId, homeId) {
+    const teams = game?.data?.boxscore?.players || [];
+    const leaderOf = (teamId, key) => {
+        const sg = teams.find(t => t.team?.id === teamId)?.statistics?.[0];
+        let best = null;
+        (sg?.athletes || []).forEach(a => {
+            const l = parseBoxLine(sg, a);
+            if (!l) return;
+            const v = key === 'reb' ? l.oreb + l.dreb : l[key];
+            if (!best || v > best.v || (v === best.v && l.min > best.min)) best = { v, min: l.min, ath: a.athlete };
+        });
+        return best && best.v > 0 ? best : null;
+    };
+    // side: 'l' = away（名前の右に数字）/ 'r' = home（数字の右に名前）。余白は名前と数字の間だけに付ける
+    const name = (b, side) => b.ath?.id
+        ? `<a class="ts-player ${side}" href="${NBA.link.player(b.ath.id)}">${esc(b.ath.shortName || b.ath.displayName || '')}</a>`
+        : `<span class="ts-player ${side}">${esc(b.ath?.shortName || '')}</span>`;
+    const rows = [['pts', 'PTS'], ['reb', 'REB'], ['ast', 'AST']].map(([k, label]) => {
+        const A = leaderOf(awayId, k), H = leaderOf(homeId, k);
+        if (!A && !H) return '';
+        return `<div class="ts-row"><div class="ts-head">
+            <span class="ts-val ${A && (!H || A.v > H.v) ? 'lead' : ''}">${A ? `${name(A, 'l')}${A.v}` : '-'}</span>
+            <span class="ts-lbl">${label}</span>
+            <span class="ts-val right ${H && (!A || H.v > A.v) ? 'lead' : ''}">${H ? `${H.v}${name(H, 'r')}` : '-'}</span>
+        </div></div>`;
+    }).join('');
+    return rows ? `<div class="ts-group">Leading Players</div>${rows}` : '';
 }
 
 // ESPN の links 配列から rel に指定キーを含む href を取り出す
 const espnLink = (links, rel) => (links || []).find(l => l.rel?.includes(rel))?.href || '';
 const espnGameUrl = event => espnLink(event.links, 'summary') || `https://www.espn.com/nba/game/_/gameId/${event.id}`;
+
+// チーム合計の行。cells: BOX_COLS の順の値 / tm: チーム合計の数値 / game: 両チーム合計
+// 追加指標は TS% / eFG% / PIE をチーム全体で出す（USG% はチーム全体だと常に100%なので空欄）
+function boxTotalRow(cells, tm, game) {
+    const [ts, efg, , pie] = advStats(tm, tm, game);
+    const adv = [ts, efg, null, pie].map(v => `<td>${v ?? '-'}</td>`).join('');
+    return `<tr class="box-total"><td class="box-name">Team</td>${cells.map((v, c) =>
+        `<td class="${BOX_COLS[c][0] === 'PTS' ? 'box-pts' : ''}">${v}</td>`).join('')}${adv}</tr>`;
+}
+
+// その区間（period: 0 = 試合全体）の自チームの点差
+function boxMargin(teamId, period) {
+    const me = game.away.team.id === teamId ? game.away : game.home;
+    const op = me === game.away ? game.home : game.away;
+    const pts = (t, p) => p ? +(t.linescores?.[p - 1]?.value ?? 0) : +(t.score ?? 0);
+    const d = pts(me, period) - pts(op, period);
+    return d > 0 ? `+${d}` : String(d);
+}
 
 function boxTeamTable(teamData, gameTot) {
     const sg = teamData.statistics?.[0];
@@ -451,11 +507,26 @@ function boxTeamTable(teamData, gameTot) {
     const head = `<tr><th class="box-name">Player</th>${BOX_COLS.map(c => `<th>${c[0]}</th>`).join('')}${ADV_COLS.map(c => `<th class="box-adv">${c}</th>`).join('')}</tr>`;
     const sep  = label => `<tr class="box-sep"><td colspan="${nCols + 1}">${label}</td></tr>`;
 
+    // チーム合計: ESPN の公式の合計（totals）。MIN は 48分×5人（延長は1回5分×5人）、+/- は点差
+    const periods = Math.max(...[game.away, game.home].map(t => t.linescores?.length || 0), 4);
+    const teamMin = 5 * (48 + 5 * (periods - 4));
+    const fromSum = { PTS: tmTot.pts, REB: tmTot.oreb + tmTot.dreb, OREB: tmTot.oreb, DREB: tmTot.dreb, AST: tmTot.ast,
+        FG: `${tmTot.fgm}-${tmTot.fga}`, '3PT': `${tmTot.tpm}-${tmTot.tpa}`, FT: `${tmTot.ftm}-${tmTot.fta}`,
+        STL: tmTot.stl, BLK: tmTot.blk, TO: tmTot.to, PF: tmTot.pf };
+    const totals = idx.map((i, c) => {
+        const k = BOX_COLS[c][0];
+        if (k === 'MIN') return teamMin;
+        if (k === '+/-') return boxMargin(teamData.team?.id, 0);
+        const v = i >= 0 ? sg.totals?.[i] : '';
+        return v !== undefined && v !== '' ? v : (fromSum[k] ?? '-');
+    });
+
     return `<div class="box-table-wrap"><table class="box-table">
         <thead>${head}</thead>
         <tbody>
             ${starters.length ? sep('Starters') + starters.map(row).join('') : ''}
             ${bench.length ? sep('Bench') + bench.map(row).join('') : ''}
+            ${boxTotalRow(totals, tmTot, gameTot)}
         </tbody>
     </table></div>`;
 }
@@ -1456,6 +1527,11 @@ function boxPeriodTable(teamData, period) {
         <tbody>
             ${starters.length ? sep('Starters') + starters.map(row).join('') : ''}
             ${bench.length ? sep('Bench') + bench.map(row).join('') : ''}
+            ${boxTotalRow(BOX_COLS.map(([k]) => ({
+                MIN: flDur(5 * flPeriodLen(period)), PTS: tmTot.pts, REB: tmTot.oreb + tmTot.dreb, OREB: tmTot.oreb, DREB: tmTot.dreb,
+                AST: tmTot.ast, FG: `${tmTot.fgm}-${tmTot.fga}`, '3PT': `${tmTot.tpm}-${tmTot.tpa}`, FT: `${tmTot.ftm}-${tmTot.fta}`,
+                STL: tmTot.stl, BLK: tmTot.blk, TO: tmTot.to, PF: tmTot.pf, '+/-': boxMargin(teamData.team?.id, period),
+            }[k])), tmTot, gameTot)}
         </tbody>
     </table></div>
     <div class="rt-hint">${flPLabel(period)} のスタッツは play-by-play から集計した値です。MIN・+/- は交代記録から再現した目安です。⚠ は全クォーターの合計が公式記録と合わない選手です（試合後の記録の訂正などで起こります）。</div>`;

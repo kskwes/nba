@@ -622,6 +622,8 @@ const RANKINGS = [
     // Off Nights: 20分以上出場した選手を PIE の低い順
     { key: 'off', title: 'Off Nights', off: true, note: `${OFF_NIGHTS_MIN}分以上出場・PIE が低い順`,
       value: p => p.pie, show: v => v.toFixed(1) },
+    // ファンタジーポイント（nba-fantasy と同じ配点。計算は assets/stats.js）
+    { key: 'fp',  title: 'Fantasy', value: p => p.fp, show: v => v.toFixed(1), note: 'nba-fantasy と同じ配点' },
 ];
 
 function rankList(r) {
@@ -750,6 +752,7 @@ async function extractTopPlayers(events) {
                         min:    line?.min ?? 0,
                         pie:    line && gamePie ? 100 * pieNum(line) / gamePie : null,
                         gs:     line ? gameScore(line) : null,
+                        fp:     line ? fantasyPoints(line) : null,
                     });
                 });
             });
