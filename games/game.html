@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&display=swap">
-    <link rel="stylesheet" href="../assets/common.css?v=20261028">
+    <link rel="stylesheet" href="../assets/common.css?v=2026102804">
     <style>
         /* ステータス帯（ボックススコアのモーダルで使用） */
         .status {
@@ -258,6 +258,29 @@
         .inj-dtd  { background: rgba(122,133,163,0.15); color: var(--muted); }
         .inj-none { color: var(--muted); font-size: 12px; padding: 6px 2px; }
 
+        /* ─── 分析（Impact / Shots / Lineups / Assists） ─── */
+        .an-two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 24px; }
+        @media (max-width: 600px) { .an-two { grid-template-columns: minmax(0, 1fr); } }
+        .an-team { font-family: var(--font-score); font-size: 13px; letter-spacing: 1px; color: var(--muted); margin: 8px 0 2px; }
+        .an-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(90px, 1.1fr) 56px; gap: 10px; align-items: center; padding: 6px 2px; border-bottom: 1px solid var(--line-soft); font-size: 12px; }
+        .an-row.an-ast { grid-template-columns: minmax(0, 1.5fr) minmax(70px, 1fr) 82px; }
+        .an-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .an-name .ts-player { font-size: 12px; }
+        .an-val { font-family: var(--font-score); font-size: 15px; text-align: right; font-variant-numeric: tabular-nums; }
+        .an-val small { font-family: inherit; font-size: 10.5px; color: var(--muted); }
+        .an-dbar { position: relative; height: 10px; background: var(--surface2); border-radius: 3px; }
+        .an-dbar::before { content: ''; position: absolute; left: 50%; top: -2px; bottom: -2px; width: 1px; background: var(--muted); }
+        .an-dbar span { position: absolute; top: 0; bottom: 0; border-radius: 3px; }
+        .an-bar { height: 8px; background: var(--surface2); border-radius: 3px; }
+        .an-bar span { display: block; height: 100%; background: var(--accent); border-radius: 3px; opacity: .85; }
+        .an-note { font-size: 12px; color: var(--text-dim); margin: 6px 2px 8px; }
+        .an-note b { font-family: var(--font-score); font-size: 15px; color: var(--text); }
+        .an-side { font-size: 10px; font-weight: 800; letter-spacing: .5px; margin-right: 2px; }
+        .an-side.a { color: var(--ts-away); } .an-side.h { color: var(--ts-home); }
+        .an-sub { display: block; font-size: 9.5px; font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--muted); }
+        .an-court { width: 100%; max-width: 380px; display: block; margin: 0 auto; }
+        .box-table .an-unit { white-space: normal; min-width: 220px; font-weight: 500; }
+
         /* ─── Preview ─── */
         .pv-notes { list-style: none; display: grid; gap: 6px; margin: 8px 0 4px; }
         .pv-notes li { font-size: 13px; line-height: 1.55; color: var(--text-dim); background: var(--surface2); border-left: 3px solid var(--accent); border-radius: 0 6px 6px 0; padding: 6px 10px; }
@@ -304,10 +327,11 @@
     </div>
 </main>
 
-<script src="../assets/api.js?v=20261028"></script>
-<script src="../assets/teams.js?v=20261028"></script>
-<script src="../assets/stats.js?v=20261028"></script>
-<script src="../assets/ui.js?v=20261028"></script>
+<script src="../assets/api.js?v=2026102804"></script>
+<script src="../assets/teams.js?v=2026102804"></script>
+<script src="../assets/stats.js?v=2026102804"></script>
+<script src="../assets/rotation.js?v=2026102804"></script>
+<script src="../assets/ui.js?v=2026102804"></script>
 <script>
 /* ── Box Score ── */
 const BOX_COLS = [
@@ -418,7 +442,7 @@ function boxTeamStats(awayTeam, homeTeam) {
 
     return `<div class="ts-legend">
         <span><i class="ts-sw a"></i>${abA}</span><span>${abH}<i class="ts-sw h"></i></span>
-    </div>${leadingPlayersHTML(awayTeam?.team?.id, homeTeam?.team?.id)}${groups}`;
+    </div>${leadingPlayersHTML(awayTeam?.team?.id, homeTeam?.team?.id)}${game?.data ? fourFactorsHTML() : ''}${groups}`;
 }
 
 // Leading Players: 両チームの PTS / REB / AST の最多の選手（ボックススコアから。同じ数字なら出場時間の長い選手）
@@ -540,14 +564,6 @@ let flow = null;          // 表示中の試合の Flow データ
 const flowOpts = { mode: 'score', runTh: 8, allow: 0, dryTh: 150 };
 
 const flEsc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-// 経過秒（Q1-4: 12分、OT: 5分）
-const flPeriodLen = p => p <= 4 ? 720 : 300;
-const flPeriodStart = p => p <= 4 ? (p - 1) * 720 : 2880 + (p - 5) * 300;
-const flClockSec = s => String(s).includes(':') ? (+s.split(':')[0]) * 60 + parseFloat(s.split(':')[1]) : parseFloat(s) || 0;
-const flElapsed = (p, clock) => flPeriodStart(p) + flPeriodLen(p) - flClockSec(clock);
-const flPLabel = p => p <= 4 ? `Q${p}` : (p === 5 ? 'OT' : `OT${p - 4}`);
-const flDur = s => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`;
-const flOther = side => side === 'a' ? 'h' : 'a';
 // 経過秒 → 「Q3 10:42」
 function flAt(t) {
     let p = 1;
@@ -1031,98 +1047,6 @@ let rotation = null;               // { a, h, periods, end, now, plays, abbr }
 const rotOpts = { team: 'a', color: 'team' };
 let rotCursor = null, rotSel = null;
 
-// フリースローの途中の交代は、+/- の区切りをその一連のフリースローの最後にずらす
-// （NBA の +/- はファウルの時点でコートにいた選手にフリースローの得点を数えるため）
-const RT_FT_RE = /Free Throw - (?:Flagrant )?\d of \d/;
-function rtFtTripEnd(plays, i) {
-    const t = plays[i].t;
-    let end = i;
-    for (let j = i + 1; j < plays.length && plays[j].t === t; j++) {
-        if (/Foul/.test(plays[j].type) && !RT_FT_RE.test(plays[j].type)) break;   // 交代の後の新しいファウルは別のフリースロー
-        if (RT_FT_RE.test(plays[j].type)) end = j;
-    }
-    return end;
-}
-
-// 各クォーターの開始時の5人: そのクォーターで「交代で入る」より先に何かのプレーに登場した選手、
-// または交代で「下がる」側で先に登場した選手。足りなければ前のクォーター終了時にいた選手で補う
-function rtBuildTeam(side, teamData, plays, periods, now) {
-    const sg = teamData?.statistics?.[0];
-    if (!sg?.athletes?.length) return null;
-    const names = sg.names || [], keys = sg.keys || [];
-    const iMin = getStatIdx(names, keys, 'MIN', 'minutes'), iPm = getStatIdx(names, keys, '+/-', 'plusMinus');
-    const roster = sg.athletes.map(a => ({
-        id: a.athlete?.id, name: a.athlete?.shortName || a.athlete?.displayName || '—', starter: !!a.starter,
-        min: iMin >= 0 ? a.stats?.[iMin] ?? '' : '', pm: iPm >= 0 ? a.stats?.[iPm] ?? '' : '', stints: [],
-    })).filter(r => r.id);
-    const byId = Object.fromEntries(roster.map(r => [r.id, r]));
-    const scoreAfter = i => i >= 0 ? [plays[i].as, plays[i].hs] : [0, 0];
-    const mine = side === 'a' ? 0 : 1, opp = 1 - mine;
-    const start = {};
-    const close = (q, t1, i1) => {
-        const s = start[q];
-        if (!s || !byId[q]) return;
-        const s0 = scoreAfter(s.i), s1 = scoreAfter(i1);
-        const pf = s1[mine] - s0[mine], pa = s1[opp] - s0[opp];
-        if (t1 > s.t) byId[q].stints.push({ t0: s.t, t1, pf, pa, pm: pf - pa });
-        delete start[q];
-    };
-    let on = new Set(roster.filter(r => r.starter).map(r => r.id)), prevEnd = on;
-    for (let per = 1; per <= periods; per++) {
-        const pp = plays.filter(x => x.p === per);
-        if (!pp.length) continue;
-        if (per > 1) {
-            const seen = {};
-            pp.forEach(x => {
-                if (x.type === 'Substitution' && x.side === side) {
-                    const [i, o] = x.ids;
-                    if (!(i in seen)) seen[i] = 'in';
-                    if (!(o in seen)) seen[o] = 'on';
-                } else x.ids.forEach(q => { if (byId[q] && !(q in seen)) seen[q] = 'on'; });
-            });
-            on = new Set(Object.keys(seen).filter(q => seen[q] === 'on'));
-            for (const q of prevEnd) { if (on.size >= 5) break; if (!(q in seen)) on.add(q); }
-        }
-        on.forEach(q => { start[q] = { t: flPeriodStart(per), i: pp[0].i - 1 }; });
-        pp.forEach(x => {
-            if (x.type !== 'Substitution' || x.side !== side) return;
-            const [inId, outId] = x.ids;
-            const bi = rtFtTripEnd(plays, x.i);
-            if (on.has(outId)) { close(outId, x.t, bi); on.delete(outId); }
-            on.add(inId); start[inId] = { t: x.t, i: bi };
-        });
-        // 試合中の最終クォーターは最新プレーまで
-        const pend = Math.min(flPeriodStart(per) + flPeriodLen(per), now);
-        on.forEach(q => close(q, pend, pp.at(-1).i));
-        prevEnd = new Set(on);
-    }
-    roster.forEach(r => {
-        r.sec = r.stints.reduce((s, x) => s + x.t1 - x.t0, 0);
-        const boxMin = parseInt(r.min);
-        // 交代記録とボックススコアの出場時間が 1 分を超えてずれる選手（記録の抜けや誤り）
-        r.mismatch = !isNaN(boxMin) && Math.abs(r.sec / 60 - boxMin) > 1;
-    });
-    return roster;
-}
-
-function buildRotation(data, away, home, isOver) {
-    const side = { [away.team.id]: 'a', [home.team.id]: 'h' };
-    const plays = (data.plays || []).map((x, i) => ({
-        i, p: x.period?.number || 1, t: flElapsed(x.period?.number || 1, x.clock?.displayValue ?? '0'),
-        side: side[x.team?.id] || '', type: (x.type?.text || '').replace(/\n/g, ' '),
-        as: x.awayScore ?? 0, hs: x.homeScore ?? 0, ids: (x.participants || []).map(q => q.athlete?.id),
-    }));
-    if (!plays.some(x => x.type === 'Substitution')) return null;
-    const periods = Math.max(4, ...plays.map(x => x.p));
-    const end = flPeriodStart(periods) + flPeriodLen(periods);
-    const now = isOver ? end : plays.at(-1).t;
-    const teamData = id => data.boxscore?.players?.find(t => t.team?.id === id);
-    const a = rtBuildTeam('a', teamData(away.team.id), plays, periods, now);
-    const h = rtBuildTeam('h', teamData(home.team.id), plays, periods, now);
-    if (!a || !h) return null;
-    return { a, h, plays, periods, end, now, abbr: { a: normAbbr(away.team.abbreviation), h: normAbbr(home.team.abbreviation) } };
-}
-
 // 区間 [t0, t1) にコートにいた選手と、その間の出場秒数（Flow の内訳カード用）
 function rtOnCourt(side, t0, t1) {
     const R = rotation?.[side];
@@ -1151,7 +1075,8 @@ function rotationPanelHTML() {
         <div class="fl-legend" id="rt-legend"></div>
         <div class="rt-info" id="rt-info"></div>
         <div class="rt-grid" id="rt-grid"></div>
-        <div class="rt-hint">MIN・+/- はボックススコアの値。バーの +/- は交代記録から再現した目安で、記録の順序により数点ずれることがあります。</div>`;
+        <div class="rt-hint">MIN・+/- はボックススコアの値。バーの +/- は交代記録から再現した目安で、記録の順序により数点ずれることがあります。</div>
+        <div id="rt-lineups"></div>`;
 }
 
 function bindRotationControls() {
@@ -1253,6 +1178,8 @@ function renderRotation() {
         info.innerHTML = '<span class="rt-muted">グラフをタップすると、その時点でコートにいた5人を表示します。バーをタップすると、その出場区間の得失点を表示します</span>';
     }
     rtPlaceCursor();
+    const lu = document.getElementById('rt-lineups');
+    if (lu) lu.innerHTML = lineupsHTML(team);
 }
 
 // Flow と同じ書式（Q3 10:42）。Flow を開いていない試合でも使えるよう rotation の期数で数える
@@ -1276,7 +1203,7 @@ window.addEventListener('resize', rtPlaceCursor);
    試合ページ: games/game.html?id=<ESPNの試合ID>&tab=<box|team|flow|rotation|preview>
    ═══════════════════════════════════════════════ */
 const GAME_ID = NBA.url.get('id');
-const TAB_LABELS = { preview: 'Preview', box: 'Box Score', team: 'Team Stats', flow: 'Flow', rotation: 'Rotation' };
+const TAB_LABELS = { preview: 'Preview', box: 'Box Score', team: 'Team Stats', impact: 'Impact', shots: 'Shots', flow: 'Flow', rotation: 'Rotation' };
 let activeTab = NBA.url.get('tab');
 let boxSide = NBA.url.get('side') === 'home' ? 'h' : 'a';   // Box Score で表示中のチーム
 let game = null;   // { data, event, away, home, isOver, isLive, isPre }
@@ -1391,7 +1318,7 @@ function renderBox() {
     if (!td) table = '<div class="msg">No stats available</div>';
     else if (boxPeriod) table = boxPeriodTable(td, boxPeriod);
     else table = boxTeamTable(td, sumBoxLines(teams.map(teamBoxTotals)));
-    el.innerHTML = table + injuriesHTML(team.team.id);
+    el.innerHTML = table + assistsHTML(team.team.id) + injuriesHTML(team.team.id);
 }
 
 function bindBoxControls() {
@@ -1535,6 +1462,231 @@ function boxPeriodTable(teamData, period) {
         </tbody>
     </table></div>
     <div class="rt-hint">${flPLabel(period)} のスタッツは play-by-play から集計した値です。MIN・+/- は交代記録から再現した目安です。⚠ は全クォーターの合計が公式記録と合わない選手です（試合後の記録の訂正などで起こります）。</div>`;
+}
+
+/* ═══════════════════════════════════════════════
+   分析: Impact（WPA・Clutch）/ Shots / Four Factors / ラインナップ / アシストの相関
+   どれも1試合の summary だけで計算する（追加の取得なし）
+   ═══════════════════════════════════════════════ */
+// 選手ID → { side: 'a' | 'h', name }（ボックススコアから）
+function anPlayers() {
+    const side = { [game.away.team.id]: 'a', [game.home.team.id]: 'h' };
+    const map = {};
+    (game.data.boxscore?.players || []).forEach(t => (t.statistics?.[0]?.athletes || []).forEach(a => {
+        if (a.athlete?.id) map[a.athlete.id] = { side: side[t.team?.id], name: a.athlete.shortName || a.athlete.displayName || '' };
+    }));
+    return map;
+}
+const anAbbr = () => ({ a: normAbbr(game.away.team.abbreviation), h: normAbbr(game.home.team.abbreviation) });
+const anSigned = v => v > 0 ? `+${v.toFixed(1)}` : v.toFixed(1);
+const anPlayerLink = (id, name) => id ? `<a class="ts-player" href="${NBA.link.player(id)}">${esc(name)}</a>` : esc(name);
+
+/* ── WPA（Win Probability Added） ──
+   プレーごとの勝率（ESPN）の変化を、そのプレーをした選手に配分して合計する（単位は勝率のポイント）。
+   シュート・ターンオーバー・ファウルなどをした選手が 100%。
+   アシスト・スティール・ブロックがあるプレーは、相手役と 50% ずつ分ける */
+function computeWPA() {
+    const wp = new Map((game.data.winprobability || []).map(w => [w.playId, w.homeWinPercentage]));
+    if (!wp.size) return null;
+    const P = anPlayers(), out = {};
+    const add = (id, v) => { out[id] = (out[id] || 0) + v; };
+    let prev = 0.5;
+    (game.data.plays || []).forEach(x => {
+        if (!wp.has(x.id)) return;
+        const cur = wp.get(x.id), dh = cur - prev;
+        prev = cur;
+        const ids = (x.participants || []).map(q => q.athlete?.id).filter(id => id && P[id]);
+        if (!ids.length || !dh) return;
+        const own = id => (P[id].side === 'h' ? dh : -dh) * 100;
+        const t = x.type?.text || '';
+        const shared = ids[1] && (x.scoringPlay || /Turnover/.test(t) || (x.shootingPlay && !x.scoringPlay));
+        if (shared) { add(ids[0], own(ids[0]) / 2); add(ids[1], own(ids[1]) / 2); }
+        else add(ids[0], own(ids[0]));
+    });
+    return Object.entries(out).map(([id, v]) => ({ id, v, ...P[id] }));
+}
+
+/* ── Clutch: 第4Q・延長の残り5分以内で、プレー直前の点差が5点以内（NBA.com と同じ定義） ── */
+function computeClutch() {
+    const plays = game.data.plays || [];
+    let prev = { awayScore: 0, homeScore: 0 };
+    const cp = plays.filter(x => {
+        const before = prev; prev = x;
+        return (x.period?.number || 1) >= 4 && flClockSec(x.clock?.displayValue ?? '0') <= 300
+            && Math.abs((before.homeScore ?? 0) - (before.awayScore ?? 0)) <= 5;
+    });
+    if (!cp.length) return null;
+    const P = anPlayers();
+    const i0 = plays.indexOf(cp[0]), start = i0 > 0 ? plays[i0 - 1] : { awayScore: 0, homeScore: 0 };
+    const S = {};
+    const add = (id, k, v = 1) => { if (!P[id]) return; (S[id] ||= { id, ...P[id], pts: 0, fgm: 0, fga: 0, tpm: 0, tpa: 0, ftm: 0, fta: 0, reb: 0, ast: 0, stl: 0, blk: 0, to: 0 })[k] += v; };
+    cp.forEach(x => {
+        const ids = (x.participants || []).map(q => q.athlete?.id).filter(Boolean);
+        if (!ids.length) return;
+        const t = (x.type?.text || '').replace(/\n/g, ' '), a = ids[0];
+        if (t.startsWith('Free Throw')) { add(a, 'fta'); if (x.scoringPlay) { add(a, 'ftm'); add(a, 'pts', x.scoreValue || 1); } }
+        else if (x.shootingPlay && !/Heave/.test(t)) {
+            add(a, 'fga'); if (x.pointsAttempted === 3) add(a, 'tpa');
+            if (x.scoringPlay) { add(a, 'fgm'); add(a, 'pts', x.scoreValue || 0); if (x.pointsAttempted === 3) add(a, 'tpm'); if (ids[1]) add(ids[1], 'ast'); }
+            else if (ids[1]) add(ids[1], 'blk');
+        } else if (/Rebound/.test(t)) add(a, 'reb');
+        else if (Q_TO_RE.test(t)) { add(a, 'to'); if (ids[1]) add(ids[1], 'stl'); }
+    });
+    const last = plays.at(-1);
+    return {
+        start: `${flPLabel(cp[0].period.number)} ${cp[0].clock.displayValue}`,
+        startScore: [start.awayScore ?? 0, start.homeScore ?? 0],
+        pts: { a: (last.awayScore ?? 0) - (start.awayScore ?? 0), h: (last.homeScore ?? 0) - (start.homeScore ?? 0) },
+        players: Object.values(S),
+    };
+}
+
+function impactPanelHTML() {
+    const A = anAbbr();
+    const wpa = computeWPA();
+    let html = '';
+    if (wpa) {
+        const max = Math.max(1, ...wpa.map(p => Math.abs(p.v)));
+        const list = s => wpa.filter(p => p.side === s).sort((x, y) => y.v - x.v).slice(0, 8).map(p => {
+            const w = Math.min(50, 50 * Math.abs(p.v) / max);
+            return `<div class="an-row"><span class="an-name">${anPlayerLink(p.id, p.name)}</span>
+                <div class="an-dbar" title="${anSigned(p.v)}"><span style="background:var(--ts-${s === 'a' ? 'away' : 'home'});${p.v >= 0 ? `left:50%;width:${w}%` : `right:50%;width:${w}%`}"></span></div>
+                <span class="an-val ${p.v > 0 ? 'rt-pos' : p.v < 0 ? 'rt-neg' : ''}">${anSigned(p.v)}</span></div>`;
+        }).join('');
+        html += `<div class="ts-group">Win Probability Added <small>勝利に何ポイント効いたか</small></div>
+            <div class="an-two"><div><div class="an-team">${A.a}</div>${list('a')}</div><div><div class="an-team">${A.h}</div>${list('h')}</div></div>
+            <div class="rt-hint">プレーごとの勝率（ESPN）の変化を、そのプレーをした選手に配分して合計した値です。アシスト・スティール・ブロックがあるプレーは、相手役と半分ずつ分けています。</div>`;
+    } else {
+        html += '<div class="msg">この試合は勝率のデータがありません</div>';
+    }
+    const c = computeClutch();
+    html += `<div class="ts-group">Clutch <small>第4Q・延長の残り5分、点差5点以内</small></div>`;
+    if (!c) return html + '<div class="inj-none">接戦の終盤（残り5分で5点差以内）はありませんでした</div>';
+    const rows = c.players.filter(p => p.pts || p.fga || p.fta || p.reb || p.ast || p.stl || p.blk || p.to)
+        .sort((x, y) => y.pts - x.pts || y.ast - x.ast);
+    return html + `<div class="an-note">${c.start}（${A.a} ${c.startScore[0]}-${c.startScore[1]} ${A.h}）から終了まで: ${A.a} <b>${c.pts.a}</b> 点 / ${A.h} <b>${c.pts.h}</b> 点</div>
+        <div class="box-table-wrap"><table class="box-table">
+            <thead><tr><th class="box-name">Player</th><th>PTS</th><th>FG</th><th>3PT</th><th>FT</th><th>REB</th><th>AST</th><th>STL</th><th>BLK</th><th>TO</th></tr></thead>
+            <tbody>${rows.map(p => `<tr><td class="box-name"><span class="an-side ${p.side}">${A[p.side]}</span> ${anPlayerLink(p.id, p.name)}</td>
+                <td class="box-pts">${p.pts}</td><td>${p.fgm}-${p.fga}</td><td>${p.tpm}-${p.tpa}</td><td>${p.ftm}-${p.fta}</td>
+                <td>${p.reb}</td><td>${p.ast}</td><td>${p.stl}</td><td>${p.blk}</td><td>${p.to}</td></tr>`).join('')}</tbody>
+        </table></div>`;
+}
+
+/* ── Four Factors（Team Stats の上部） ──
+   ORtg のポゼッションは play-by-play から実際に数えた回数（assets/stats.js の countPossessions）。
+   play-by-play がなければ推定式 FGA + 0.44×FTA − OREB + TO */
+function fourFactorsHTML() {
+    const teams = game.data.boxscore?.players || [];
+    const tot = s => { const t = teams.find(x => x.team?.id === (s === 'a' ? game.away : game.home).team.id); return t ? teamBoxTotals(t) : null; };
+    const A = tot('a'), H = tot('h');
+    if (!A?.fga || !H?.fga) return '';
+    const side = { [game.away.team.id]: 'a', [game.home.team.id]: 'h' };
+    const counted = game.data.plays?.length ? countPossessions(game.data.plays, id => side[id]) : null;
+    const est = m => m.fga + 0.44 * m.fta - m.oreb + m.to;
+    const PA = counted ? counted.a : est(A), PH = counted ? counted.h : est(H);
+    const f = (m, o, poss) => ({
+        efg: 100 * (m.fgm + 0.5 * m.tpm) / m.fga, tov: 100 * m.to / (m.fga + 0.44 * m.fta + m.to),
+        orb: 100 * m.oreb / ((m.oreb + o.dreb) || 1), ftr: 100 * m.ftm / m.fga, ortg: 100 * m.pts / poss,
+    });
+    const a = f(A, H, PA), h = f(H, A, PH);
+    const row = (k, label, sub, lower, scale) => {
+        const va = a[k], vh = h[k], la = lower ? va < vh : va > vh, lh = lower ? vh < va : vh > va;
+        const w = v => Math.max(0, Math.min(100, v * scale));
+        return `<div class="ts-row"><div class="ts-head">
+            <span class="ts-val ${la ? 'lead' : ''}">${va.toFixed(1)}</span><span class="ts-lbl">${label}<small class="an-sub">${sub}</small></span>
+            <span class="ts-val right ${lh ? 'lead' : ''}">${vh.toFixed(1)}</span>
+        </div><div class="ts-rate"><div class="ts-track"><span class="ts-a" style="width:${w(va)}%"></span></div><div class="ts-track"><span class="ts-h" style="width:${w(vh)}%"></span></div></div></div>`;
+    };
+    return `<div class="ts-group">Four Factors <small>ポゼッション ${Math.round(PA)} / ${Math.round(PH)}${counted ? '' : '（推定）'}</small></div>
+        ${row('efg', 'eFG%', 'シュートの質', false, 1.4)}${row('tov', 'TOV%', '100回の攻撃でのTO', true, 3)}
+        ${row('orb', 'ORB%', '取れたOREBの割合', false, 2)}${row('ftr', 'FT Rate', 'FTM ÷ FGA', false, 2.5)}
+        ${row('ortg', 'ORtg', '100ポゼッションの得点', false, 0.6)}`;
+}
+
+/* ── Shots: ゾーン別の成功率とシュートチャート
+   座標はフィート。x は 0〜50（リングは 25）、y はリングの高さからの距離（ベースラインは約 −5.25） ── */
+const AN_ZONES = [['rim', 'ゴール下'], ['paint', 'ペイント'], ['mid', 'ミドル'], ['corner3', 'コーナー3'], ['ab3', 'トップ3']];
+function anZone(x) {
+    const c = x.coordinate, dx = c.x - 25, dy = Math.max(0, c.y), dist = Math.hypot(dx, dy);
+    // コーナー3: 3Pラインがまっすぐな部分（ベースラインから14フィート＝リングの高さから約9フィートまで）
+    if (x.pointsAttempted === 3) return Math.abs(dx) >= 21 && dy <= 9 ? 'corner3' : 'ab3';
+    if (dist <= 4) return 'rim';
+    // ペイント: 幅16フィート、フリースローライン（ベースラインから19フィート＝リングの高さから約14フィート）まで
+    if (Math.abs(dx) <= 8 && dy <= 13.75) return 'paint';
+    return 'mid';
+}
+function shotsPanelHTML() {
+    const A = anAbbr(), side = { [game.away.team.id]: 'a', [game.home.team.id]: 'h' };
+    // ベースライン際のシュートは y がわずかにマイナスになる。ハーフコートからのブザービーターは公式記録と同じく除く
+    const shots = (game.data.plays || []).filter(x => x.shootingPlay && !/Free Throw|Heave/.test(x.type?.text || '')
+        && x.coordinate?.x >= 0 && x.coordinate?.y >= -3 && x.coordinate.y < 47 && side[x.team?.id]);
+    if (!shots.length) return '<div class="msg">この試合はシュートの位置のデータがありません</div>';
+    const Z = { a: {}, h: {} };
+    shots.forEach(x => { const r = (Z[side[x.team.id]][anZone(x)] ||= { m: 0, a: 0 }); r.a++; if (x.scoringPlay) r.m++; });
+    const court = s => {
+        // ベースラインから38フィートまでを描く（遠い3Pも入るように）
+        const k = 7, W = 50 * k, H = 38 * k, rimY = 5.25, X = x => x * k, Y = y => (y + rimY) * k;
+        const ln = 'stroke="#3a3a44" stroke-width="1.5" fill="none"', c = `var(--ts-${s === 'a' ? 'away' : 'home'})`;
+        const dots = shots.filter(x => side[x.team.id] === s).map(x => {
+            const cx = X(x.coordinate.x), cy = Y(Math.max(0, x.coordinate.y));
+            return x.scoringPlay ? `<circle cx="${cx}" cy="${cy}" r="4.5" fill="${c}"/>` : `<circle cx="${cx}" cy="${cy}" r="4" fill="none" stroke="${c}" stroke-width="1.5" opacity=".75"/>`;
+        }).join('');
+        return `<svg class="an-court" viewBox="0 0 ${W} ${H}" role="img" aria-label="${A[s]} のシュートの位置">
+            <rect width="${W}" height="${H}" fill="var(--surface-deep)"/>
+            <rect x="${X(17)}" y="0" width="${16 * k}" height="${Y(19 - rimY)}" ${ln}/>
+            <path d="M ${X(3)} 0 L ${X(3)} ${Y(14 - rimY)} A ${23.75 * k} ${23.75 * k} 0 0 0 ${X(47)} ${Y(14 - rimY)} L ${X(47)} 0" ${ln}/>
+            <circle cx="${X(25)}" cy="${Y(0)}" r="${0.75 * k}" stroke="#8b8b95" stroke-width="1.5" fill="none"/>
+            <line x1="${X(22)}" x2="${X(28)}" y1="${Y(-1.25)}" y2="${Y(-1.25)}" stroke="#8b8b95" stroke-width="2"/>${dots}</svg>`;
+    };
+    const pct = r => r?.a ? `${(100 * r.m / r.a).toFixed(1)}%` : '-';
+    return `<div class="an-two">
+            <div><div class="an-team">${A.a}</div>${court('a')}</div>
+            <div><div class="an-team">${A.h}</div>${court('h')}</div>
+        </div>
+        <div class="fl-legend" style="margin-top:8px"><span>● 成功</span><span>○ 失敗</span></div>
+        <div class="box-table-wrap"><table class="box-table">
+            <thead><tr><th class="box-name">Zone</th><th>${A.a}</th><th>%</th><th>${A.h}</th><th>%</th></tr></thead>
+            <tbody>${AN_ZONES.map(([z, label]) => {
+                const a = Z.a[z], h = Z.h[z];
+                return `<tr><td class="box-name">${label}</td><td>${a ? `${a.m}/${a.a}` : '0/0'}</td><td class="box-pts">${pct(a)}</td><td>${h ? `${h.m}/${h.a}` : '0/0'}</td><td class="box-pts">${pct(h)}</td></tr>`;
+            }).join('')}</tbody>
+        </table></div>
+        <div class="rt-hint">ゴール下 = リングから4フィート以内、ペイント = 制限区域、コーナー3 = サイドライン際の3P。ハーフコートからの最後のブザービーターは公式記録と同じく数えていません。位置が記録されていないシュートも数えていないため、公式の FGA より1〜2本少ないことがあります。</div>`;
+}
+
+/* ── ラインナップ（Rotation タブの下）: 5人がそろって出ていた時間と得失点 ── */
+function lineupsHTML(side) {
+    const R = rotation?.[side];
+    if (!R) return '';
+    const list = lineupUnits(rotation, side).sort((x, y) => y.sec - x.sec).slice(0, 8);
+    if (!list.length) return '';
+    return `<div class="ts-group">Lineups <small>${rotation.abbr[side]}・5人の組み合わせ（出場時間の長い順）</small></div>
+        <div class="box-table-wrap"><table class="box-table">
+            <thead><tr><th class="box-name">5人</th><th>MIN</th><th>得点-失点</th><th>+/-</th></tr></thead>
+            <tbody>${list.map(u => { const d = u.pf - u.pa;
+                return `<tr><td class="box-name an-unit">${u.names.map(flEsc).join(' · ')}</td><td>${flDur(u.sec)}</td><td>${u.pf}-${u.pa}</td>
+                    <td class="${d > 0 ? 'rt-pos' : d < 0 ? 'rt-neg' : ''}">${d > 0 ? '+' : ''}${d}</td></tr>`; }).join('')}</tbody>
+        </table></div>`;
+}
+
+/* ── アシストの相関（Box Score の下）: 誰のパスから誰が決めたか ── */
+function assistsHTML(teamId) {
+    const P = anPlayers(), pairs = {};
+    (game.data.plays || []).forEach(x => {
+        if (!x.scoringPlay || !x.shootingPlay || x.team?.id !== teamId) return;
+        const ids = (x.participants || []).map(q => q.athlete?.id);
+        if (!ids[1] || !P[ids[0]] || !P[ids[1]]) return;
+        const p = (pairs[ids[1] + '>' + ids[0]] ||= { from: ids[1], to: ids[0], n: 0, pts: 0 });
+        p.n++; p.pts += x.scoreValue || 0;
+    });
+    const list = Object.values(pairs).sort((x, y) => y.n - x.n || y.pts - x.pts).slice(0, 10);
+    if (!list.length) return '';
+    const max = list[0].n;
+    return `<div class="ts-group">Assist Network <small>誰のパスから誰が決めたか</small></div>${list.map(p => `<div class="an-row an-ast">
+        <span class="an-name">${anPlayerLink(p.from, P[p.from].name)} <span class="rt-muted">→</span> ${anPlayerLink(p.to, P[p.to].name)}</span>
+        <div class="an-bar"><span style="width:${100 * p.n / max}%"></span></div>
+        <span class="an-val">${p.n}<small> 回・${p.pts}点</small></span></div>`).join('')}`;
 }
 
 /* ── Preview（試合前）: 注目ポイント・予測・成績・チーム比較・直近の試合・対戦成績・リーダー・怪我人 ── */
@@ -1709,7 +1861,7 @@ async function renderPreview() {
 /* ── タブ ── */
 function availableTabs() {
     if (game.isPre) return ['preview'];
-    return ['box', 'team', 'flow', 'rotation'];
+    return ['box', 'team', 'impact', 'shots', 'flow', 'rotation'];
 }
 
 function switchTab(tab) {
@@ -1753,6 +1905,8 @@ function render() {
         team: () => boxTeamStats(teamTotals(away.team.id), teamTotals(home.team.id)),
         flow: () => flow ? flowPanelHTML() : '<div class="msg">No play-by-play data</div>',
         rotation: () => rotation ? rotationPanelHTML() : '<div class="msg">No substitution data</div>',
+        impact: () => data.plays?.length ? impactPanelHTML() : '<div class="msg">No play-by-play data</div>',
+        shots: () => data.plays?.length ? shotsPanelHTML() : '<div class="msg">No play-by-play data</div>',
     };
     document.getElementById('game-body').innerHTML = `
         <div class="conf-tabs game-tabs">

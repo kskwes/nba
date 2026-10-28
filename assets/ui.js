@@ -35,7 +35,7 @@ window.NBA = window.NBA || {};
 
     /* ── 列見出しをクリックして並び替える表 ──
        th[data-key] が並び替えられる列。行のデータと描画関数を渡す
-       cols: [{ key, label, get: row => 値, asc: 小さい順が良いか, cls }]
+       cols: [{ key, label, get: row => 値, asc: 小さい順が良いか, cls, title: 見出しの説明 }]
        render(row, cols) は <tr> の HTML を返す */
     NBA.ui = NBA.ui || {};
     NBA.ui.sortable = function (wrap, { rows, cols, render, head, initial, onSort }) {
@@ -54,7 +54,7 @@ window.NBA = window.NBA || {};
             const th = cols.map(c => {
                 if (c.sort === false) return `<th class="${c.cls || ''}">${c.label}</th>`;
                 const on = c.key === sortKey;
-                return `<th class="sortable ${c.cls || ''} ${on ? 'sorted' : ''} ${on && asc ? 'asc' : ''}" data-key="${c.key}" title="クリックで並び替え">${c.label}</th>`;
+                return `<th class="sortable ${c.cls || ''} ${on ? 'sorted' : ''} ${on && asc ? 'asc' : ''}" data-key="${c.key}" title="${c.title ? `${c.title}（クリックで並び替え）` : 'クリックで並び替え'}">${c.label}</th>`;
             }).join('');
             wrap.querySelector('thead').innerHTML = `<tr>${head || ''}${th}</tr>`;
             wrap.querySelector('tbody').innerHTML = sorted.map((r, i) => render(r, i, col)).join('');

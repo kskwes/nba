@@ -76,6 +76,72 @@ const FANTASY_SCORING = { pts: 1, reb: 1.2, ast: 1.5, stl: 3, blk: 3, to: -1 };
 const fantasyPoints = l => FANTASY_SCORING.pts * l.pts + FANTASY_SCORING.reb * (l.oreb + l.dreb) + FANTASY_SCORING.ast * l.ast
     + FANTASY_SCORING.stl * l.stl + FANTASY_SCORING.blk * l.blk + FANTASY_SCORING.to * l.to;
 
+/* ── ポゼッションを play-by-play から数える ──
+   攻撃が相手に移った時点で、それまで攻めていたチームのポゼッションを1回数える。
+   ・FG 成功（And-1 のフリースローが続くときは、そのフリースローの後）
+   ・最後のフリースローの成功（テクニカル・フレイグラントは数えない。フレイグラントの後は同じチームの攻撃が続く）
+   ・相手のディフェンスリバウンド（選手がいないチームリバウンドも含む）
+   ・ターンオーバー
+   ・クォーターの終了（攻めていたチームに、何かプレーがあったか、残り時間がある状態でボールが移っていれば。
+     残り0秒のブザービーターの後にボールが移っただけの場合は数えない。ただし試合の最後は数える。
+     NBA.com の OffRtg と9チーム分を突き合わせて決めた。試合の最後の例はまだ1つだけ）
+   plays: ESPN の summary の plays / sideOf(teamId) → 'a' | 'h' | undefined
+   戻り値: { a: 回数, h: 回数, ends: [{ i: プレーの番号, side }] }（ends は出場区間ごとに数えるのに使う） */
+const POSS_TO_RE = /Turnover|Traveling|Double Dribble|Discontinued Dribble|Palming|Basket from Below/;
+function countPossessions(plays, sideOf) {
+    const out = { a: 0, h: 0, ends: [] };
+    let cur = null;       // 今攻めているチーム
+    let andOne = null;    // And-1 のフリースローを待っているチーム
+    let active = false;   // 今攻めているチームに、ボールが移ってから何かプレーがあったか
+    let handoffClock = 0; // ボールが移ったときの、クォーターの残り秒数
+    const other = s => s === 'a' ? 'h' : 'a';
+    const clockSec = x => { const v = String(x.clock?.displayValue ?? '0'); return v.includes(':') ? (+v.split(':')[0]) * 60 + parseFloat(v.split(':')[1]) : parseFloat(v) || 0; };
+    const end = (i, s) => {
+        if (!s) return;
+        out[s]++; out.ends.push({ i, side: s }); cur = other(s); andOne = null;
+        active = false; handoffClock = clockSec(plays[i]);
+    };
+    // シュート成功の後、次の攻撃のプレー（シュート・リバウンド・TO）より先に同じチームの「1 of 1」のフリースローがあれば And-1
+    const isAndOne = (i, s) => {
+        for (let j = i + 1; j < Math.min(plays.length, i + 10); j++) {
+            const y = plays[j], t = (y.type?.text || '').replace(/\n/g, ' ');
+            if (/Free Throw - 1 of 1/.test(t) && sideOf(y.team?.id) === s) return true;
+            if (y.shootingPlay || /Rebound|End Period|End Game/.test(t) || POSS_TO_RE.test(t)) return false;
+        }
+        return false;
+    };
+    plays.forEach((x, i) => {
+        const t = (x.type?.text || '').replace(/\n/g, ' ');
+        const s = sideOf(x.team?.id);
+        if (/End Period|End Game/.test(t)) {
+            const gameEnd = plays.slice(i + 1).every(y => /End Game|Substitution|Review|Challenge/.test(y.type?.text || ''));
+            if (cur && (active || handoffClock > 0 || gameEnd)) { out[cur]++; out.ends.push({ i, side: cur }); }
+            cur = null; andOne = null; active = false; return;
+        }
+        if (!s) return;
+        if (s === cur) active = true;
+        if (t === 'Defensive Rebound') { if (cur === other(s) || cur === null) end(i, other(s)); cur = s; active = true; return; }
+        if (t === 'Offensive Rebound') { cur = s; active = true; return; }
+        if (POSS_TO_RE.test(t)) { end(i, s); return; }
+        if (/^Free Throw/.test(t)) {
+            if (/Technical|Flagrant/.test(t)) return;
+            const m = t.match(/(\d) of (\d)/);
+            if (!m || m[1] !== m[2]) { cur = s; return; }
+            // 「1 of 1」は And-1 のときだけ攻撃の終わり（それ以外はテクニカルのフリースロー）
+            if (m[1] === '1' && andOne !== s) return;
+            if (x.scoringPlay) end(i, s);
+            else { cur = s; andOne = null; }
+            return;
+        }
+        if (x.shootingPlay && !/Heave/.test(t)) {
+            cur = s;
+            if (!x.scoringPlay) return;
+            if (isAndOne(i, s)) andOne = s; else end(i, s);
+        }
+    });
+    return out;
+}
+
 // シーズン平均など（数値）。l: { pts, fgm, fga, tpm, fta, to, min }
 const advPct = (n, d) => d > 0 ? 100 * n / d : null;
 const calcTS  = l => advPct(l.pts, 2 * (l.fga + 0.44 * l.fta));

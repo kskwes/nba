@@ -60,7 +60,7 @@ const FALLBACK_IMG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/sv
                 rec[String(e.team.id)] = {
                     name: e.team.displayName, location: e.team.location || '', nickname: e.team.name || '',
                     logo: e.team.logos?.[0]?.href || '', seed: v('playoffSeed'),
-                    w: v('wins'), l: v('losses'), opp: v('avgPointsAgainst'), diff: v('differential'),
+                    w: v('wins'), l: v('losses'), pf: v('avgPointsFor'), opp: v('avgPointsAgainst'), diff: v('differential'),
                     streak: dv('streak'), l10: dv('Last Ten Games'), home: dv('Home'), road: dv('Road'),
                 };
             }));
@@ -72,6 +72,12 @@ const FALLBACK_IMG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/sv
                 const m = {};
                 (stats[i]?.splits?.categories || []).forEach(c => (c.stats || []).forEach(x => { m[x.name] = x.value; }));
                 const r = rec[t.id] || {};
+                // ポゼッションは ESPN の推定値（1試合平均）。得点・失点は standings の1試合平均
+                const poss = m.avgEstimatedPossessions ?? null;
+                const rating = v => v != null && poss ? 100 * v / poss : null;
+                // ピタゴラス勝率（指数14）: 得点と失点から計算した「本来この程度勝てているはず」の勝率
+                const pyth = r.pf && r.opp ? r.pf ** 14 / (r.pf ** 14 + r.opp ** 14) : null;
+                const gp = (r.w ?? 0) + (r.l ?? 0);
                 return {
                     ...t, ...r, name: r.name || t.abbr, logo: r.logo || t.logo,
                     gp: m.gamesPlayed ?? null,
@@ -79,6 +85,10 @@ const FALLBACK_IMG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/sv
                     ppg: m.avgPoints, rpg: m.avgRebounds, apg: m.avgAssists, spg: m.avgSteals, bpg: m.avgBlocks,
                     tov: m.avgTurnovers, fg: m.fieldGoalPct, tp: m.threePointFieldGoalPct ?? m.threePointPct, ft: m.freeThrowPct,
                     ts: m.trueShootingPct,
+                    pace: poss, ortg: rating(r.pf), drtg: rating(r.opp),
+                    net: rating(r.pf) != null && rating(r.opp) != null ? rating(r.pf) - rating(r.opp) : null,
+                    pyW: pyth != null ? pyth * gp : null,
+                    luck: pyth != null ? (r.w ?? 0) - pyth * gp : null,
                 };
             });
             return { year, teams };

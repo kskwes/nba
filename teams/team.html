@@ -9,13 +9,18 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&display=swap">
-    <link rel="stylesheet" href="../assets/common.css?v=20261028">
-    <link rel="stylesheet" href="../assets/player-team.css?v=20261028">
+    <link rel="stylesheet" href="../assets/common.css?v=2026102804">
+    <link rel="stylesheet" href="../assets/player-team.css?v=2026102804">
     <style>
         .main-wrap.single { max-width: 1100px; }
         .t-two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; }
         @media (max-width: 760px) { .t-two { grid-template-columns: minmax(0, 1fr); } }
         .t-inj-list { height: auto; max-height: 380px; }
+        .t-adv-kpis { display: flex; flex-wrap: wrap; gap: 10px; }
+        .t-adv-kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; min-width: 110px; }
+        .t-adv-kpi b { display: block; font-family: var(--font-score); font-size: 22px; font-weight: 600; }
+        .t-adv-kpi span { font-size: 10px; color: var(--muted); font-weight: 700; letter-spacing: .5px; text-transform: uppercase; }
+        .t-adv-kpi .pos { color: var(--pos); } .t-adv-kpi .neg { color: var(--neg); }
         .t-inj-row { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: center; padding: 9px 14px; border-bottom: 1px solid var(--line-soft); font-size: 13px; font-weight: 600; }
         .t-inj-row:last-child { border-bottom: none; }
         .t-inj-status { font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 5px; letter-spacing: .5px; }
@@ -78,6 +83,19 @@
                     <div id="t-roster-table-wrap" class="t-roster-wrap"></div>
                 </div>
 
+                <!-- Advanced: このチームの On/Off・ラインナップ・Clutch（data/advanced.json。リーグ全体は Teams の Advanced タブ） -->
+                <div class="lc-block" id="t-advanced">
+                    <div class="section-header"><h2>Advanced</h2><a class="badge plain-link" href="../teams/?tab=advanced">League ›</a></div>
+                    <div id="t-adv-updated"></div>
+                    <div class="sd-title">Clutch <span class="rt-muted" style="text-transform:none;letter-spacing:0;font-weight:400">第4Q・延長の残り5分、点差5点以内</span></div>
+                    <div id="t-adv-clutch" class="t-adv-kpis"></div>
+                    <div class="sd-title" style="margin-top:14px">On / Off <span style="text-transform:none;letter-spacing:0;font-weight:400">100ポゼッションあたり</span></div>
+                    <div id="t-adv-onoff"><div class="msg">Loading<span class="spinner"></span></div></div>
+                    <div class="sd-title" style="margin-top:14px">Top Lineups</div>
+                    <div id="t-adv-units"><div class="msg">Loading<span class="spinner"></span></div></div>
+                    <p class="adv-note">ポゼッションは play-by-play から実際に数えた回数。出場区間は交代記録から再現しているため、公式の +/- と数点ずれることがあります。集計した時点の数字です。</p>
+                </div>
+
                 <div class="t-two">
                     <!-- Schedule -->
                     <div class="lc-block" id="t-schedule-block">
@@ -102,10 +120,11 @@
     </div>
 </main>
 
-<script src="../assets/api.js?v=20261028"></script>
-<script src="../assets/teams.js?v=20261028"></script>
-<script src="../assets/stats.js?v=20261028"></script>
-<script src="../assets/ui.js?v=20261028"></script>
+<script src="../assets/api.js?v=2026102804"></script>
+<script src="../assets/teams.js?v=2026102804"></script>
+<script src="../assets/stats.js?v=2026102804"></script>
+<script src="../assets/ui.js?v=2026102804"></script>
+<script src="../assets/advanced.js?v=2026102804"></script>
 <script>
 /* ─── Team Standings (rank / record / streak) ─── */
 let standingsCache = null;
@@ -592,6 +611,25 @@ function renderInjuries(rosterData) {
     }).join('')}</div>` : '<div class="msg" style="padding:16px">No injuries reported</div>';
 }
 
+// このチームの On/Off・ラインナップ・Clutch（data/advanced.json）
+async function loadTeamAdvanced(abbr) {
+    const A = NBA.advanced;
+    try {
+        const d = await A.load();
+        document.getElementById('t-adv-updated').innerHTML = A.updatedHTML(d);
+        const c = A.clutchRows(d).find(r => r.team === abbr);
+        const kpi = (label, v, cls = '') => `<div class="t-adv-kpi"><span>${label}</span><b class="${cls}">${v}</b></div>`;
+        document.getElementById('t-adv-clutch').innerHTML = c?.games
+            ? kpi('接戦の試合', c.games) + kpi('接戦の勝敗', `${c.w}-${c.l}`) + kpi('得点-失点', `${c.pf}-${c.pa}`) + kpi('Clutch NET', A.sgn(c.net), A.cls(c.net))
+            : '<div class="rt-muted" style="font-size:12px">残り5分で5点差以内になった試合はまだありません</div>';
+        A.renderOnOff(document.getElementById('t-adv-onoff'), A.onOffRows(d).filter(r => r.team === abbr), { showTeam: false });
+        A.renderUnits(document.getElementById('t-adv-units'), A.unitRows(d).filter(r => r.team === abbr).sort((x, y) => y.sec - x.sec).slice(0, 8), { showTeam: false });
+    } catch (e) {
+        console.error('advanced:', e);
+        document.getElementById('t-advanced').querySelectorAll('#t-adv-onoff, #t-adv-units').forEach(el => { el.innerHTML = '<div class="msg error">分析データを読み込めませんでした</div>'; });
+    }
+}
+
 async function init() {
     if (!TEAM) {
         document.getElementById('team-section').innerHTML = '<div class="msg error">Team not found</div>';
@@ -616,6 +654,7 @@ async function init() {
         loadTeamRosterStats(TEAM.id, rosterData),
         loadTeamScheduleFull(TEAM.id),
         loadTeamStandingsInfo(TEAM.id, TEAM.abbr),
+        loadTeamAdvanced(TEAM.abbr),
     ]);
 }
 
