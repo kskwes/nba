@@ -1127,9 +1127,15 @@ function pickChip(kind, e, rnd) {
     const r = RND[e.round], to = e.teams.join(' / ');
     if (kind === 'out') {
         switch (e.status) {
-            case 'swap':        return { use: true, own: true, cond: true, label: '自前', tip: `自前の${r}。ただし ${to} が有利な方と交換できる（スワップ）` };
+            // スワップ: 自前のまま持てるとは限らないので「自前」とは書かない。
+            // 交換の連鎖（受け取る側の記録から補ったもの）は、実際に使う指名権を受け取る側のチップで数えるので、ここでは数えない
+            case 'swap':        return e.derived
+                ? { use: false, cond: true, label: `⇄ ${teamsShort(e.teams)}`, tip: `自前の${r}は ${to} との交換の対象（交換の連鎖）。代わりに受け取る${r}は「使える」側のチップ` }
+                : { use: true, cond: true, label: `⇄ ${teamsShort(e.teams)}`, tip: `${to} が有利な方と交換できる（スワップ）。自前か ${to} の${r}のどちらかが残る` };
             case 'protected':   return { use: false, cond: true, label: `→ ${teamsShort(e.teams)}`, tip: `${to} へ譲渡。ただし ${e.protection}位なら保持（保護付き）` };
-            case 'conditional': return { use: false, cond: true, label: `→ ${teamsShort(e.teams)}`, tip: `${to} へ譲渡（条件で行き先が変わる）` };
+            case 'conditional': return { use: false, cond: true, label: `→ ${teamsShort(e.teams)}`, tip: e.derived && /^rollover/.test(e.note)
+                ? `前の年に ${to} へ渡せなかった場合に持ち越して譲渡${e.protection ? `（${e.protection}位なら保持）` : ''}`
+                : e.derived && /^fallback/.test(e.note) ? `別の指名権を ${to} へ渡せなかった場合に、代わりに譲渡` : `${to} へ譲渡（条件で行き先が変わる）` };
             case 'forfeited':   return { use: false, cond: false, label: '剥奪', tip: 'リーグの処分で剥奪' };
             default:            return { use: false, cond: false, label: `→ ${teamsShort(e.teams)}`, tip: `${to} へ譲渡済み` };
         }
@@ -1191,7 +1197,8 @@ function renderDraftPicks(team) {
         <div class="dp-legend">
             <span><span class="dp-chip use own">自前</span><span class="dp-chip use">NYK</span>使える（自前・獲得）</span>
             <span><span class="dp-chip lost">→ MEM</span>使えない（譲渡・剥奪）</span>
-            <span><span class="dp-chip use cond">条件</span>条件あり（保護・スワップなど）</span>
+            <span><span class="dp-chip use cond">条件</span>条件あり（保護・持ち越しなど）</span>
+            <span><span class="dp-chip use cond">⇄ OKC</span>スワップ（相手と交換される可能性）</span>
         </div>
         <div class="dp-note">カーソルを当てると内容を、クリックするとリーグの記録どおりの条件（英語の原文）を表示します。
             データは定期的に手動で更新しているため、最終更新日以降のトレードは反映されていません。</div>
