@@ -1,7 +1,7 @@
 // 自動生成ファイル（手で編集しない）。.claude/skills/nba-data-update/picks.mjs で更新する。
 // 各チームの2027〜2033年ドラフト指名権。outgoing: 自チームの指名権の行き先、incoming: 他チームから受け取る指名権
 window.NBA_DRAFT_PICKS = {
- "updatedAt": "2026-10-15",
+ "updatedAt": "2026-10-28",
  "sourceLatestTrade": "2026-09-14",
  "years": [
   2027,
@@ -11,7 +11,7 @@ window.NBA_DRAFT_PICKS = {
   "name": "Over the Apron",
   "url": "https://overtheapron.com/draft"
  },
- "entries": 402,
+ "entries": 450,
  "teams": {
   "ATL": {
    "outgoing": [
@@ -36,6 +36,18 @@ window.NBA_DRAFT_PICKS = {
      "protection": "31-55",
      "note": "",
      "detail": "Atlanta's 2027 2nd round pick to Dallas protected for selections 31-55 (if this pick falls within its protected range and is therefore not conveyed, then Atlanta's obligation to Dallas will be extinguished) [Atlanta-Dallas-Oklahoma City, 7/19/2026]"
+    },
+    {
+     "year": 2028,
+     "round": 1,
+     "status": "swap",
+     "teams": [
+      "CLE"
+     ],
+     "protection": "",
+     "note": "swap chain: less favorable, swap, Atlanta outgoing to Cleveland",
+     "detail": "Utah will receive the most favorable of its 2028 1st round pick, Cleveland's 2028 1st round pick and the L.A. Lakers' 2028 1st round pick; the L.A. Lakers will receive the less favorable of (i) its pick and (ii) the more favorable of the Utah pick and the Cleveland pick; Atlanta will receive the more favorable of (i) its 2028 1st round pick and (ii) the less favorable of the Utah pick and the Cleveland pick and Cleveland will receive the least favorable of the three (via Utah's right to swap for Cleveland; via Utah's right to swap Utah or Cleveland for L.A. Lakers; via Atlanta's right to swap for Utah or Cleveland) [Cleveland-Utah, 9/3/2022; Atlanta-Cleveland, 2/6/2025; L.A. Lakers-Utah, 7/8/2026]",
+     "derived": true
     },
     {
      "year": 2028,
@@ -179,6 +191,19 @@ window.NBA_DRAFT_PICKS = {
      "protection": "",
      "note": "",
      "detail": "Washington will receive the more favorable of Brooklyn's 2027 2nd round pick and Dallas' 2027 2nd round pick and Milwaukee will receive the less favorable of the two (via Dallas to Brooklyn to Detroit to Milwaukee; via Detroit to Washington) [Brooklyn-Detroit, 9/4/2021; Brooklyn-Dallas, 2/6/2023; Brooklyn-Detroit, 7/6/2023; Detroit-Washington, 7/6/2023; Dallas-Detroit-L.A. Clippers-Memphis-Milwaukee-Washington, 7/8/2026]"
+    },
+    {
+     "year": 2028,
+     "round": 1,
+     "status": "swap",
+     "teams": [
+      "PHX",
+      "WAS"
+     ],
+     "protection": "",
+     "note": "swap chain: Brooklyn or Philadelphia outgoing to Phoenix or Washington; Brooklyn or Phoenix outgoing to New York, connects from another incoming pick to Brooklyn",
+     "detail": "If (i) Philadelphia's 2028 1st round pick protected for selections 1-8 is conveyed to Brooklyn and is the third most favorable of Philadelphia, Brooklyn's 2028 1st round pick, Phoenix's 2028 1st round pick and New York's 2028 1st round pick and (ii) New York is the most or second most favorable of the four, then Brooklyn will receive the most and third most favorable of the four; in all other scenarios, Brooklyn will receive the most / two most favorable of these; if Philadelphia if conveyed and / or New York is less favorable than Brooklyn and Phoenix, then New York will receive the least favorable of New York, Brooklyn and Phoenix; in all other scenarios, New York will receive the second most favorable of the three; Washington will receive the more favorable of (i) its 2028 1st round pick and (ii) the least / less favorable of Philadelphia if conveyed, Brooklyn and Phoenix and Phoenix will receive the less favorable of (i) and (ii); Washington may swap the pick it receives for Milwaukee or Portland (see Washington Incoming) (via Brooklyn's right to swap Brooklyn or Philadelphia for Phoenix; via Brooklyn's right to swap Brooklyn or Phoenix for New York; via Washington's right to swap for Phoenix, Brooklyn or Philadelphia) [Brooklyn-Philadelphia, 2/10/2022; Brooklyn-Indiana-Milwaukee-Phoenix, 2/9/2023; Indiana-Phoenix-Washington, 6/23/2023; Brooklyn-New York, 7/6/2024]",
+     "derived": true
     }
    ],
    "incoming": [
@@ -578,6 +603,43 @@ window.NBA_DRAFT_PICKS = {
      "detail": "Charlotte's 2027 2nd round pick to Sacramento; Sacramento may convey this pick to Oklahoma City (see Sacramento Incoming) (via New York to Atlanta to San Antonio) [Charlotte-New York, 7/30/2021; Atlanta-New York, 1/13/2022; Atlanta-San Antonio, 6/30/2022; Chicago-Sacramento-San Antonio, 2/3/2025]"
     },
     {
+     "year": 2028,
+     "round": 1,
+     "status": "swap",
+     "teams": [
+      "MIN"
+     ],
+     "protection": "",
+     "note": "swap chain: swap, Charlotte outgoing",
+     "detail": "Charlotte has the right to swap its 2028 1st round pick for Minnesota's 2028 1st round pick [Brooklyn-Charlotte-Chicago-Minnesota, 7/10/2026]",
+     "derived": true
+    },
+    {
+     "year": 2028,
+     "round": 2,
+     "status": "swap",
+     "teams": [
+      "DET"
+     ],
+     "protection": "",
+     "note": "swap chain: effectively a swap, Charlotte outgoing to Detroit",
+     "detail": "Charlotte will receive the more favorable of its 2028 2nd round pick and the L.A. Clippers' 2028 2nd round pick and Detroit will receive the less favorable of the two; Detroit may convey this pick to Utah (see Detroit Outgoing) (via Charlotte to Dallas) [Charlotte-L.A. Clippers, 2/9/2023; Charlotte-Dallas, 2/8/2024; Dallas-Detroit, 7/6/2024]",
+     "derived": true
+    },
+    {
+     "year": 2029,
+     "round": 1,
+     "status": "swap",
+     "teams": [
+      "MIN",
+      "PHX"
+     ],
+     "protection": "",
+     "note": "swap chain: Charlotte, Cleveland or Utah outgoing to Minnesota or Phoenix, connects from another incoming pick to Charlotte",
+     "detail": "Charlotte has the right to swap the least favorable of its 2029 1st round pick, Cleveland's 2029 1st round pick and Utah's 2029 1st round pick for Minnesota's 2029 1st round pick protected for selections 6-30 (if the Minnesota pick falls within the protected range of 6-30 and is therefore not conveyable as part of this conveyance, then this obligation of Minnesota's to Charlotte and this swap right of Charlotte's will be extinguished); Charlotte may convey the pick it receives to Phoenix (via Cleveland and Minnesota to Utah; via Utah to Phoenix to Charlotte; via Charlotte swap of Charlotte, Cleveland or Utah for Minnesota) [Minnesota-Utah, 7/6/2022; Cleveland-Utah, 9/3/2022; Phoenix-Utah, 1/21/2025; Charlotte-Phoenix, 6/30/2025; Brooklyn-Charlotte-Chicago-Minnesota, 7/10/2026; Charlotte-Phoenix, 7/13/2026]",
+     "derived": true
+    },
+    {
      "year": 2030,
      "round": 2,
      "status": "protected",
@@ -864,6 +926,30 @@ window.NBA_DRAFT_PICKS = {
      "protection": "",
      "note": "",
      "detail": "Chicago's 2027 2nd round pick to Oklahoma City (via Washington to New Orleans to Washington to Dallas) [Chicago-Washington, 6/28/2023, New Orleans-Washington, 7/6/2024; Houston-New Orleans-Washington, 7/6/2025; Dallas-Washington, 2/5/2026; Atlanta-Dallas-Oklahoma City, 7/19/2026]"
+    },
+    {
+     "year": 2028,
+     "round": 2,
+     "status": "swap",
+     "teams": [
+      "IND"
+     ],
+     "protection": "",
+     "note": "swap chain: most favorable of these and Chicago, swap, Chicago outgoing to Indiana",
+     "detail": "Chicago will receive the most favorable of its 2028 2nd round pick, Indiana's 2028 2nd round pick and Phoenix's 2028 2nd round pick; Indiana will receive the less favorable of (i) the more favorable of its pick and and the Phoenix pick and (ii) the Chicago pick; New York will receive the less favorable of the Indiana pick and the Phoenix pick (via Phoenix to Indiana; via Chicago's right to swap for Indiana or Phoenix) [Indiana-Phoenix-Washington, 6/23/2023; Indiana-New York, 7/7/2023; Chicago-Indiana, 6/24/2026]",
+     "derived": true
+    },
+    {
+     "year": 2030,
+     "round": 2,
+     "status": "swap",
+     "teams": [
+      "IND"
+     ],
+     "protection": "",
+     "note": "swap chain: swap, Chicago outgoing",
+     "detail": "Chicago has the right to swap its 2030 2nd round pick for Indiana's 2030 2nd round pick [Chicago-Indiana, 6/24/2026]",
+     "derived": true
     }
    ],
    "incoming": [
@@ -1260,6 +1346,18 @@ window.NBA_DRAFT_PICKS = {
      "detail": "Denver's 2027 2nd round pick to Utah (via Cleveland to Chicago to Boston) [Cleveland-Denver, 3/25/2021; Chicago-Cleveland-Sacramento, 2/1/2026; Boston-Chicago, 2/5/2026; Boston-Utah, 2/5/2026]"
     },
     {
+     "protection": "1-5",
+     "year": 2028,
+     "round": 1,
+     "status": "conditional",
+     "teams": [
+      "OKC"
+     ],
+     "note": "rollover: carries over from 2027 if not conveyed",
+     "detail": "Denver's 1st round pick to Oklahoma City protected for selections 1-5 in 2027, 1-5 in 2028 and 1-5 in 2029; if Denver has not conveyed this first potential 1st round pick to Oklahoma City by 2029, then Denver will instead convey its 2029 2nd round pick to Oklahoma City; Oklahoma City may convey the 2027 pick to the L.A. Clippers (see Oklahoma City Incoming) which may then convey this pick to Toronto (see L.A. Clippers Incoming) [Denver-Oklahoma City, 6/23/2022]",
+     "derived": true
+    },
+    {
      "year": 2028,
      "round": 2,
      "status": "protected",
@@ -1291,6 +1389,18 @@ window.NBA_DRAFT_PICKS = {
      "protection": "",
      "note": "",
      "detail": "If Denver has conveyed a first potential 1st round pick to Oklahoma City by 2029, then Denver's 2029 2nd round pick to Charlotte; if Denver has not conveyed a first potential 1st round pick to Oklahoma City by 2029, then the obligation to Charlotte will be extinguished and instead Oklahoma City will receive this 2nd round pick [Charlotte-Dallas-Denver-Golden State-Minnesota-Philadelphia, 7/6/2024]"
+    },
+    {
+     "protection": "1-5",
+     "year": 2030,
+     "round": 1,
+     "status": "conditional",
+     "teams": [
+      "OKC"
+     ],
+     "note": "rollover: carries over from 2029 if not conveyed",
+     "detail": "Only if and at least two years after Denver conveys a first potential 1st round pick to Oklahoma City, then Denver's next potential 1st round pick to Oklahoma City protected for selections 1-5 in 2029 and 1-5 in 2030; if Denver has not conveyed this next potential 1st round pick to Oklahoma City by 2030, then Denver will instead convey its 2030 2nd round pick to Oklahoma City (if the 1st round pick is conveyed, then Oklahoma City will still receive the 2nd round pick via Charlotte); Oklahoma City may convey the 2nd round pick to Memphis (see Oklahoma City Incoming) [Denver-Indiana-L.A. Lakers-Oklahoma City, 6/23/2023]",
+     "derived": true
     },
     {
      "year": 2030,
@@ -1408,6 +1518,18 @@ window.NBA_DRAFT_PICKS = {
      "protection": "56-60",
      "note": "Detroit, Charlotte, L.A. Clippers, Miami or New York outgoing, connects from incoming picks to Detroit, overlaps with another outgoing pick from Detroit",
      "detail": "Utah will receive the least / less favorable of (i) Detroit's 2028 2nd round pick protected for selections 56-60, (ii) the less favorable of Charlotte's 2028 2nd round pick and the L.A. Clippers' 2028 2nd round pick, (iii) Miami's 2028 2nd round pick round pick, conveyable if Dallas conveys a 1st round pick to Charlotte in 2027, and (iv) New York's 2028 2nd round pick (via Charlotte to Dallas; via Miami to San Antonio to Dallas) [Miami-San Antonio, 2/7/2023; Charlotte-L.A. Clippers, 2/9/2023; Boston-Dallas-San Antonio, 7/12/2023; Charlotte-Dallas, 2/8/2024; Detroit-New York, 2/8/2024; Dallas-Detroit, 7/6/2024; Detroit-Golden State-Miami-Toronto-Utah, 2/6/2025]"
+    },
+    {
+     "year": 2029,
+     "round": 2,
+     "status": "swap",
+     "teams": [
+      "CHI"
+     ],
+     "protection": "",
+     "note": "swap chain: two most favorable of these and Detroit, Detroit outgoing to Chicago",
+     "detail": "Detroit will receive the two most favorable of its 2029 2nd round pick, Milwaukee's 2029 2nd round pick and New York's 2029 2nd round pick and Chicago will receive the least favorable of the three (via Milwaukee to Brooklyn to Detroit; via New York to Detroit; via Detroit to Memphis; via Memphis to Detroit; via Sacramento to Chicago) [Brooklyn-Indiana-Milwaukee-Phoenix, 2/9/2023; Brooklyn-Detroit, 7/6/2023; Detroit-New York, 2/8/2024; Detroit-Sacramento, 7/7/2025; Chicago-Cleveland-Sacramento, 2/1/2026; Detroit-Memphis, 6/24/2026; Dallas-Detroit-L.A. Clippers-Memphis-Milwaukee-Washington, 7/8/2026]",
+     "derived": true
     },
     {
      "year": 2031,
@@ -1542,6 +1664,18 @@ window.NBA_DRAFT_PICKS = {
      "detail": "Golden State's 2030 1st round pick to Memphis protected for selections 1-20; if this pick falls within its protected range and is therefore not conveyed, then Golden State will instead convey its 2030 2nd round pick to Memphis (via Washington to Dallas) [Golden State-Washington, 7/6/2023; Dallas-Washington, 2/5/2026; Dallas-Detroit-L.A. Clippers-Memphis-Milwaukee-Washington, 7/8/2026]"
     },
     {
+     "protection": "",
+     "year": 2030,
+     "round": 2,
+     "status": "conditional",
+     "teams": [
+      "MEM"
+     ],
+     "note": "fallback: conveyed only if an earlier obligation is not met",
+     "detail": "Golden State's 2030 1st round pick to Memphis protected for selections 1-20; if this pick falls within its protected range and is therefore not conveyed, then Golden State will instead convey its 2030 2nd round pick to Memphis (via Washington to Dallas) [Golden State-Washington, 7/6/2023; Dallas-Washington, 2/5/2026; Dallas-Detroit-L.A. Clippers-Memphis-Milwaukee-Washington, 7/8/2026]",
+     "derived": true
+    },
+    {
      "year": 2031,
      "round": 2,
      "status": "conditional",
@@ -1571,6 +1705,18 @@ window.NBA_DRAFT_PICKS = {
    "outgoing": [
     {
      "year": 2027,
+     "round": 1,
+     "status": "swap",
+     "teams": [
+      "BKN"
+     ],
+     "protection": "",
+     "note": "swap chain: swap, Houston outgoing",
+     "detail": "Houston has the right to swap its 2027 1st round pick for Brooklyn's 2027 1st round pick [Brooklyn-Cleveland-Houston-Indiana, 1/16/2021]",
+     "derived": true
+    },
+    {
+     "year": 2027,
      "round": 2,
      "status": "conditional",
      "teams": [
@@ -1594,6 +1740,18 @@ window.NBA_DRAFT_PICKS = {
      "protection": "",
      "note": "",
      "detail": "Houston's 2028 2nd round pick to Charlotte [Charlotte-Houston, 7/6/2026]"
+    },
+    {
+     "year": 2029,
+     "round": 1,
+     "status": "swap",
+     "teams": [
+      "BKN"
+     ],
+     "protection": "",
+     "note": "swap chain: two most favorable of these and Houston, Houston outgoing to Brooklyn",
+     "detail": "Houston will receive the two most favorable of its 2029 1st round pick, Dallas' 2029 1st round pick and Phoenix's 2029 1st round pick and Brooklyn will receive the least favorable of the three (via Dallas and Phoenix to Brooklyn; via Dallas or Phoenix to Houston; via Houston's right to swap for Dallas or Phoenix) [Brooklyn-Dallas, 2/6/2023; Brooklyn-Indiana-Milwaukee-Phoenix, 2/9/2023; Brooklyn-Houston, 6/26/2024]",
+     "derived": true
     },
     {
      "year": 2029,
@@ -1731,6 +1889,19 @@ window.NBA_DRAFT_PICKS = {
      "detail": "Philadelphia will receive the most favorable of Oklahoma City's 2027 2nd round pick, Houston's 2027 2nd round pick, Indiana's 2027 2nd round pick and Miami's 2027 2nd round pick and New Orleans will receive the second most favorable and New York will receive the third most favorable of the four; San Antonio will receive the more favorable of (i) its 2027 2nd round pick and (ii) the least favorable of the Oklahoma City pick, the Houston pick, the Indiana pick and the Miami pick and Miami will receive the least favorable of the five; Philadelphia may convey this pick to Washington (see Philadelphia Outgoing) (via Houston to Detroit to Oklahoma City to New York to New Orleans; via Indiana and Miami to Oklahoma City to Utah to San Antonio to Miami; via Oklahoma City to Philadelphia) [Detroit-Houston, 11/24/2020; Detroit-Oklahoma City, 3/13/2021; Indiana-Oklahoma City, 11/25/2020; Miami-Oklahoma City, 3/17/2021; Oklahoma City-Utah, 7/30/2021; Portland-San Antonio-Utah, 2/9/2022; Cleveland-Miami-San Antonio, 7/6/2023; New York-Oklahoma City, 6/27/2024; Oklahoma City-Philadelphia, 2/4/2026; New Orleans-New York, 2/5/2026]"
     },
     {
+     "year": 2028,
+     "round": 2,
+     "status": "swap",
+     "teams": [
+      "CHI",
+      "NYK"
+     ],
+     "protection": "",
+     "note": "swap chain: Indiana outgoing to Chicago or New York",
+     "detail": "Chicago will receive the most favorable of its 2028 2nd round pick, Indiana's 2028 2nd round pick and Phoenix's 2028 2nd round pick; Indiana will receive the less favorable of (i) the more favorable of its pick and and the Phoenix pick and (ii) the Chicago pick; New York will receive the less favorable of the Indiana pick and the Phoenix pick (via Phoenix to Indiana; via Chicago's right to swap for Indiana or Phoenix) [Indiana-Phoenix-Washington, 6/23/2023; Indiana-New York, 7/7/2023; Chicago-Indiana, 6/24/2026]",
+     "derived": true
+    },
+    {
      "year": 2029,
      "round": 1,
      "status": "forfeited",
@@ -1740,6 +1911,18 @@ window.NBA_DRAFT_PICKS = {
      "protection": "",
      "note": "",
      "detail": "Forfeited by L.A. Clippers: Indiana's 2029 1st round pick to L.A. Clippers [Indiana-L.A. Clippers, 2/5/2026; NBA ruling, 9/2/2026]"
+    },
+    {
+     "year": 2029,
+     "round": 2,
+     "status": "swap",
+     "teams": [
+      "POR"
+     ],
+     "protection": "",
+     "note": "swap chain: effectively a swap, Indiana outgoing to Portland",
+     "detail": "Indiana will receive the more favorable of its 2029 2nd round pick and Washington's 2029 2nd round pick and Portland will receive the less favorable of the two (via Indiana to New York) [Indiana-Phoenix-Washington, 6/23/2023; Indiana-New York, 7/7/2023; New York-Portland, 6/27/2024]",
+     "derived": true
     },
     {
      "year": 2030,
@@ -1804,6 +1987,19 @@ window.NBA_DRAFT_PICKS = {
   },
   "LAC": {
    "outgoing": [
+    {
+     "year": 2027,
+     "round": 1,
+     "status": "swap",
+     "teams": [
+      "OKC",
+      "TOR"
+     ],
+     "protection": "",
+     "note": "swap chain: L.A. Clippers outgoing to Oklahoma City or Toronto",
+     "detail": "Oklahoma City has the right to swap its 2027 1st round pick or Denver's 2027 1st round pick protected for selections 1-5 for the L.A. Clippers' 2027 1st round pick; the L.A. Clippers then have the right to swap their pick, the Oklahoma City pick or the Denver pick for Toronto's 2027 1st round pick [Denver-Oklahoma City, 6/23/2022; L.A. Clippers-Oklahoma City-Philadelphia, 11/1/2023; L.A. Clippers-Toronto, 9/14/2026]",
+     "derived": true
+    },
     {
      "year": 2027,
      "round": 2,
@@ -2189,6 +2385,18 @@ window.NBA_DRAFT_PICKS = {
     },
     {
      "year": 2029,
+     "round": 1,
+     "status": "swap",
+     "teams": [
+      "ORL"
+     ],
+     "protection": "",
+     "note": "swap chain: Memphis outgoing",
+     "detail": "Memphis has the right to swap its 2029 1st round pick for Orlando's 2029 1st round pick protected for selections 1-2; if this pick falls within its protected range and is therefore not conveyable, then Orlando will instead convey its 2029 2nd round pick to Memphis [Memphis-Orlando, 6/15/2025]",
+     "derived": true
+    },
+    {
+     "year": 2029,
      "round": 2,
      "status": "traded",
      "teams": [
@@ -2200,6 +2408,18 @@ window.NBA_DRAFT_PICKS = {
     },
     {
      "year": 2030,
+     "round": 1,
+     "status": "swap",
+     "teams": [
+      "PHX"
+     ],
+     "protection": "",
+     "note": "swap chain: less favorable, swap, Memphis outgoing to Phoenix",
+     "detail": "Washington will receive the more favorable of its 2030 1st round pick and Phoenix's 2030 1st round pick; Memphis will receive the more favorable of (i) its 2030 1st round pick and (ii) the less favorable of the Washington pick and the Phoenix pick and Phoenix will receive the least favorable of the three (via Washington's right swap for Phoenix; via Memphis' right to swap for Washington or Phoenix) [Indiana-Phoenix-Washington, 6/23/2023; Memphis-Phoenix, 7/11/2023]",
+     "derived": true
+    },
+    {
+     "year": 2030,
      "round": 2,
      "status": "protected",
      "teams": [
@@ -2208,6 +2428,31 @@ window.NBA_DRAFT_PICKS = {
      "protection": "31-50",
      "note": "",
      "detail": "Memphis' 2030 2nd round pick to Minnesota protected for selections 31-50 (if this pick falls within its protected range and is therefore not conveyed, then Memphis' obligation to Minnesota will be extinguished) [Detroit-Memphis-Minnesota-Toronto, 7/6/2024]"
+    },
+    {
+     "year": 2031,
+     "round": 2,
+     "status": "swap",
+     "teams": [
+      "IND"
+     ],
+     "protection": "",
+     "note": "swap chain: less favorable, swap, Memphis outgoing to Indiana",
+     "detail": "Washington will receive the more favorable of Indiana's 2031 2nd round pick and Miami's 2031 2nd round pick; Memphis will receive the more favorable of (i) its 2031 2nd round pick and (ii) the less favorable of the Indiana pick and the Miami pick and Indiana will receive the least favorable of the three (via Miami's right to swap for Indiana; via Utah to Washington; via Memphis' right to swap for Miami or Indiana) [Indiana-Miami, 12/15/2024; Detroit-Golden State-Miami-Utah, 2/6/2025; Utah-Washington, 6/25/2025; Indiana-Memphis, 7/6/2025]",
+     "derived": true
+    },
+    {
+     "year": 2032,
+     "round": 2,
+     "status": "swap",
+     "teams": [
+      "PHI",
+      "WAS"
+     ],
+     "protection": "",
+     "note": "swap chain: most favorable of these and Memphis, swap, Memphis outgoing to Philadelphia or Washington",
+     "detail": "Memphis will receive the most favorable of its 2032 2nd round pick, Philadelphia's 2032 2nd round pick and Utah's 2032 2nd round pick and Washington will receive the less favorable of (ii) the more favorable of the Memphis pick and the Philadelphia pick and (ii) the Utah pick; Philadelphia will receive the less favorable of its pick and the Memphis pick (via Memphis' right to swap for Philadelphia; via Utah to Washington; via Memphis' right to swap Memphis or Philadelphia for Utah) [Utah-Washington, 6/25/2025; Memphis-Philadelphia, 2/5/2026; Dallas-Detroit-L.A. Clippers-Memphis-Milwaukee-Washington, 7/8/2026]",
+     "derived": true
     }
    ],
    "incoming": [
@@ -2234,6 +2479,18 @@ window.NBA_DRAFT_PICKS = {
      "protection": "1-4",
      "note": "",
      "detail": "L.A. Lakers' 2027 1st round pick to Memphis protected for selections 1-4; if this pick falls within its protected range and is therefore not conveyed, then the L.A. Lakers will instead convey their 2027 2nd round pick to Memphis (via Utah) [L.A. Lakers-Minnesota-Utah, 2/9/2023; Memphis-Utah, 2/3/2026]"
+    },
+    {
+     "protection": "",
+     "year": 2027,
+     "round": 2,
+     "status": "conditional",
+     "teams": [
+      "LAL"
+     ],
+     "note": "fallback: conveyed only if an earlier obligation is not met",
+     "detail": "L.A. Lakers' 2027 1st round pick to Memphis protected for selections 1-4; if this pick falls within its protected range and is therefore not conveyed, then the L.A. Lakers will instead convey their 2027 2nd round pick to Memphis (via Utah) [L.A. Lakers-Minnesota-Utah, 2/9/2023; Memphis-Utah, 2/3/2026]",
+     "derived": true
     },
     {
      "year": 2029,
@@ -2424,6 +2681,18 @@ window.NBA_DRAFT_PICKS = {
      "detail": "Philadelphia will receive the most favorable of Oklahoma City's 2027 2nd round pick, Houston's 2027 2nd round pick, Indiana's 2027 2nd round pick and Miami's 2027 2nd round pick and New Orleans will receive the second most favorable and New York will receive the third most favorable of the four; San Antonio will receive the more favorable of (i) its 2027 2nd round pick and (ii) the least favorable of the Oklahoma City pick, the Houston pick, the Indiana pick and the Miami pick and Miami will receive the least favorable of the five; Philadelphia may convey this pick to Washington (see Philadelphia Outgoing) (via Houston to Detroit to Oklahoma City to New York to New Orleans; via Indiana and Miami to Oklahoma City to Utah to San Antonio to Miami; via Oklahoma City to Philadelphia) [Detroit-Houston, 11/24/2020; Detroit-Oklahoma City, 3/13/2021; Indiana-Oklahoma City, 11/25/2020; Miami-Oklahoma City, 3/17/2021; Oklahoma City-Utah, 7/30/2021; Portland-San Antonio-Utah, 2/9/2022; Cleveland-Miami-San Antonio, 7/6/2023; New York-Oklahoma City, 6/27/2024; Oklahoma City-Philadelphia, 2/4/2026; New Orleans-New York, 2/5/2026]"
     },
     {
+     "protection": "",
+     "year": 2028,
+     "round": 1,
+     "status": "conditional",
+     "teams": [
+      "CHA"
+     ],
+     "note": "rollover: carries over from 2027 if not conveyed",
+     "detail": "Miami's 1st round pick to Charlotte protected for selections 1-14 in 2027 and unprotected in 2028 [Charlotte-Miami, 1/23/2024]",
+     "derived": true
+    },
+    {
      "year": 2028,
      "round": 2,
      "status": "conditional",
@@ -2590,6 +2859,19 @@ window.NBA_DRAFT_PICKS = {
      "protection": "",
      "note": "",
      "detail": "Detroit will receive the two most favorable of its 2029 2nd round pick, Milwaukee's 2029 2nd round pick and New York's 2029 2nd round pick and Chicago will receive the least favorable of the three (via Milwaukee to Brooklyn to Detroit; via New York to Detroit; via Detroit to Memphis; via Memphis to Detroit; via Sacramento to Chicago) [Brooklyn-Indiana-Milwaukee-Phoenix, 2/9/2023; Brooklyn-Detroit, 7/6/2023; Detroit-New York, 2/8/2024; Detroit-Sacramento, 7/7/2025; Chicago-Cleveland-Sacramento, 2/1/2026; Detroit-Memphis, 6/24/2026; Dallas-Detroit-L.A. Clippers-Memphis-Milwaukee-Washington, 7/8/2026]"
+    },
+    {
+     "year": 2030,
+     "round": 1,
+     "status": "swap",
+     "teams": [
+      "POR",
+      "MIA"
+     ],
+     "protection": "",
+     "note": "swap chain: Milwaukee outgoing to Portland or Miami",
+     "detail": "Portland has the right to swap its 2030 1st round pick for Milwaukee's 2030 1st round pick; Milwaukee then has the right to swap the less favorable of its pick and the Portland pick for Miami's 2030 1st round pick [Milwaukee-Phoenix-Portland, 9/27/2023; Miami-Milwaukee, 7/6/2026]",
+     "derived": true
     },
     {
      "year": 2030,
@@ -2875,6 +3157,18 @@ window.NBA_DRAFT_PICKS = {
   },
   "NOP": {
    "outgoing": [
+    {
+     "year": 2027,
+     "round": 1,
+     "status": "swap",
+     "teams": [
+      "ATL"
+     ],
+     "protection": "",
+     "note": "swap chain: New Orleans outgoing to Atlanta",
+     "detail": "New Orleans will receive the more favorable of its 2027 1st round pick and Milwaukee's 2027 1st round pick and Atlanta will receive the less favorable of the two protected for selections 1-4; if this pick falls within its protected range and is therefore not conveyable, then New Orleans' obligation to Atlanta will be extinguished and New Orleans will instead receive both picks (via New Orleans) [Denver-Milwaukee-New Orleans-Oklahoma City, 11/23/2020; Atlanta-New Orleans, 7/6/2024]",
+     "derived": true
+    },
     {
      "year": 2027,
      "round": 2,
@@ -3174,6 +3468,19 @@ window.NBA_DRAFT_PICKS = {
    "outgoing": [
     {
      "year": 2027,
+     "round": 1,
+     "status": "swap",
+     "teams": [
+      "LAC",
+      "TOR"
+     ],
+     "protection": "",
+     "note": "swap chain: Oklahoma City or Denver outgoing to L.A. Clippers or Toronto, connects from another incoming pick to Oklahoma City",
+     "detail": "Oklahoma City has the right to swap its 2027 1st round pick or Denver's 2027 1st round pick protected for selections 1-5 for the L.A. Clippers' 2027 1st round pick; the L.A. Clippers then have the right to swap their pick, the Oklahoma City pick or the Denver pick for Toronto's 2027 1st round pick [Denver-Oklahoma City, 6/23/2022; L.A. Clippers-Oklahoma City-Philadelphia, 11/1/2023; L.A. Clippers-Toronto, 9/14/2026]",
+     "derived": true
+    },
+    {
+     "year": 2027,
      "round": 2,
      "status": "conditional",
      "teams": [
@@ -3186,6 +3493,18 @@ window.NBA_DRAFT_PICKS = {
      "protection": "",
      "note": "",
      "detail": "Philadelphia will receive the most favorable of Oklahoma City's 2027 2nd round pick, Houston's 2027 2nd round pick, Indiana's 2027 2nd round pick and Miami's 2027 2nd round pick and New Orleans will receive the second most favorable and New York will receive the third most favorable of the four; San Antonio will receive the more favorable of (i) its 2027 2nd round pick and (ii) the least favorable of the Oklahoma City pick, the Houston pick, the Indiana pick and the Miami pick and Miami will receive the least favorable of the five; Philadelphia may convey this pick to Washington (see Philadelphia Outgoing) (via Houston to Detroit to Oklahoma City to New York to New Orleans; via Indiana and Miami to Oklahoma City to Utah to San Antonio to Miami; via Oklahoma City to Philadelphia) [Detroit-Houston, 11/24/2020; Detroit-Oklahoma City, 3/13/2021; Indiana-Oklahoma City, 11/25/2020; Miami-Oklahoma City, 3/17/2021; Oklahoma City-Utah, 7/30/2021; Portland-San Antonio-Utah, 2/9/2022; Cleveland-Miami-San Antonio, 7/6/2023; New York-Oklahoma City, 6/27/2024; Oklahoma City-Philadelphia, 2/4/2026; New Orleans-New York, 2/5/2026]"
+    },
+    {
+     "year": 2028,
+     "round": 1,
+     "status": "swap",
+     "teams": [
+      "DAL"
+     ],
+     "protection": "",
+     "note": "swap chain: swap, Oklahoma City outgoing",
+     "detail": "Oklahoma City has the right to swap its 2028 1st round pick for Dallas' 2028 1st round pick [Dallas-Oklahoma City, 2/8/2024]",
+     "derived": true
     },
     {
      "year": 2028,
@@ -3226,7 +3545,7 @@ window.NBA_DRAFT_PICKS = {
     {
      "year": 2027,
      "round": 1,
-     "status": "protected",
+     "status": "acquired",
      "teams": [
       "SAS"
      ],
@@ -3311,6 +3630,18 @@ window.NBA_DRAFT_PICKS = {
      "protection": "",
      "note": "less favorable",
      "detail": "Charlotte will receive the more favorable of Atlanta's 2029 2nd round pick and Miami's 2029 2nd round pick and Oklahoma City will receive the less favorable of the two (via Oklahoma City) [Atlanta-Oklahoma City, 9/27/2022; Miami-Oklahoma City, 7/6/2023; Charlotte-Oklahoma City, 2/4/2026]"
+    },
+    {
+     "protection": "1-5",
+     "year": 2030,
+     "round": 1,
+     "status": "conditional",
+     "teams": [
+      "DEN"
+     ],
+     "note": "rollover: carries over from 2029 if not conveyed",
+     "detail": "Only if and at least two years after Denver conveys a first potential 1st round pick to Oklahoma City, then Denver's next potential 1st round pick to Oklahoma City protected for selections 1-5 in 2029 and 1-5 in 2030; if Denver has not conveyed this next potential 1st round pick to Oklahoma City by 2030, then Denver will instead convey its 2030 2nd round pick to Oklahoma City (if the 1st round pick is conveyed, then Oklahoma City will still receive the 2nd round pick via Charlotte); Oklahoma City may convey the 2nd round pick to Memphis (see Oklahoma City Incoming) [Denver-Indiana-L.A. Lakers-Oklahoma City, 6/23/2023]",
+     "derived": true
     },
     {
      "year": 2030,
@@ -3454,6 +3785,18 @@ window.NBA_DRAFT_PICKS = {
      "detail": "Memphis has the right to swap its 2029 1st round pick for Orlando's 2029 1st round pick protected for selections 1-2; if this pick falls within its protected range and is therefore not conveyable, then Orlando will instead convey its 2029 2nd round pick to Memphis [Memphis-Orlando, 6/15/2025]"
     },
     {
+     "protection": "",
+     "year": 2029,
+     "round": 2,
+     "status": "conditional",
+     "teams": [
+      "MEM"
+     ],
+     "note": "fallback: conveyed only if an earlier obligation is not met",
+     "detail": "Memphis has the right to swap its 2029 1st round pick for Orlando's 2029 1st round pick protected for selections 1-2; if this pick falls within its protected range and is therefore not conveyable, then Orlando will instead convey its 2029 2nd round pick to Memphis [Memphis-Orlando, 6/15/2025]",
+     "derived": true
+    },
+    {
      "year": 2030,
      "round": 1,
      "status": "traded",
@@ -3463,6 +3806,30 @@ window.NBA_DRAFT_PICKS = {
      "protection": "",
      "note": "",
      "detail": "Orlando's 2030 1st round pick to Memphis [Memphis-Orlando, 6/15/2025]"
+    },
+    {
+     "year": 2030,
+     "round": 2,
+     "status": "swap",
+     "teams": [
+      "NOP"
+     ],
+     "protection": "",
+     "note": "swap chain: swap, Orlando outgoing",
+     "detail": "Orlando has the right to swap its 2030 2nd round pick for New Orleans' 2030 2nd round pick [New Orleans-Orlando, 6/27/2024]",
+     "derived": true
+    },
+    {
+     "year": 2031,
+     "round": 2,
+     "status": "swap",
+     "teams": [
+      "OKC"
+     ],
+     "protection": "",
+     "note": "swap chain: swap, Orlando outgoing to Oklahoma City",
+     "detail": "Orlando will receive the more favorable of its 2031 2nd round pick and New Orleans' 2031 2nd round pick and Oklahoma City will receive the less favorable of the two (via Orlando's right to swap for New Orleans) [New Orleans-Orlando, 6/27/2024; New Orleans-Oklahoma City, 2/5/2025]",
+     "derived": true
     }
    ],
    "incoming": [
@@ -3518,7 +3885,7 @@ window.NBA_DRAFT_PICKS = {
     {
      "year": 2027,
      "round": 2,
-     "status": "traded",
+     "status": "conditional",
      "teams": [
       "WAS"
      ],
@@ -3547,6 +3914,30 @@ window.NBA_DRAFT_PICKS = {
      "protection": "1-8",
      "note": "overlaps with another outgoing pick from Philadelphia",
      "detail": "Philadelphia's 2028 1st round pick to Brooklyn protected for selections 1-8; if this pick falls within its protected range and is therefore not conveyed, then Philadelphia will instead convey its 2028 2nd round pick to Brooklyn; Brooklyn may convey the 1st round pick to Phoenix (see Brooklyn Incoming) which may then convey this pick to Washington (see Phoenix Outgoing) [Brooklyn-Philadelphia, 2/10/2022]"
+    },
+    {
+     "protection": "",
+     "year": 2028,
+     "round": 2,
+     "status": "conditional",
+     "teams": [
+      "BKN"
+     ],
+     "note": "fallback: conveyed only if an earlier obligation is not met",
+     "detail": "Philadelphia's 2028 1st round pick to Brooklyn protected for selections 1-8; if this pick falls within its protected range and is therefore not conveyed, then Philadelphia will instead convey its 2028 2nd round pick to Brooklyn; Brooklyn may convey the 1st round pick to Phoenix (see Brooklyn Incoming) which may then convey this pick to Washington (see Phoenix Outgoing) [Brooklyn-Philadelphia, 2/10/2022]",
+     "derived": true
+    },
+    {
+     "year": 2029,
+     "round": 1,
+     "status": "swap",
+     "teams": [
+      "LAC"
+     ],
+     "protection": "",
+     "note": "swap chain: Philadelphia outgoing",
+     "detail": "Philadelphia has the right to swap its 2029 1st round pick for the L.A. Clippers' 2029 1st round pick protected for selections 1-3 (if this pick falls within its protected range and is therefore not conveyable, then the L.A. Clippers' obligation to Philadelphia will be extinguished) [L.A. Clippers-Oklahoma City-Philadelphia, 11/1/2023]",
+     "derived": true
     },
     {
      "year": 2030,
@@ -3895,13 +4286,38 @@ window.NBA_DRAFT_PICKS = {
     {
      "year": 2027,
      "round": 2,
-     "status": "traded",
+     "status": "conditional",
      "teams": [
       "HOU"
      ],
      "protection": "",
      "note": "Portland or New Orleans outgoing, connects from another outgoing pick from Portland",
      "detail": "Houston will receive the less favorable of Portland's 2027 2nd round pick and New Orleans' 2027 2nd round pick if this pick falls outside its protected range of 31-55 (if this pick falls within its protected range and is therefore not conveyed, then Portland's obligation to Houston will be extinguished) (via Portland to Boston) [New Orleans-Portland, 2/8/2022; Charlotte-Philadelphia-Portland-New York, 2/9/2023; Boston-Portland, 2/8/2024; Boston-Houston, 2/6/2025]"
+    },
+    {
+     "year": 2028,
+     "round": 1,
+     "status": "swap",
+     "teams": [
+      "MIL",
+      "WAS"
+     ],
+     "protection": "",
+     "note": "swap chain: swap, Portland outgoing to Milwaukee or Washington",
+     "detail": "Portland will receive the more favorable of its 2028 1st round pick and Milwaukee's 2028 1st round pick; Washington will receive the more favorable of (i) the more favorable of (a) its 2028 1st round pick and (b) the least / less favorable of Brooklyn's 2028 1st round pick, Philadelphia's 2028 1st round pick protected for selections 1-8 and Phoenix's 2028 1st round pick and (ii) the less favorable of the Milwaukee pick and the Portland pick and Milwaukee will receive the less favorable of (i) and (ii) (via Portland's right to swap for Milwaukee; via Washington's right to swap Washington, Brooklyn, Philadelphia or Phoenix for Milwaukee or Portland) [Milwaukee-Phoenix-Portland, 9/27/2023; Milwaukee-New York-Washington, 2/6/2025]",
+     "derived": true
+    },
+    {
+     "year": 2029,
+     "round": 1,
+     "status": "swap",
+     "teams": [
+      "WAS"
+     ],
+     "protection": "",
+     "note": "swap chain: most and least favorable of these and Portland, Portland outgoing to Washington",
+     "detail": "Portland will receive the most and least favorable of its 2029 1st round pick, Boston's 2029 1st round pick and Milwaukee's 2029 1st round pick and Washington will receive the second most favorable of the three (via Boston to Portland; via Milwaukee to Portland; via Portland to Washington) [Milwaukee-Phoenix-Portland, 9/27/2023; Boston-Portland, 10/1/2023; Portland-Washington, 7/6/2024]",
+     "derived": true
     },
     {
      "year": 2029,
@@ -3913,6 +4329,19 @@ window.NBA_DRAFT_PICKS = {
      "protection": "",
      "note": "",
      "detail": "Portland's 2029 2nd round pick to Memphis (via Philadelphia to Indiana) [Charlotte-Philadelphia-Portland-New York, 2/9/2023; Indiana-Philadelphia-San Antonio, 2/8/2024; Indiana-Memphis, 7/6/2025]"
+    },
+    {
+     "year": 2030,
+     "round": 1,
+     "status": "swap",
+     "teams": [
+      "MIL",
+      "MIA"
+     ],
+     "protection": "",
+     "note": "swap chain: swap, Portland outgoing to Milwaukee or Miami",
+     "detail": "Portland has the right to swap its 2030 1st round pick for Milwaukee's 2030 1st round pick; Milwaukee then has the right to swap the less favorable of its pick and the Portland pick for Miami's 2030 1st round pick [Milwaukee-Phoenix-Portland, 9/27/2023; Miami-Milwaukee, 7/6/2026]",
+     "derived": true
     },
     {
      "year": 2030,
@@ -4013,6 +4442,18 @@ window.NBA_DRAFT_PICKS = {
   "SAC": {
    "outgoing": [
     {
+     "protection": "",
+     "year": 2027,
+     "round": 2,
+     "status": "conditional",
+     "teams": [
+      "OKC"
+     ],
+     "note": "fallback: conveyed only if an earlier obligation is not met",
+     "detail": "San Antonio's 2027 1st round pick to Sacramento protected for selections 17-30 or to Oklahoma City protected for selections 1-16; if this pick falls within its protected range of 1-16, then Sacramento will instead convey its 2027 2nd round pick and Charlotte's 2027 2nd round pick to Oklahoma City (San Antonio's obligation to Oklahoma City and Sacramento will thereafter be extinguished) (via San Antonio unprotected to Sacramento) [Chicago-Sacramento-San Antonio, 2/3/2025; Oklahoma City-Sacramento, 6/25/2025]",
+     "derived": true
+    },
+    {
      "year": 2028,
      "round": 2,
      "status": "traded",
@@ -4094,7 +4535,7 @@ window.NBA_DRAFT_PICKS = {
     {
      "year": 2027,
      "round": 1,
-     "status": "protected",
+     "status": "acquired",
      "teams": [
       "SAS"
      ],
@@ -4131,7 +4572,7 @@ window.NBA_DRAFT_PICKS = {
     {
      "year": 2027,
      "round": 1,
-     "status": "protected",
+     "status": "traded",
      "teams": [
       "SAC",
       "OKC"
@@ -4139,6 +4580,55 @@ window.NBA_DRAFT_PICKS = {
      "protection": "17-30",
      "note": "",
      "detail": "San Antonio's 2027 1st round pick to Sacramento protected for selections 17-30 or to Oklahoma City protected for selections 1-16; if this pick falls within its protected range of 1-16, then Sacramento will instead convey its 2027 2nd round pick and Charlotte's 2027 2nd round pick to Oklahoma City (San Antonio's obligation to Oklahoma City and Sacramento will thereafter be extinguished) (via San Antonio unprotected to Sacramento) [Chicago-Sacramento-San Antonio, 2/3/2025; Oklahoma City-Sacramento, 6/25/2025]"
+    },
+    {
+     "year": 2027,
+     "round": 2,
+     "status": "swap",
+     "teams": [
+      "MIA"
+     ],
+     "protection": "",
+     "note": "swap chain: least favorable, effectively a swap, San Antonio outgoing to Miami",
+     "detail": "Philadelphia will receive the most favorable of Oklahoma City's 2027 2nd round pick, Houston's 2027 2nd round pick, Indiana's 2027 2nd round pick and Miami's 2027 2nd round pick and New Orleans will receive the second most favorable and New York will receive the third most favorable of the four; San Antonio will receive the more favorable of (i) its 2027 2nd round pick and (ii) the least favorable of the Oklahoma City pick, the Houston pick, the Indiana pick and the Miami pick and Miami will receive the least favorable of the five; Philadelphia may convey this pick to Washington (see Philadelphia Outgoing) (via Houston to Detroit to Oklahoma City to New York to New Orleans; via Indiana and Miami to Oklahoma City to Utah to San Antonio to Miami; via Oklahoma City to Philadelphia) [Detroit-Houston, 11/24/2020; Detroit-Oklahoma City, 3/13/2021; Indiana-Oklahoma City, 11/25/2020; Miami-Oklahoma City, 3/17/2021; Oklahoma City-Utah, 7/30/2021; Portland-San Antonio-Utah, 2/9/2022; Cleveland-Miami-San Antonio, 7/6/2023; New York-Oklahoma City, 6/27/2024; Oklahoma City-Philadelphia, 2/4/2026; New Orleans-New York, 2/5/2026]",
+     "derived": true
+    },
+    {
+     "year": 2028,
+     "round": 1,
+     "status": "swap",
+     "teams": [
+      "BOS"
+     ],
+     "protection": "",
+     "note": "swap chain: San Antonio outgoing",
+     "detail": "San Antonio has the right to swap its 2028 1st round pick for Boston's 2028 1st round pick protected for selection 1; if this pick falls on its protected selection and is therefore not conveyable, then Boston will instead convey its 2028 2nd round pick to San Antonio protected for selections 46-60 (if this pick falls within its protected range and is therefore not conveyed, then Boston's obligation to San Antonio will be extinguished); Boston may convey the San Antonio 1st round pick to Philadelphia (see Boston Incoming) [Boston-San Antonio, 2/10/2022]",
+     "derived": true
+    },
+    {
+     "year": 2030,
+     "round": 1,
+     "status": "swap",
+     "teams": [
+      "DAL",
+      "MIN"
+     ],
+     "protection": "",
+     "note": "swap chain: San Antonio outgoing to Dallas or Minnesota",
+     "detail": "San Antonio will receive the most / more favorable of its 2030 1st round pick, Dallas' 2030 1st round pick and Minnesota's 2030 1st round pick protected for selection 1; Dallas will receive the less favorable of its pick and the San Antonio pick; Minnesota will receive the less favorable of (i) its pick and (ii) the more favorable of the San Antonio pick and the Dallas pick [or its pick if not conveyable]; if the Minnesota pick falls on the protected selection of 1 and is therefore not conveyable, then Minnesota's obligation to San Antonio will be extinguished and San Antonio will instead have the right to swap its pick for the Dallas pick (via San Antonio's right to swap for Dallas; via San Antonio's right to swap San Antonio or Dallas for Minnesota); Minnesota may convey the pick it receives to Charlotte via a complex swap right [Boston-Dallas-San Antonio, 7/12/2023; Minnesota-San Antonio, 6/26/2024]",
+     "derived": true
+    },
+    {
+     "year": 2031,
+     "round": 1,
+     "status": "swap",
+     "teams": [
+      "SAC"
+     ],
+     "protection": "",
+     "note": "swap chain: swap, San Antonio outgoing",
+     "detail": "San Antonio has the right to swap its 2031 1st round pick for Sacramento's 2031 1st round pick [Chicago-Sacramento-San Antonio, 7/8/2024]",
+     "derived": true
     }
    ],
    "incoming": [
@@ -4344,6 +4834,19 @@ window.NBA_DRAFT_PICKS = {
    "outgoing": [
     {
      "year": 2027,
+     "round": 1,
+     "status": "swap",
+     "teams": [
+      "MEM",
+      "PHX"
+     ],
+     "protection": "",
+     "note": "swap chain: second most favorable of these and Utah, Utah outgoing to Memphis or Phoenix",
+     "detail": "Memphis will receive the most favorable of Utah's 2027 1st round pick barred from selections 1 through 5, Cleveland's 2027 1st round pick and Minnesota's 2027 1st round pick and Utah will receive the second most favorable and Phoenix will receive the least favorable of the three (via Utah) [Minnesota-Utah, 7/6/2022; Cleveland-Utah, 9/3/2022; Phoenix-Utah, 1/21/2025; Memphis-Utah, 2/3/2026]",
+     "derived": true
+    },
+    {
+     "year": 2027,
      "round": 2,
      "status": "traded",
      "teams": [
@@ -4355,6 +4858,18 @@ window.NBA_DRAFT_PICKS = {
     },
     {
      "year": 2028,
+     "round": 1,
+     "status": "swap",
+     "teams": [
+      "LAL"
+     ],
+     "protection": "",
+     "note": "swap chain: most favorable of these and Utah, swap, Utah outgoing to L.A. Lakers, Atlanta or Cleveland",
+     "detail": "Utah will receive the most favorable of its 2028 1st round pick, Cleveland's 2028 1st round pick and the L.A. Lakers' 2028 1st round pick; the L.A. Lakers will receive the less favorable of (i) its pick and (ii) the more favorable of the Utah pick and the Cleveland pick; Atlanta will receive the more favorable of (i) its 2028 1st round pick and (ii) the less favorable of the Utah pick and the Cleveland pick and Cleveland will receive the least favorable of the three (via Utah's right to swap for Cleveland; via Utah's right to swap Utah or Cleveland for L.A. Lakers; via Atlanta's right to swap for Utah or Cleveland) [Cleveland-Utah, 9/3/2022; Atlanta-Cleveland, 2/6/2025; L.A. Lakers-Utah, 7/8/2026]",
+     "derived": true
+    },
+    {
+     "year": 2028,
      "round": 2,
      "status": "traded",
      "teams": [
@@ -4363,6 +4878,30 @@ window.NBA_DRAFT_PICKS = {
      "protection": "",
      "note": "",
      "detail": "Utah's 2028 2nd round pick to Oklahoma City [Oklahoma City-Utah, 7/30/2021; Oklahoma City-Utah, 1/4/2022]"
+    },
+    {
+     "year": 2029,
+     "round": 1,
+     "status": "swap",
+     "teams": [
+      "CHA"
+     ],
+     "protection": "",
+     "note": "swap chain: Utah outgoing to Charlotte",
+     "detail": "Utah will receive the most / two most favorable of its 2029 1st round pick, Cleveland's 2029 1st round pick and Minnesota's 2029 1st round pick protected for selections 1-5 and Charlotte will receive the least / less favorable of these; if the Minnesota pick falls within the protected range of 1-5 and is therefore not conveyable as part of this conveyance, then Minnesota will instead convey its 2029 2nd round pick to Utah; Charlotte may convey the pick it receives to Minnesota or Phoenix (see Charlotte Incoming) (via Utah to Phoenix to Charlotte) [Minnesota-Utah, 7/6/2022; Cleveland-Utah, 9/3/2022; Phoenix-Utah, 1/21/2025; Charlotte-Phoenix, 6/30/2025]",
+     "derived": true
+    },
+    {
+     "year": 2030,
+     "round": 1,
+     "status": "swap",
+     "teams": [
+      "LAL"
+     ],
+     "protection": "",
+     "note": "swap chain: swap, Utah outgoing",
+     "detail": "Utah has the right to swap its 2030 1st round pick for the L.A. Lakers' 2030 1st round pick [L.A. Lakers-Utah, 7/8/2026]",
+     "derived": true
     },
     {
      "year": 2030,
@@ -4486,6 +5025,18 @@ window.NBA_DRAFT_PICKS = {
      "detail": "Utah will receive the most / two most favorable of its 2029 1st round pick, Cleveland's 2029 1st round pick and Minnesota's 2029 1st round pick protected for selections 1-5 and Charlotte will receive the least / less favorable of these; if the Minnesota pick falls within the protected range of 1-5 and is therefore not conveyable as part of this conveyance, then Minnesota will instead convey its 2029 2nd round pick to Utah; Charlotte may convey the pick it receives to Minnesota or Phoenix (see Charlotte Incoming) (via Utah to Phoenix to Charlotte) [Minnesota-Utah, 7/6/2022; Cleveland-Utah, 9/3/2022; Phoenix-Utah, 1/21/2025; Charlotte-Phoenix, 6/30/2025]"
     },
     {
+     "protection": "",
+     "year": 2029,
+     "round": 2,
+     "status": "conditional",
+     "teams": [
+      "MIN"
+     ],
+     "note": "fallback: conveyed only if an earlier obligation is not met",
+     "detail": "Utah will receive the most / two most favorable of its 2029 1st round pick, Cleveland's 2029 1st round pick and Minnesota's 2029 1st round pick protected for selections 1-5 and Charlotte will receive the least / less favorable of these; if the Minnesota pick falls within the protected range of 1-5 and is therefore not conveyable as part of this conveyance, then Minnesota will instead convey its 2029 2nd round pick to Utah; Charlotte may convey the pick it receives to Minnesota or Phoenix (see Charlotte Incoming) (via Utah to Phoenix to Charlotte) [Minnesota-Utah, 7/6/2022; Cleveland-Utah, 9/3/2022; Phoenix-Utah, 1/21/2025; Charlotte-Phoenix, 6/30/2025]",
+     "derived": true
+    },
+    {
      "year": 2030,
      "round": 1,
      "status": "swap",
@@ -4558,6 +5109,30 @@ window.NBA_DRAFT_PICKS = {
     },
     {
      "year": 2028,
+     "round": 1,
+     "status": "swap",
+     "teams": [
+      "MIL"
+     ],
+     "protection": "",
+     "note": "swap chain: Washington, Brooklyn, Philadelphia or Phoenix outgoing to Milwaukee, connects from another incoming pick to Washington",
+     "detail": "Portland will receive the more favorable of its 2028 1st round pick and Milwaukee's 2028 1st round pick; Washington will receive the more favorable of (i) the more favorable of (a) its 2028 1st round pick and (b) the least / less favorable of Brooklyn's 2028 1st round pick, Philadelphia's 2028 1st round pick protected for selections 1-8 and Phoenix's 2028 1st round pick and (ii) the less favorable of the Milwaukee pick and the Portland pick and Milwaukee will receive the less favorable of (i) and (ii) (via Portland's right to swap for Milwaukee; via Washington's right to swap Washington, Brooklyn, Philadelphia or Phoenix for Milwaukee or Portland) [Milwaukee-Phoenix-Portland, 9/27/2023; Milwaukee-New York-Washington, 2/6/2025]",
+     "derived": true
+    },
+    {
+     "year": 2028,
+     "round": 1,
+     "status": "swap",
+     "teams": [
+      "PHX"
+     ],
+     "protection": "",
+     "note": "swap chain: Washington outgoing to Phoenix, connects to another incoming pick to Washington",
+     "detail": "If (i) Philadelphia's 2028 1st round pick protected for selections 1-8 is conveyed to Brooklyn and is the third most favorable of Philadelphia, Brooklyn's 2028 1st round pick, Phoenix's 2028 1st round pick and New York's 2028 1st round pick and (ii) New York is the most or second most favorable of the four, then Brooklyn will receive the most and third most favorable of the four; in all other scenarios, Brooklyn will receive the most / two most favorable of these; if Philadelphia if conveyed and / or New York is less favorable than Brooklyn and Phoenix, then New York will receive the least favorable of New York, Brooklyn and Phoenix; in all other scenarios, New York will receive the second most favorable of the three; Washington will receive the more favorable of (i) its 2028 1st round pick and (ii) the least / less favorable of Philadelphia if conveyed, Brooklyn and Phoenix and Phoenix will receive the less favorable of (i) and (ii); Washington may swap the pick it receives for Milwaukee or Portland (see Washington Incoming) (via Brooklyn's right to swap Brooklyn or Philadelphia for Phoenix; via Brooklyn's right to swap Brooklyn or Phoenix for New York; via Washington's right to swap for Phoenix, Brooklyn or Philadelphia) [Brooklyn-Philadelphia, 2/10/2022; Brooklyn-Indiana-Milwaukee-Phoenix, 2/9/2023; Indiana-Phoenix-Washington, 6/23/2023; Brooklyn-New York, 7/6/2024]",
+     "derived": true
+    },
+    {
+     "year": 2028,
      "round": 2,
      "status": "swap",
      "teams": [
@@ -4578,6 +5153,19 @@ window.NBA_DRAFT_PICKS = {
      "protection": "",
      "note": "",
      "detail": "Indiana will receive the more favorable of its 2029 2nd round pick and Washington's 2029 2nd round pick and Portland will receive the less favorable of the two (via Indiana to New York) [Indiana-Phoenix-Washington, 6/23/2023; Indiana-New York, 7/7/2023; New York-Portland, 6/27/2024]"
+    },
+    {
+     "year": 2030,
+     "round": 1,
+     "status": "swap",
+     "teams": [
+      "MEM",
+      "PHX"
+     ],
+     "protection": "",
+     "note": "swap chain: swap, Washington outgoing to Memphis or Phoenix",
+     "detail": "Washington will receive the more favorable of its 2030 1st round pick and Phoenix's 2030 1st round pick; Memphis will receive the more favorable of (i) its 2030 1st round pick and (ii) the less favorable of the Washington pick and the Phoenix pick and Phoenix will receive the least favorable of the three (via Washington's right swap for Phoenix; via Memphis' right to swap for Washington or Phoenix) [Indiana-Phoenix-Washington, 6/23/2023; Memphis-Phoenix, 7/11/2023]",
+     "derived": true
     },
     {
      "year": 2030,
