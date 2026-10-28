@@ -28,6 +28,15 @@
         .t-inj-status.q   { background: rgba(255,193,7,0.15); color: #ffc107; }
         .t-inj-status.d   { background: rgba(255,152,0,0.15); color: #ff9800; }
         .t-inj-status.dtd { background: rgba(122,133,163,0.15); color: var(--muted); }
+        .t-h2h-filter { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+        .t-h2h-filter button { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; color: var(--muted); font-size: 12px; font-weight: 700; padding: 5px 12px; cursor: pointer; }
+        .t-h2h-filter button.active { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+        .t-h2h-filter button:hover:not(.active) { background: var(--surface2); color: var(--text); }
+        .t-h2h-games { display: flex; gap: 4px; }
+        .t-h2h-g { font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 5px; background: var(--surface2); color: var(--text); text-decoration: none; }
+        .t-h2h-g.win { color: var(--pos); } .t-h2h-g.loss { color: var(--neg); }
+        .t-h2h-g:hover { background: var(--border); }
+        .t-h2h-kind { color: var(--muted); font-size: 11px; font-weight: 600; }
     </style>
 </head>
 <body class="theme-broadcast">
@@ -113,6 +122,21 @@
                         </div>
                         <div id="t-injuries"><div class="msg">Loading<span class="spinner"></span></div></div>
                     </div>
+                </div>
+
+                <!-- 対戦成績: 今季のレギュラーシーズンの相手ごとの成績（Schedule と同じ日程データ） -->
+                <div class="lc-block" id="t-h2h-block">
+                    <div class="section-header">
+                        <h2>Head-to-Head</h2>
+                        <span class="badge">相手チーム別</span>
+                    </div>
+                    <div class="t-h2h-filter" id="t-h2h-filter">
+                        <button data-f="all" class="active">すべて</button>
+                        <button data-f="div">同地区</button>
+                        <button data-f="conf">同カンファレンス（他地区）</button>
+                        <button data-f="other">別カンファレンス</button>
+                    </div>
+                    <div id="t-h2h-wrap"><div class="msg">Loading<span class="spinner"></span></div></div>
                 </div>
 
             </div><!-- /team-section -->
@@ -488,6 +512,7 @@ async function loadTeamScheduleFull(teamId) {
                 opponent: normAbbr(oppComp.team?.abbreviation || '?'),
                 atVs: teamComp.homeAway === 'away' ? '@' : 'vs',
                 scoreStr, result,
+                pts: hasScore ? teamScoreNum : null, oppPts: hasScore ? oppScoreNum : null,
                 isPast, isLive, completed,
                 teamId: String(teamComp.team?.id || ''),
             });
@@ -525,8 +550,10 @@ async function loadTeamScheduleFull(teamId) {
         // Ascending order (chronological)
         games.sort((a, b) => new Date(a.date) - new Date(b.date));
         renderTeamSchedule(games, wrap);
+        renderHeadToHead(games);
     } catch(e) {
         wrap.innerHTML = '<div class="msg error">Failed to load schedule</div>';
+        document.getElementById('t-h2h-wrap').innerHTML = '<div class="msg error">Failed to load schedule</div>';
         console.error('team schedule full:', e);
     }
 }
@@ -583,6 +610,63 @@ function renderTeamSchedule(games, wrap) {
         // offsetTop は一覧の外の要素が基準になることがあるので、画面上の位置の差で決める
         list.scrollTop += targetEl.getBoundingClientRect().top - list.getBoundingClientRect().top;
     }
+}
+
+/* ─── Head-to-Head: 相手チームごとの今季の成績（日程データから集計。追加の取得なし） ─── */
+const H2H_KIND = { div: '同地区', conf: '同カンファ', other: '別カンファ' };
+const H2H_ORDER = { div: 0, conf: 1, other: 2 };
+
+function renderHeadToHead(games) {
+    const wrap = document.getElementById('t-h2h-wrap');
+    const rows = NBA.teams.list.filter(t => t.abbr !== TEAM.abbr).map(t => {
+        const kind = t.div === TEAM.div ? 'div' : t.conf === TEAM.conf ? 'conf' : 'other';
+        const vs = games.filter(g => g.opponent === t.abbr);
+        const done = vs.filter(g => g.completed && g.pts != null);
+        const w = done.filter(g => g.result === 'W').length;
+        const avg = k => done.length ? done.reduce((n, g) => n + g[k], 0) / done.length : null;
+        const pts = avg('pts'), opp = avg('oppPts');
+        const next = vs.find(g => !g.completed);
+        return { abbr: t.abbr, kind, done, w, l: done.length - w,
+            pct: done.length ? w / done.length : null, pts, opp, diff: pts != null ? pts - opp : null,
+            left: vs.filter(g => !g.completed).length, next };
+    }).sort((a, b) => H2H_ORDER[a.kind] - H2H_ORDER[b.kind] || a.abbr.localeCompare(b.abbr));
+
+    const f1 = v => v == null ? '-' : v.toFixed(1);
+    const sgn = v => v == null ? '-' : (v > 0 ? '+' : '') + v.toFixed(1);
+    const cls = v => v > 0 ? 'pos' : v < 0 ? 'neg' : '';
+    const md = iso => { const d = new Date(new Date(iso).getTime() + 9 * 3600 * 1000); return `${d.getUTCMonth() + 1}/${String(d.getUTCDate()).padStart(2, '0')}`; };
+    const cols = [
+        { key: 'abbr', label: 'Opp', cls: 'l', get: r => r.abbr, asc: true },
+        { key: 'kind', label: '区分', cls: 'l', get: r => H2H_ORDER[r.kind], asc: true },
+        { key: 'pct', label: 'W-L', get: r => r.pct, title: '今季の対戦成績' },
+        { key: 'pts', label: 'PTS', get: r => r.pts, title: '対戦での平均得点' },
+        { key: 'opp', label: 'OPP', get: r => r.opp, asc: true, title: '対戦での平均失点' },
+        { key: 'diff', label: 'DIFF', get: r => r.diff, title: '平均得失点差' },
+        { key: 'games', label: 'Results', cls: 'l', sort: false, get: () => 0 },
+        { key: 'left', label: '残り', get: r => r.left, title: '今季の残りの対戦数' },
+        { key: 'next', label: 'Next', get: r => r.next ? -new Date(r.next.date) : null, title: '次の対戦日' },
+    ];
+    wrap.innerHTML = '<div class="adv-scroll"><table class="adv-table"><thead></thead><tbody></tbody></table></div>';
+    let filter = 'all';
+    const table = NBA.ui.sortable(wrap.querySelector('.adv-scroll'), {
+        rows, cols, initial: { key: 'kind', asc: true },
+        render: r => `<tr>
+            <td class="l"><a class="plain-link" href="${NBA.link.team(r.abbr)}"><b>${esc(r.abbr)}</b></a></td>
+            <td class="l t-h2h-kind">${H2H_KIND[r.kind]}</td>
+            <td>${r.done.length ? `${r.w}-${r.l}` : '-'}</td>
+            <td>${f1(r.pts)}</td><td>${f1(r.opp)}</td><td class="adv-key ${cls(r.diff)}">${sgn(r.diff)}</td>
+            <td class="l"><span class="t-h2h-games">${r.done.map(g => `<a class="t-h2h-g ${g.result === 'W' ? 'win' : 'loss'}" href="${NBA.link.game(g.eventId)}" title="${md(g.date)} ${g.atVs} ${esc(g.opponent)}">${g.result} ${g.scoreStr}</a>`).join('') || '<span class="t-h2h-kind">-</span>'}</span></td>
+            <td>${r.left}</td>
+            <td>${r.next ? `<a class="plain-link" href="${NBA.link.game(r.next.eventId)}">${md(r.next.date)} ${r.next.atVs}</a>` : '-'}</td>
+        </tr>`,
+    });
+    document.getElementById('t-h2h-filter').onclick = e => {
+        const b = e.target.closest('button[data-f]');
+        if (!b) return;
+        filter = b.dataset.f;
+        document.querySelectorAll('#t-h2h-filter button').forEach(x => x.classList.toggle('active', x === b));
+        table.set(filter === 'all' ? rows : rows.filter(r => r.kind === filter));
+    };
 }
 
 /* ═══════════════════════════════════════════════
