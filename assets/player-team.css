@@ -301,8 +301,6 @@
     top: 70px;
     max-height: calc(100vh - 86px);
     overflow-y: auto;
-    scrollbar-width: thin;
-    scrollbar-color: var(--border) transparent;
 }
 
 .lc-search { margin-bottom: 20px; }
@@ -620,12 +618,7 @@
 .t-schedule-list {
     height: 380px;
     overflow-y: auto;
-    scrollbar-width: thin;
-    scrollbar-color: var(--border) transparent;
 }
-.t-schedule-list::-webkit-scrollbar { width: 4px; }
-.t-schedule-list::-webkit-scrollbar-track { background: transparent; }
-.t-schedule-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
 /* ─── リンク（選手名・チーム名・試合） ─── */
 a.plain-link { color: inherit; text-decoration: none; }

@@ -21,6 +21,12 @@ body {
     min-height: 100vh;
 }
 
+/* ページ内のスクロールする枠（表・一覧など）は細く目立たないスクロールバーにそろえる。ページ全体のスクロールバーは標準のまま */
+body * { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+body *::-webkit-scrollbar { width: 4px; height: 4px; }
+body *::-webkit-scrollbar-track { background: transparent; }
+body *::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
 /* ─── Header ─── */
 header {
     background: linear-gradient(135deg, #0f2d6b 0%, var(--blue) 100%);
