@@ -192,6 +192,56 @@
         .fl-src span:last-child { border-radius: 0 4px 4px 0; }
         .fl-note { font-size: 11px; color: var(--muted); margin-top: 8px; }
         .fl-chip-sub { color: var(--muted); font-size: 10px; }
+        /* Timeouts（タイムアウトの前後） */
+        .to-head { position: relative; display: flex; align-items: center; gap: 6px; }
+        .to-help-btn { width: 18px; height: 18px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface2); color: var(--accent); font-size: 11px; font-weight: 800; line-height: 1; cursor: pointer; padding: 0; }
+        .to-help-btn.on { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+        /* 説明は「?」の下に浮かせて出す（下の内容は動かさない） */
+        .to-help { display: none; position: absolute; top: calc(100% + 6px); left: 0; z-index: 20; width: min(340px, calc(100vw - 24px));
+            background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; box-shadow: 0 8px 24px rgba(0,0,0,.55);
+            font-size: 11.5px; font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--text-dim); line-height: 1.65; }
+        .to-help.open { display: block; }
+        .to-help dt { font-weight: 700; color: var(--text); margin-top: 6px; }
+        .to-help dt:first-child { margin-top: 0; }
+        .to-help dd { margin: 0; }
+        .to-sum { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 8px 0 10px; }
+        .to-team { background: var(--surface-deep); border-left: 3px solid var(--c); border-radius: 0 6px 6px 0; padding: 8px 10px; }
+        .to-team h4 { font-size: 12px; margin: 0 0 6px; }
+        .to-kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+        .to-kpi { text-align: center; background: var(--surface2); border-radius: 5px; padding: 5px 2px; }
+        .to-kpi b { display: block; font-family: var(--font-score); font-size: 17px; font-weight: 600; }
+        .to-kpi span { font-size: 9.5px; color: var(--muted); font-weight: 700; }
+        .to-kpi small { display: block; font-size: 9.5px; color: var(--muted); }
+        .to-controls { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin: 6px 0 4px; }
+        .to-controls > span { font-size: 11px; color: var(--muted); }
+        .to-row { display: grid; grid-template-columns: 52px 1fr auto; gap: 4px 10px; padding: 9px 2px; border-bottom: 1px solid var(--line-soft); cursor: pointer; }
+        .to-row:hover, .to-row.open { background: var(--surface2); }
+        .to-when { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; line-height: 1.35; }
+        .to-when b { display: block; color: var(--text); font-size: 12px; }
+        .to-main { min-width: 0; font-size: 12px; line-height: 1.55; }
+        .to-who { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+        .to-team-chip { font-size: 10.5px; font-weight: 800; color: #fff; background: var(--c); border-radius: 4px; padding: 1px 6px; }
+        .to-score { font-family: var(--font-score); font-size: 13px; color: var(--text-dim); }
+        .to-why { font-size: 10.5px; font-weight: 700; border-radius: 4px; padding: 1px 6px; background: var(--surface2); color: var(--text-dim); border: 1px solid var(--border); }
+        .to-why.run { background: rgba(255,107,97,.13); color: var(--neg); border-color: transparent; }
+        .to-why.late { background: rgba(245,183,0,.14); color: var(--accent); border-color: transparent; }
+        .to-ato { color: var(--text-dim); margin-top: 2px; }
+        .to-ato .who { color: var(--muted); }
+        .to-res { font-weight: 700; }
+        .to-res.fg, .to-res.ft { color: var(--pos); }
+        .to-res.tov { color: var(--neg); }
+        .to-res.miss, .to-res.none { color: var(--muted); }
+        .to-flow { font-size: 11px; color: var(--muted); margin-top: 2px; font-variant-numeric: tabular-nums; }
+        .to-flow b { color: var(--text-dim); font-weight: 700; }
+        .to-flow .up { color: var(--pos); } .to-flow .down { color: var(--neg); }
+        .to-pts { font-family: var(--font-score); font-size: 18px; font-weight: 600; align-self: center; min-width: 30px; text-align: right; }
+        .to-pts.zero { color: var(--muted); }
+        .to-detail { grid-column: 2 / -1; display: none; font-size: 11.5px; color: var(--text-dim); background: var(--surface-deep); border-radius: 6px; padding: 6px 8px; margin: 4px 0 0; }
+        .to-row.open .to-detail { display: block; }
+        .to-detail li { list-style: none; padding: 1px 0; }
+        .to-detail li::before { content: '› '; color: var(--muted); }
+        .to-note { font-size: 11px; color: var(--muted); margin-top: 10px; line-height: 1.7; }
+        @media (max-width: 600px) { .to-sum { grid-template-columns: 1fr; } }
         /* ─── Rotation（出場時間） ─── */
         .game-wrap { --rt-name-w: 112px; --rt-stat-w: 70px; }
         .rt-controls { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; justify-content: space-between; margin: 4px 0 10px; }
@@ -334,6 +384,7 @@
 <script src="../assets/teams.js?v=2026102901"></script>
 <script src="../assets/stats.js?v=2026102901"></script>
 <script src="../assets/rotation.js?v=2026102901"></script>
+<script src="../assets/timeouts.js?v=2026103001"></script>
 <script src="../assets/ui.js?v=2026102901"></script>
 <script>
 /* ── Box Score ── */
@@ -607,6 +658,7 @@ function buildFlow(data, away, home, isOver) {
     return {
         abbr: { a: normAbbr(away.team.abbreviation), h: normAbbr(home.team.abbreviation) },
         plays, all, wp, names, periods, isOver,
+        timeouts: analyzeTimeouts(data.plays || [], id => side[id]),
         end,                                                 // 横軸の右端
         now: isOver ? end : Math.max(last.t, all.at(-1)?.t || 0), // 試合中は最新プレーまで
         winner: isOver ? (last.hs > last.as ? 'h' : 'a') : null,
@@ -830,8 +882,108 @@ function flowPanelHTML() {
         <div class="fl-legend" id="fl-legend"></div>
         <div class="fl-chart-wrap"><svg id="fl-chart"></svg><div class="fl-tip" id="fl-tip"></div></div>
         <div class="ts-group">Turning Points</div><div id="fl-tps"></div>
-        <div class="ts-group">Runs &amp; Droughts</div><div id="fl-events"></div>`;
+        <div class="ts-group">Runs &amp; Droughts</div><div id="fl-events"></div>
+        <div class="ts-group to-head">Timeouts
+            <button class="to-help-btn ${toHelpOpen ? 'on' : ''}" data-to-help aria-label="数字の説明">?</button><small>タイムアウトの前後</small>
+            <dl class="to-help ${toHelpOpen ? 'open' : ''}">
+                <dt>直後に得点（例: 3/7・43%・7点）</dt>
+                <dd>自分のタイムアウトの直後に自分たちが攻めた回数（7）のうち、得点できた回数（3）。43% はその割合、7点は得点できた攻撃で取った点の合計です。</dd>
+                <dt>ランを止めた（例: 1/1）</dt>
+                <dd>相手のランの最中に取ったタイムアウトの回数のうち、その後2分の得点が互角以上だった回数。</dd>
+                <dt>相手の直後を止めた（例: 4/8）</dt>
+                <dd>相手のタイムアウトの直後に相手が攻めてきた回数のうち、0点に抑えた回数。</dd>
+            </dl>
+        </div>
+        <div id="fl-timeouts"></div>`;
 }
+
+/* ─── Timeouts（タイムアウトの前後。計算は assets/timeouts.js） ─── */
+let toFilter = 'all', toHelpOpen = false;
+const toOther = s => s === 'a' ? 'h' : 'a';
+const toPct = (n, d) => d ? `${Math.round(n / d * 100)}%` : '-';
+
+function toSummaryHTML(list) {
+    const A = flow.abbr;
+    return `<div class="to-sum">${['a', 'h'].map(s => {
+        const o = toOther(s);
+        const mine = list.filter(t => t.side === s);
+        const own = mine.filter(t => t.ato?.off === s);           // 自分のタイムアウトの後に自分が攻めた
+        const scored = own.filter(t => t.ato.pts > 0);
+        const pts = own.reduce((n, t) => n + t.ato.pts, 0);
+        const runs = mine.filter(t => t.why.key === 'run');
+        const stopped = runs.filter(t => t.after[s] >= t.after[o]);
+        const opp = list.filter(t => t.side === o && t.ato?.off === o);   // 相手のタイムアウトの後の守備
+        const held = opp.filter(t => t.ato.pts === 0);
+        return `<div class="to-team" style="--c:${FL_HEX[s]}">
+            <h4>${A[s]} · タイムアウト ${mine.length}回</h4>
+            <div class="to-kpis">
+                <div class="to-kpi"><span>直後に得点</span><b>${scored.length}/${own.length}</b><small>${toPct(scored.length, own.length)} · ${pts}点</small></div>
+                <div class="to-kpi"><span>ランを止めた</span><b>${stopped.length}/${runs.length}</b><small>後2分で互角以上</small></div>
+                <div class="to-kpi"><span>相手の直後を止めた</span><b>${held.length}/${opp.length}</b><small>相手のTO後の守備</small></div>
+            </div></div>`;
+    }).join('')}</div>`;
+}
+
+function toRowHTML(t, i) {
+    const A = flow.abbr, s = t.side, o = toOther(s), a = t.ato;
+    // 試合中は、後2分がまだ終わっていないものを「集計中」にする
+    const afterDone = flow.isOver || t.t + TO_WINDOW <= flow.now;
+    const net = t.after[s] - t.after[o];
+    let ato = '<span class="who">直後の攻撃なし</span>';
+    if (a) {
+        const bits = [a.zone && a.result.key !== 'tov' ? a.zone : '', a.assisted ? 'アシスト' : '', a.oreb ? 'オフェンスリバウンドから' : '',
+            a.secs != null ? `${a.secs}秒` : ''].filter(Boolean).join(' · ');
+        ato = `<span class="who">直後 › ${A[a.off]} の攻撃${a.viaFt ? '（FTの後）' : ''}:</span> <span class="to-res ${a.result.key}">${a.result.label}</span>${bits ? ` <span class="who">· ${bits}</span>` : ''}`;
+    }
+    return `<div class="to-row" data-to="${i}">
+        <div class="to-when"><b>${flPLabel(t.per)}</b>${flEsc(t.clock)}</div>
+        <div class="to-main">
+            <div class="to-who"><span class="to-team-chip" style="--c:${FL_HEX[s]}">${A[s]}</span><span class="to-score">${t.score.a}-${t.score.h}</span><span class="to-why ${t.why.key}">${t.why.label}</span></div>
+            <div class="to-ato">${ato}</div>
+            <div class="to-flow">${A[s]} から見て　前2分 <b>${t.before[s]}-${t.before[o]}</b> → 後2分 ${afterDone
+                ? `<b>${t.after[s]}-${t.after[o]}</b> <span class="${net > 0 ? 'up' : net < 0 ? 'down' : ''}">${net > 0 ? '+' : ''}${net}</span>` : '集計中'}</div>
+        </div>
+        <div class="to-pts ${a?.pts ? '' : 'zero'}" style="${a?.pts ? `color:${FL_HEX[a.off]}` : ''}">${a ? (a.pts ? `+${a.pts}` : '0') : '-'}</div>
+        <div class="to-detail">${a?.text.length ? `<ul>${a.text.map(x => `<li>${flEsc(x)}</li>`).join('')}</ul>` : '記録なし'}</div>
+    </div>`;
+}
+
+function renderTimeouts() {
+    const el = document.getElementById('fl-timeouts');
+    if (!el) return;
+    const list = flow.timeouts || [];
+    if (!list.length) { el.innerHTML = '<div class="fl-msg">タイムアウトの記録がありません</div>'; return; }
+    const A = flow.abbr;
+    const rows = list.map((t, i) => ({ t, i })).filter(({ t }) => toFilter === 'all' || t.side === toFilter);
+    el.innerHTML = `
+        ${toSummaryHTML(list)}
+        <div class="to-controls">
+            <div class="fl-seg">${[['all', 'すべて'], ['a', A.a], ['h', A.h]].map(([k, l]) => `<button data-to-f="${k}" class="${k === toFilter ? 'active' : ''}">${l}</button>`).join('')}</div>
+            <span>右の数字は直後の攻撃の得点</span>
+        </div>
+        ${rows.map(({ t, i }) => toRowHTML(t, i)).join('')}
+        <p class="to-note">直前の流れ: 第4Q・延長の残り2分で5点差以内は「終盤の作戦」、相手が${TO_RUN}点以上続けて取っている／直前2分で${TO_RUN}点以上の差なら「相手のラン」、ほかは直前のプレー（自分のターンオーバー・相手の得点）。
+        直後の攻撃は、タイムアウトの後に最初にボールを持ったチームの1回の攻撃（オフェンスリバウンドで続いた分も含む）。フリースローの途中に取ったときは、その後の攻撃を見ます。同じ時間に続けて取ったタイムアウトは1つにまとめます。</p>`;
+}
+
+function setToHelp(open) {
+    toHelpOpen = open;
+    document.querySelector('.to-help')?.classList.toggle('open', open);
+    document.querySelector('[data-to-help]')?.classList.toggle('on', open);
+}
+// Timeouts の操作（パネルは描き直されるので document で受ける）
+document.addEventListener('click', e => {
+    if (e.target.closest('[data-to-help]')) { setToHelp(!toHelpOpen); return; }
+    if (toHelpOpen && !e.target.closest('.to-help')) setToHelp(false);
+    const f = e.target.closest('[data-to-f]');
+    if (f) { toFilter = f.dataset.toF; renderTimeouts(); return; }
+    const r = e.target.closest('.to-row[data-to]');
+    if (r && flow) {
+        const open = !r.classList.contains('open');
+        r.classList.toggle('open', open);
+        if (open) flShowAt(flow.timeouts[+r.dataset.to].t);   // グラフ上の位置も示す
+    }
+});
 
 function bindFlowControls() {
     const rerender = () => { flHideTip(); renderFlow(); };
@@ -1004,6 +1156,7 @@ function renderFlow() {
         evEl.querySelectorAll('.fl-ev.sel').forEach(c => c.classList.remove('sel'));
         if (open) { card.innerHTML = flRecvCard(e); card.classList.add('open'); el.classList.add('sel'); }
     }));
+    renderTimeouts();
 
     const hit = document.getElementById('fl-hit');
     const move = ev => {
