@@ -109,6 +109,7 @@
         .ts-bar .ts-a { border-radius: 4px 0 0 4px; }
         .ts-bar .ts-h { border-radius: 0 4px 4px 0; }
         .ts-bar.empty span { opacity: .3; }
+        .ts-a.dim, .ts-h.dim { opacity: .4; }   /* 下回った側（TO・PF は多い側）の棒を薄く */
         /* 率: 中央から左右に 0〜100% の物差しで */
         .ts-rate { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; height: 6px; }
         .ts-track { background: var(--surface2); display: flex; }
@@ -290,6 +291,36 @@
         .game-panel { display: none; }
         .game-panel.active { display: block; }
         .box-controls { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; justify-content: space-between; margin: 0 0 10px; }
+        .box-controls-l { display: flex; flex-wrap: wrap; gap: 8px; }
+        #box-period[hidden] { display: none; }
+        /* ─── Box のグラフ ─── */
+        .bv-card { background: var(--surface-deep); border: 1px solid var(--line-soft); border-radius: 8px; padding: 12px 12px 10px; margin-bottom: 12px; }
+        .bv-title { font-size: 13px; font-weight: 800; }
+        .bv-desc { font-size: 11.5px; color: var(--muted); margin: 3px 0 10px; line-height: 1.6; }
+        .bv-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 10.5px; color: var(--text-dim); margin-bottom: 8px; }
+        .bv-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; }
+        .bv-row { display: grid; grid-template-columns: 96px 1fr 44px; gap: 8px; align-items: center; padding: 3px 0; font-size: 11.5px; }
+        .bv-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-dim); }
+        .bv-name.st { color: var(--text); font-weight: 700; }
+        .bv-track { height: 16px; display: flex; }
+        .bv-seg { height: 100%; display: grid; place-items: center; font-size: 9.5px; font-weight: 700; color: rgba(0,0,0,.75); overflow: hidden; white-space: nowrap; }
+        .bv-seg:first-child { border-radius: 3px 0 0 3px; }
+        .bv-seg:last-child { border-radius: 0 3px 3px 0; }
+        .bv-seg:only-child { border-radius: 3px; }
+        .bv-val { font-family: var(--font-score); font-weight: 600; font-size: 13px; text-align: right; }
+        .bv-div { position: relative; height: 16px; }
+        .bv-div::before { content: ''; position: absolute; left: 50%; top: -3px; bottom: -3px; width: 1px; background: var(--border); }
+        .bv-div .stack { position: absolute; top: 2px; height: 12px; display: flex; }
+        .bv-div .stack span { height: 100%; }
+        .bv-svg { display: block; width: 100%; height: auto; }
+        .bv-heat { width: 100%; border-collapse: separate; border-spacing: 3px; font-size: 11.5px; }
+        .bv-heat th { font-size: 10px; color: var(--muted); font-weight: 700; text-align: center; }
+        .bv-heat th.l, .bv-heat td.l { text-align: left; white-space: nowrap; max-width: 110px; overflow: hidden; text-overflow: ellipsis; }
+        .bv-heat td { text-align: center; border-radius: 4px; padding: 4px 0; font-family: var(--font-score); font-weight: 600; font-variant-numeric: tabular-nums; }
+        .bv-heat td.l { font-family: inherit; font-weight: 500; color: var(--text-dim); padding-right: 4px; }
+        .bv-heat td.zero { background: var(--surface2); color: #5c5c66; }
+        .bv-heat td.tot { color: var(--muted); }
+        @media (max-width: 600px) { .bv-row { grid-template-columns: 80px 1fr 38px; } }
         @media (max-width: 600px) {
             /* タブは折り返さず横にスクロール */
             .game-tabs { overflow-x: auto; flex-wrap: nowrap; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
@@ -431,14 +462,15 @@ const TEAM_STATS = [
         { label: 'AST', type: 'split', num: m => m.n('assists') },
         { label: 'STL', type: 'split', num: m => m.n('steals') },
         { label: 'BLK', type: 'split', num: m => m.n('blocks') },
-        { label: 'TO',  type: 'plain', num: m => m.n('turnovers'), lowerBetter: true },
-        { label: 'PF',  type: 'plain', num: m => m.n('fouls'), lowerBetter: true },
+        { label: 'TO',  type: 'split', num: m => m.n('turnovers'), lowerBetter: true },
+        { label: 'PF',  type: 'split', num: m => m.n('fouls'), lowerBetter: true },
     ]],
     ['Scoring', '', [
         { label: 'Paint Pts',  type: 'split', num: m => m.n('pointsInPaint') },
         { label: 'Fast Break', type: 'split', num: m => m.n('fastBreakPoints') },
         // ESPN の turnoverPoints は「自チームのTOから失った点」なので相手側の値を使う
         { label: 'Pts off TO', type: 'split', num: (m, o) => o.n('turnoverPoints'), has: (m, o) => o.v('turnoverPoints') !== '' },
+        { label: 'Bench Pts', type: 'split', num: m => m.bench, has: m => m.bench != null },
     ]],
     ['Game Flow', '', [
         { label: 'Largest Lead', type: 'split', num: m => m.n('largestLead') },
@@ -448,9 +480,15 @@ const TEAM_STATS = [
 
 function boxTeamStats(awayTeam, homeTeam) {
     if (!awayTeam?.statistics?.length || !homeTeam?.statistics?.length) return '<div class="msg">No team stats available</div>';
+    // ベンチの得点: ボックススコアの先発でない選手の得点の合計
+    const benchPts = teamId => {
+        const sg = game?.data?.boxscore?.players?.find(t => t.team?.id === teamId)?.statistics?.[0];
+        if (!sg?.athletes?.length) return null;
+        return sg.athletes.filter(a => !a.starter).reduce((n, a) => n + (parseBoxLine(sg, a)?.pts || 0), 0);
+    };
     const acc = t => {
         const v = name => t.statistics.find(x => x.name === name)?.displayValue ?? '';
-        return { v, n: name => parseFloat(v(name)) || 0 };
+        return { v, n: name => parseFloat(v(name)) || 0, bench: benchPts(t.team?.id) };
     };
     const A = acc(awayTeam), H = acc(homeTeam);
     const abA = normAbbr(awayTeam.team?.abbreviation || ''), abH = normAbbr(homeTeam.team?.abbreviation || '');
@@ -471,13 +509,13 @@ function boxTeamStats(awayTeam, homeTeam) {
         if (r.type === 'split') {
             const empty = !(nA + nH > 0);
             chart = `<div class="ts-bar ${empty ? 'empty' : ''}">
-                <span class="ts-a" style="flex:${empty ? 1 : nA} 1 0"></span><span class="ts-h" style="flex:${empty ? 1 : nH} 1 0"></span>
+                <span class="ts-a ${leadH ? 'dim' : ''}" style="flex:${empty ? 1 : nA} 1 0"></span><span class="ts-h ${leadA ? 'dim' : ''}" style="flex:${empty ? 1 : nH} 1 0"></span>
             </div>`;
         } else if (r.type === 'rate') {
             const w = x => Math.max(0, Math.min(100, x ?? 0));
             chart = `<div class="ts-rate">
-                <div class="ts-track"><span class="ts-a" style="width:${w(nA)}%"></span></div>
-                <div class="ts-track"><span class="ts-h" style="width:${w(nH)}%"></span></div>
+                <div class="ts-track"><span class="ts-a ${leadH ? 'dim' : ''}" style="width:${w(nA)}%"></span></div>
+                <div class="ts-track"><span class="ts-h ${leadA ? 'dim' : ''}" style="width:${w(nH)}%"></span></div>
             </div>`;
         }
         return `<div class="ts-row" title="${tip}">
@@ -1449,6 +1487,7 @@ function injuriesHTML(teamId, title = 'Injury Report') {
 
 /* ── Box Score（チームを切り替えて1チームずつ。Full は公式記録、Q1〜 は play-by-play から集計） ── */
 let boxPeriod = parseInt(NBA.url.get('q')) || 0;   // 0 = Full
+let boxView = NBA.url.get('view') === 'viz' ? 'viz' : 'table';   // 表 / グラフ
 
 function boxPanelHTML() {
     const { away, home } = game;
@@ -1458,8 +1497,11 @@ function boxPanelHTML() {
     const pBtns = [0, ...Array.from({ length: periods }, (_, i) => i + 1)]
         .map(p => `<button data-p="${p}" class="${p === boxPeriod ? 'active' : ''}">${p ? flPLabel(p) : 'Full'}</button>`).join('');
     return `<div class="box-controls">
-            <div class="fl-seg" id="box-side">${['a', 'h'].map(s => `<button data-s="${s}" class="${s === boxSide ? 'active' : ''}">${A[s]}</button>`).join('')}</div>
-            ${periods && game.data.plays?.length ? `<div class="fl-seg" id="box-period">${pBtns}</div>` : ''}
+            <div class="box-controls-l">
+                <div class="fl-seg" id="box-side">${['a', 'h'].map(s => `<button data-s="${s}" class="${s === boxSide ? 'active' : ''}">${A[s]}</button>`).join('')}</div>
+                <div class="fl-seg" id="box-view"><button data-v="table" class="${boxView === 'table' ? 'active' : ''}">表</button><button data-v="viz" class="${boxView === 'viz' ? 'active' : ''}">グラフ</button></div>
+            </div>
+            ${periods && game.data.plays?.length ? `<div class="fl-seg" id="box-period" ${boxView === 'viz' ? 'hidden' : ''}>${pBtns}</div>` : ''}
         </div>
         <div id="box-table"></div>`;
 }
@@ -1470,6 +1512,7 @@ function renderBox() {
     const teams = game.data.boxscore?.players || [];
     const team = boxSide === 'a' ? game.away : game.home;
     const td = teams.find(t => t.team?.id === team.team.id);
+    if (td && boxView === 'viz') { el.innerHTML = boxVizHTML(td, boxSide, el.clientWidth); return; }
     let table;
     if (!td) table = '<div class="msg">No stats available</div>';
     else if (boxPeriod) table = boxPeriodTable(td, boxPeriod);
@@ -1484,12 +1527,133 @@ function bindBoxControls() {
         NBA.url.set({ side: boxSide === 'h' ? 'home' : null });
         renderBox();
     }));
+    document.querySelectorAll('#box-view button').forEach(b => b.addEventListener('click', () => {
+        boxView = b.dataset.v;
+        document.querySelectorAll('#box-view button').forEach(x => x.classList.toggle('active', x === b));
+        document.getElementById('box-period')?.toggleAttribute('hidden', boxView === 'viz');   // グラフは試合全体
+        NBA.url.set({ view: boxView === 'viz' ? 'viz' : null });
+        renderBox();
+    }));
     document.querySelectorAll('#box-period button').forEach(b => b.addEventListener('click', () => {
         boxPeriod = +b.dataset.p;
         document.querySelectorAll('#box-period button').forEach(x => x.classList.toggle('active', x === b));
         NBA.url.set({ q: boxPeriod || null });
         renderBox();
     }));
+}
+
+/* ── Box のグラフ（得点の取り方・使われ方と効率・Game Score の内訳・クォーター別の得点） ── */
+const BV_GOLD = '#F5B700', BV_LIGHT = '#c9c9d1';
+const BV_MIN_TSA = 4;   // 散布図に出す選手: シュートの試投（FGA + 0.44×FTA）がこれ以上
+
+function boxVizHTML(td, side, width) {
+    const sg = td.statistics?.[0];
+    if (!sg?.athletes?.length) return '<div class="msg">No stats available</div>';
+    const players = sg.athletes.map(a => {
+        const l = parseBoxLine(sg, a);
+        return l && l.min ? { ...l, id: a.athlete?.id, name: a.athlete?.shortName || a.athlete?.displayName || '', st: !!a.starter } : null;
+    }).filter(Boolean);
+    if (!players.length) return '<div class="msg">No stats available</div>';
+    const tm = sumBoxLines(players.map(({ id, name, st, ...l }) => l));
+    const color = FL_HEX[side];
+    const card = (title, desc, body) => `<div class="bv-card"><div class="bv-title">${title}</div><div class="bv-desc">${desc}</div>${body}</div>`;
+    const nameCell = p => `<span class="bv-name ${p.st ? 'st' : ''}">${esc(p.name)}</span>`;
+    const f1 = v => v == null || isNaN(v) ? '-' : v.toFixed(1);
+
+    // 1. 得点の取り方: 2P・3P・FT で取った点の横積み上げ
+    const scorers = players.filter(p => p.pts > 0).sort((a, b) => b.pts - a.pts);
+    const maxPts = Math.max(1, ...scorers.map(p => p.pts));
+    const seg = (v, c) => v ? `<span class="bv-seg" style="width:${v / maxPts * 100}%;background:${c}">${v >= 4 ? v : ''}</span>` : '';
+    const diet = card('得点の取り方', '選手ごとの得点を、2P・3P・FT で取った点に分けたもの。棒の長さが得点、色が取り方。太字は先発',
+        `<div class="bv-legend"><span><i style="background:${color}"></i>2P ${2 * (tm.fgm - tm.tpm)}点</span><span><i style="background:${BV_GOLD}"></i>3P ${3 * tm.tpm}点</span><span><i style="background:${BV_LIGHT}"></i>FT ${tm.ftm}点</span></div>` +
+        (scorers.map(p => `<div class="bv-row">${nameCell(p)}<div class="bv-track">${seg(2 * (p.fgm - p.tpm), color)}${seg(3 * p.tpm, BV_GOLD)}${seg(p.ftm, BV_LIGHT)}</div><span class="bv-val">${p.pts}</span></div>`).join('')
+            || '<div class="fl-msg">得点した選手がいません</div>'));
+
+    // 2. 使われ方と効率: USG% × TS%。シュートが少ない選手は TS% が極端（1本の3P成功で 150%）になるので除く。
+    //    100% を超えた選手は上端に置いて実際の値を添える
+    const tsa = l => l.fga + 0.44 * l.fta;
+    const tmPoss = tm.fga + 0.44 * tm.fta + tm.to;
+    const pts = players.filter(p => tsa(p) >= BV_MIN_TSA).map(p => ({ ...p,
+        u: 100 * (tsa(p) + p.to) * (tm.min / 5) / (p.min * tmPoss), t: 100 * p.pts / (2 * tsa(p)) }));
+    let scatter = '<div class="fl-msg">対象の選手がいません</div>';
+    if (pts.length && tmPoss > 0) {
+        const narrow = width < 600;   // スマホでは文字が小さくならないよう、描く幅を狭くする
+        const W = narrow ? 360 : 640, H = narrow ? 290 : 310, L = 50, R = 14, T = 26, B = 34;
+        const uMax = Math.ceil((Math.max(30, ...pts.map(p => p.u)) + 3) / 10) * 10;
+        const tMin = Math.floor((Math.min(40, ...pts.map(p => p.t)) - 5) / 10) * 10, tMax = 100;
+        const x = u => L + (W - L - R) * u / uMax, y = t => T + (H - T - B) * (1 - (Math.min(t, tMax) - tMin) / (tMax - tMin));
+        const teamTs = 100 * tm.pts / (2 * tsa(tm));
+        let g = '';
+        for (let u = 0; u <= uMax; u += 10) g += `<line x1="${x(u)}" x2="${x(u)}" y1="${T}" y2="${H - B}" stroke="#1f1f25"/><text x="${x(u)}" y="${H - B + 14}" font-size="10" fill="#8b8b95" text-anchor="middle">${u}%</text>`;
+        for (let t = tMin; t <= tMax; t += 10) g += `<line x1="${L}" x2="${W - R}" y1="${y(t)}" y2="${y(t)}" stroke="#1f1f25"/><text x="${L - 6}" y="${y(t) + 3}" font-size="10" fill="#8b8b95" text-anchor="end">${t}%</text>`;
+        g += `<line x1="${L}" x2="${W - R}" y1="${y(teamTs)}" y2="${y(teamTs)}" stroke="${BV_GOLD}" stroke-dasharray="4 3" opacity=".7"/><text x="${L + 4}" y="${y(teamTs) + 13}" font-size="10" fill="${BV_GOLD}">チームの TS% ${f1(teamTs)}</text>`;
+        g += `<line x1="${x(20)}" x2="${x(20)}" y1="${T}" y2="${H - B}" stroke="#55555f" stroke-dasharray="4 3"/><text x="${x(20) + 4}" y="${H - B - 4}" font-size="10" fill="#8b8b95">5人で均等 = 20%</text>`;
+        // 名前は円の右に。ほかの名前と重なるときは上下にずらす
+        const placed = [];
+        const sorted = [...pts].sort((a, b) => b.min - a.min);
+        sorted.forEach(p => {
+            const r = 4 + Math.min(p.min, 48) / 48 * 10, over = p.t > tMax;
+            g += `<circle cx="${x(p.u)}" cy="${y(p.t)}" r="${r}" fill="${color}" fill-opacity=".35" stroke="${color}" stroke-width="1.5"${over ? ' stroke-dasharray="3 2"' : ''}/>`;
+        });
+        sorted.forEach(p => {
+            const r = 4 + Math.min(p.min, 48) / 48 * 10, over = p.t > tMax;
+            const label = `${p.name.split(' ').pop()}${over ? ` (${Math.round(p.t)}%)` : ''}`;
+            const lw = label.length * 6, x0 = x(p.u) + r + 3;
+            const left = x0 + lw > W - R;   // 右端からはみ出すなら円の左に
+            const lx0 = left ? x(p.u) - r - 3 - lw : x0;
+            let ly = y(p.t) + 3;
+            for (const dy of [0, 12, -12, 24, -24, 36]) {
+                const cy = y(p.t) + 3 + dy;
+                if (!placed.some(q => cy > q.y - 11 && cy < q.y + 11 && lx0 < q.x1 && lx0 + lw > q.x0)) { ly = cy; break; }
+            }
+            placed.push({ x0: lx0, x1: lx0 + lw, y: ly });
+            g += `<text x="${left ? lx0 + lw : lx0}" y="${ly}" font-size="10.5" fill="#c9c9d1"${left ? ' text-anchor="end"' : ''}>${esc(label)}</text>`;
+        });
+        g += `<text x="${(L + W - R) / 2}" y="${H - 4}" font-size="10.5" fill="#8b8b95" text-anchor="middle">USG%（攻撃の何割をその選手が終えたか）→</text>`;
+        g += `<text transform="translate(11 ${(T + H - B) / 2}) rotate(-90)" font-size="10.5" fill="#8b8b95" text-anchor="middle">TS%（シュートの効率）→</text>`;
+        scatter = `<svg class="bv-svg" viewBox="0 0 ${W} ${H}">${g}</svg>`;
+    }
+    const usage = card('使われ方と効率', `右へ行くほど攻撃を任され、上へ行くほど効率よく得点した選手。円の大きさは出場時間。右上が「任されて決めた」選手。
+        シュートの試投が${BV_MIN_TSA}本未満の選手は、TS% が極端になるので出しません。100% を超えた選手は上端に点線の円で置き、実際の値を添えます`, scatter);
+
+    // 3. Game Score の内訳: プラスの要素（右）とマイナスの要素（左）
+    const parts = p => [
+        ['得点', p.pts + 0.4 * p.fgm, color], ['リバウンド', 0.7 * p.oreb + 0.3 * p.dreb, '#7ad7a8'],
+        ['アシスト', 0.7 * p.ast, BV_GOLD], ['STL・BLK', p.stl + 0.7 * p.blk, '#c9a7ff'],
+        ['シュートの外れ', -(0.7 * p.fga + 0.4 * (p.fta - p.ftm)), '#ff6b61'], ['TO・ファウル', -(p.to + 0.4 * p.pf), '#b5524b'],
+    ];
+    const gsList = players.map(p => ({ p, ps: parts(p), gs: gameScore(p) })).sort((a, b) => b.gs - a.gs).slice(0, 10);
+    const side2 = (ps, sign) => ps.filter(x => sign * x[1] > 0).reduce((n, x) => n + Math.abs(x[1]), 0);
+    const gsMax = Math.max(1, ...gsList.flatMap(r => [side2(r.ps, 1), side2(r.ps, -1)]));
+    const sc = v => Math.abs(v) / gsMax * 50;
+    const stack = (list, left) => {
+        const w = list.reduce((n, x) => n + sc(x[1]), 0);
+        return `<span class="stack" style="left:${left ? 50 - w : 50}%;width:${w}%">${list.map(x => `<span style="width:${sc(x[1]) / w * 100}%;background:${x[2]}" title="${x[0]} ${f1(x[1])}"></span>`).join('')}</span>`;
+    };
+    const gs = card('Game Score の内訳', 'Game Score（1試合の出来の総合点。右の数字）を、プラスになった要素（右）とマイナスになった要素（左）に分けたもの。上位10人',
+        `<div class="bv-legend">${parts({ pts: 0, fgm: 0, oreb: 0, dreb: 0, ast: 0, stl: 0, blk: 0, fga: 0, fta: 0, ftm: 0, to: 0, pf: 0 }).map(x => `<span><i style="background:${x[2]}"></i>${x[0]}</span>`).join('')}</div>` +
+        gsList.map(({ p, ps, gs: v }) => `<div class="bv-row">${nameCell(p)}<div class="bv-div">${stack(ps.filter(x => x[1] < 0).reverse(), true)}${stack(ps.filter(x => x[1] > 0), false)}</div><span class="bv-val">${f1(v)}</span></div>`).join(''));
+
+    // 4. クォーター別の得点: 得点プレーの1人目の選手
+    const qp = {};
+    let periods = 4;
+    (game.data.plays || []).forEach(x => {
+        const per = x.period?.number || 1;
+        periods = Math.max(periods, per);
+        const id = x.scoringPlay && x.participants?.[0]?.athlete?.id;
+        if (id) (qp[id] ||= {})[per] = (qp[id][per] || 0) + (x.scoreValue || 0);
+    });
+    let heat = '';
+    if (game.data.plays?.length && scorers.length) {
+        const qMax = Math.max(1, ...scorers.flatMap(p => Object.values(qp[p.id] || {})));
+        const rgb = side === 'a' ? '22,166,186' : '155,93,229';
+        const cell = v => v ? `<td style="background:rgba(${rgb},${0.15 + 0.85 * v / qMax});color:${v / qMax > .55 ? '#fff' : 'var(--text)'}">${v}</td>` : '<td class="zero">·</td>';
+        const ps = Array.from({ length: periods }, (_, i) => i + 1);
+        heat = card('クォーター別の得点', '選手ごとに、どのクォーターで点を取ったかを色の濃さで表したもの',
+            `<table class="bv-heat"><thead><tr><th class="l"></th>${ps.map(q => `<th>${flPLabel(q)}</th>`).join('')}<th>計</th></tr></thead><tbody>
+            ${scorers.map(p => `<tr><td class="l">${esc(p.name)}</td>${ps.map(q => cell(qp[p.id]?.[q] || 0)).join('')}<td class="tot">${p.pts}</td></tr>`).join('')}</tbody></table>`);
+    }
+    return diet + usage + gs + heat;
 }
 
 /* ── クォーター別スタッツ（play-by-play から集計） ──

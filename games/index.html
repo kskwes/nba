@@ -110,6 +110,12 @@
             font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums;
         }
         .g-dot { color: var(--border); }
+        /* ゲームリーダー（得点）: 試合中・終了後はその試合、試合前は今季平均 */
+        .g-leader { font-size: 11px; color: var(--text-dim); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .g-leader b { font-family: var(--font-score); font-weight: 600; font-size: 12px; color: var(--text); margin-left: 3px; }
+        .g-leader small { color: var(--muted); font-size: 10px; margin-left: 2px; }
+        /* NBA カップの試合 */
+        .g-cup { color: var(--accent); border: 1px solid rgba(245,183,0,.45); border-radius: 4px; padding: 0 6px; letter-spacing: .5px; }
         .streak { font-weight: 700; }
         .streak.w { color: var(--pos); }
         .streak.l { color: var(--neg); }
@@ -474,6 +480,16 @@ function renderGames(events, id) {
     sorted.forEach(ev => el.appendChild(buildCard(ev)));
 }
 
+// NBA カップの試合なら、段階を短く（ESPN の notes に「NBA Cup - Group Play」などが入る）
+function cupLabel(comp) {
+    const h = (comp.notes || []).map(n => n.headline || '').find(x => /NBA Cup/i.test(x));
+    if (!h) return '';
+    if (/Quarterfinal/i.test(h)) return 'NBA Cup · QF';
+    if (/Semifinal/i.test(h)) return 'NBA Cup · SF';
+    if (/Championship|Final/i.test(h)) return 'NBA Cup · Final';
+    return 'NBA Cup';
+}
+
 function buildCard(event) {
     const comp = event.competitions[0];
     const away = comp.competitors.find(c => c.homeAway === 'away') ?? comp.competitors[0];
@@ -548,7 +564,17 @@ function buildCard(event) {
     const hw = info(home, homeSeriesWins, awaySeriesWins);
     const showScore = isOver || isLive;
 
-    function teamRow(d, score, lose) {
+    // 得点のリーダー（scoreboard に入っている。試合前は今季の1試合平均）
+    function leaderHTML(t) {
+        const game = t.leaders?.find(l => l.name === 'points');
+        const avg  = !game && t.leaders?.find(l => l.name === 'pointsPerGame');
+        const l = (game || avg)?.leaders?.[0];
+        if (!l?.athlete) return '';
+        const name = l.athlete.shortName || l.athlete.displayName || '';
+        return `<div class="g-leader">${esc(name)}<b>${esc(l.displayValue)}</b><small>${game ? 'PTS' : 'PPG'}</small></div>`;
+    }
+
+    function teamRow(d, t, score, lose) {
         const meta = [d.record, d.rank, d.l10 ? `L10 ${d.l10}` : '', streakBadge(d.streak)]
             .filter(Boolean).join('<span class="g-dot">·</span>');
         return `
@@ -557,6 +583,7 @@ function buildCard(event) {
             <div class="g-info">
                 <div class="g-name">${d.short}</div>
                 ${meta ? `<div class="g-meta">${meta}</div>` : ''}
+                ${leaderHTML(t)}
             </div>
             ${showScore ? `<span class="g-score">${score || '-'}</span>` : ''}
         </div>`;
@@ -567,11 +594,12 @@ function buildCard(event) {
     card.className = 'card clickable' + (isLive ? ' live' : '');
     card.href = NBA.link.game(event.id);
     card.innerHTML = `
-        ${teamRow(aw, awayScore, homeWon)}
-        ${teamRow(hw, homeScore, awayWon)}
+        ${teamRow(aw, away, awayScore, homeWon)}
+        ${teamRow(hw, home, homeScore, awayWon)}
         ${(isPlayoffMode && seriesNote) ? `<div class="g-series">${seriesNote}</div>` : ''}
         <div class="g-foot">
             <span class="g-status ${statusClass}">${statusLabel}</span>
+            ${cupLabel(comp) ? `<span class="g-cup">${cupLabel(comp)}</span>` : ''}
             <span class="g-box">${showScore ? 'Box Score' : 'Preview'} ›</span>
         </div>`;
     return card;
