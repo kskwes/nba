@@ -105,7 +105,7 @@
    ドラフト結果: standings/draft.html
    ・ふだんは直近の終わったドラフト（2026-27 シーズンなら 2026）
    ・次のドラフトが始まったら（ESPN の状態が pre 以外になったら）そちらに切り替え、更新ボタンで指名を取り直す
-   ・指名された年の次のシーズンは、ルーキーの今季の成績を並べる
+   ・「現在」の列: 今どのチームのロスターにいるか（ドラフト中は出さない）
    ═══════════════════════════════════════════════ */
 // ESPN の core API（ブラウザから読める。site API のドラフトは CORS で読めない）
 const CORE = y => `https://sports.core.api.espn.com/v2/sports/basketball/leagues/nba/seasons/${y}/draft`;
@@ -157,7 +157,7 @@ async function loadDraft(y, fresh) {
     };
 }
 
-let draft = null, stats = new Map(), current = new Map(), round = 0, teamFilter = '';
+let draft = null, current = new Map(), round = 0, teamFilter = '';
 
 // 今の所属: 30チームのロスター（チームページなどと同じデータ。1日保存）から、NBA の選手 ID → チーム
 async function loadCurrent() {
@@ -182,47 +182,20 @@ async function chooseDraft(fresh) {
     return loadDraft(next?.type?.state && next.type.state !== 'pre' ? NBA.SEASON : NBA.SEASON - 1, fresh);
 }
 
-// ルーキーの今季の成績（指名された年の次のシーズンだけ）。選手は NBA の選手 ID（ドラフトの選手の ESPN のリンクから取る）で結ぶ
-async function loadStats(year) {
-    stats = new Map();
-    if (year >= NBA.SEASON) return;
-    try {
-        const d = await NBA.api.leaders(`season=${NBA.SEASON}&seasontype=2&limit=1000&qualified=false&sort=offensive.avgPoints:desc`);
-        const idx = {};
-        (d.categories || []).forEach(c => { idx[c.name] = Object.fromEntries((c.names || []).map((n, i) => [n, i])); });
-        const get = (a, c, n) => a.categories?.find(x => x.name === c)?.values?.[idx[c]?.[n]] ?? null;
-        (d.athletes || []).forEach(a => stats.set(String(a.athlete.id), {
-            gp: get(a, 'general', 'gamesPlayed'), min: get(a, 'general', 'avgMinutes'), pts: get(a, 'offensive', 'avgPoints'),
-            reb: get(a, 'general', 'avgRebounds'), ast: get(a, 'offensive', 'avgAssists'),
-        }));
-    } catch (e) { console.warn('rookie stats:', e); }
-}
-
-const f1 = v => v == null ? '-' : Number(v).toFixed(1);
-
 function render() {
     const wrap = document.getElementById('dr-wrap');
-    const withStats = draft.year < NBA.SEASON;
     const rows = draft.picks.map(p => {
         const a = p.athlete, nbaId = a?.nbaId;
-        return { p, a, team: NBA.teams.byId(p.teamId)?.abbr || '', via: p.tradeNote || '', s: nbaId ? stats.get(String(nbaId)) : null, nbaId,
+        return { p, a, team: NBA.teams.byId(p.teamId)?.abbr || '', via: p.tradeNote || '', nbaId,
             cur: a && nbaId ? current.get(String(nbaId)) || '' : null };
     }).filter(r => (!round || r.p.round === round) && (!teamFilter || r.team === teamFilter || r.cur === teamFilter));
     const withCur = draft.status?.state !== 'in' && current.size > 0;   // ドラフト中はロスターがまだ変わらないので出さない
 
-    const statCols = withStats ? [
-        { key: 'gp', label: 'GP', get: r => r.s?.gp, title: '今季の出場試合数' },
-        { key: 'min', label: 'MIN', get: r => r.s?.min, title: '今季の平均出場時間' },
-        { key: 'pts', label: 'PTS', get: r => r.s?.pts },
-        { key: 'reb', label: 'REB', get: r => r.s?.reb },
-        { key: 'ast', label: 'AST', get: r => r.s?.ast },
-    ] : [];
     const cols = [
         { key: 'no', label: '#', cls: 'dr-no', get: r => r.p.overall, asc: true },
         { key: 'team', label: 'Team', cls: 'l', get: r => r.team, asc: true },
         { key: 'name', label: 'Player', cls: 'l', get: r => r.a?.displayName || '', asc: true },
         ...(withCur ? [{ key: 'cur', label: '現在', cls: 'l', get: r => r.cur ?? '', asc: true, title: '今どのチームのロスターにいるか' }] : []),
-        ...statCols,
     ];
     const player = r => {
         if (!r.a) return r.p.status === 'ON_THE_CLOCK' ? '<span class="dr-clock">指名中…</span>' : '<span class="dr-wait">指名待ち</span>';
@@ -247,8 +220,6 @@ function render() {
                 <td class="l dr-team"><a href="${NBA.link.team(r.team)}">${esc(r.team)}</a>${r.via ? `<small>${esc(r.via)}</small>` : ''}</td>
                 <td class="l dr-player-td">${player(r)}</td>
                 ${withCur ? `<td class="l dr-cur">${r.cur ? `<a href="${NBA.link.team(r.cur)}">${esc(r.cur)}</a>` : r.a ? '<span class="dr-na">所属なし</span>' : ''}</td>` : ''}
-                ${withStats ? (r.s ? `<td>${r.s.gp ?? '-'}</td><td>${f1(r.s.min)}</td><td>${f1(r.s.pts)}</td><td>${f1(r.s.reb)}</td><td>${f1(r.s.ast)}</td>`
-                    : `<td colspan="5" class="dr-na" style="text-align:center">${r.a ? '今季は未出場' : ''}</td>`) : ''}
             </tr>`;
         },
     });
@@ -266,13 +237,11 @@ function renderHead() {
     const made = draft.picks.filter(p => p.athlete).length;
     document.getElementById('dr-sub').textContent = live
         ? `ドラフト中: ${made} / ${draft.picks.length} 人を指名済み。「更新」で最新の指名を取り込みます`
-        : draft.year < NBA.SEASON
-            ? `${draft.year} 年のドラフトで指名された ${draft.picks.length} 人と、ルーキーシーズン（今季）の1試合平均`
-            : `${draft.year} 年のドラフトで指名された ${draft.picks.length} 人`;
+        : `${draft.year} 年のドラフトで指名された ${draft.picks.length} 人`;
     document.getElementById('dr-updated').textContent = `更新 ${new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}`;
-    document.getElementById('dr-note').textContent = draft.year < NBA.SEASON
-        ? '「現在」は今そのチームのロスターにいるか（どのロスターにもいない選手は「所属なし」）。成績は今季（レギュラーシーズン）の1試合平均。NBA の試合に出ていない選手は「今季は未出場」。列の見出しを押すと並び替え。チームの絞り込みは、指名したチームと今のチームのどちらでも当てはまれば出します'
-        : 'via はトレードで手に入れた指名権。ドラフトの次のシーズンが始まると、ルーキーの成績が並びます';
+    document.getElementById('dr-note').textContent = live
+        ? 'via はトレードで手に入れた指名権。ドラフト中は「現在」の列を出しません（ロスターがまだ変わらないため）'
+        : '「現在」は今そのチームのロスターにいるか（どのロスターにもいない選手は「所属なし」）。via はトレードで手に入れた指名権、Traded to はドラフト当日のトレード。列の見出しを押すと並び替え。チームの絞り込みは、指名したチームと今のチームのどちらでも当てはまれば出します';
     const sel = document.getElementById('dr-team');
     const teams = [...new Set(draft.picks.map(p => NBA.teams.byId(p.teamId)?.abbr))].filter(Boolean).sort();
     sel.innerHTML = `<option value="">全チーム</option>${teams.map(t => `<option ${t === teamFilter ? 'selected' : ''}>${t}</option>`).join('')}`;
@@ -281,7 +250,7 @@ function renderHead() {
 async function init(fresh = false) {
     try {
         draft = await chooseDraft(fresh);
-        await Promise.all([loadStats(draft.year), draft.status?.state !== 'in' ? loadCurrent().catch(e => console.warn('rosters:', e)) : null]);
+        if (draft.status?.state !== 'in') await loadCurrent().catch(e => console.warn('rosters:', e));
         renderHead();
         render();
     } catch (e) {
