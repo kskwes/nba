@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 個人用サイトのため検索エンジンに載せない -->
+    <meta name="robots" content="noindex, nofollow">
+    <title>NBA Draft</title>
+    <link rel="icon" href="../assets/icon.svg" type="image/svg+xml">
+    <link rel="icon" href="../assets/icon-32.png" sizes="32x32" type="image/png">
+    <link rel="apple-touch-icon" href="../assets/icon-180.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&display=swap">
+    <link rel="stylesheet" href="../assets/common.css?v=2026102901">
+    <style>
+        .dr-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+        .dr-title { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .dr-title h2 { font-family: var(--font-score); font-size: 22px; font-weight: 600; letter-spacing: .5px; }
+        .dr-badge { font-size: 10.5px; font-weight: 800; letter-spacing: .5px; border-radius: 4px; padding: 2px 7px; background: var(--surface2); color: var(--text-dim); border: 1px solid var(--border); }
+        .dr-badge.live { background: var(--live); color: #fff; border-color: var(--live); }
+        .dr-sub { font-size: 11.5px; color: var(--muted); margin: -4px 0 12px; line-height: 1.6; }
+        .dr-refresh { display: inline-flex; align-items: center; gap: 6px; background: var(--accent); color: var(--on-accent); border: 0; border-radius: 6px; font-size: 12px; font-weight: 800; padding: 6px 12px; cursor: pointer; }
+        .dr-refresh[disabled] { opacity: .6; cursor: default; }
+        .dr-refresh[hidden] { display: none; }
+        .dr-updated { font-size: 11px; color: var(--muted); }
+        .dr-controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; }
+        .dr-seg { display: inline-flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+        .dr-seg button { background: none; border: 0; color: var(--muted); font-size: 12px; font-weight: 700; padding: 6px 12px; cursor: pointer; }
+        .dr-seg button.active { background: var(--surface2); color: var(--text); }
+        .dr-controls select { background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 6px; font-size: 12px; padding: 6px 8px; }
+
+        .dr-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); -webkit-overflow-scrolling: touch; }
+        .dr-table { width: auto; min-width: 100%; border-collapse: collapse; font-size: 12.5px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+        .dr-table th { background: var(--surface2); color: var(--muted); font-size: 10.5px; font-weight: 700; letter-spacing: .5px; padding: 8px; text-align: right; border-bottom: 1px solid var(--border); position: sticky; top: 0; }
+        .dr-table th.l, .dr-table td.l { text-align: left; }
+        .dr-table td { padding: 7px 8px; text-align: right; border-bottom: 1px solid var(--line-soft); font-weight: 600; }
+        .dr-table tr.r2 td { background: rgba(255,255,255,0.012); }
+        .dr-table tr.round-start td { border-top: 2px solid var(--border); }
+        .dr-table th.sortable { cursor: pointer; }
+        .dr-table th.sorted { color: var(--accent); }
+        .dr-no { font-family: var(--font-score); font-size: 16px; font-weight: 600; text-align: center !important; width: 44px; }
+        .dr-no small { display: block; font-family: inherit; font-size: 9.5px; color: var(--muted); font-weight: 500; }
+        .dr-team a { color: var(--text); font-weight: 800; text-decoration: none; }
+        .dr-team { max-width: 96px; }
+        .dr-team small { display: block; font-size: 10px; color: var(--muted); font-weight: 600; white-space: normal; line-height: 1.35; }
+        .dr-player { display: flex; align-items: center; gap: 8px; min-width: 200px; }
+        .dr-player img, .dr-player .ph { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; object-position: center 20%; background: var(--surface2); flex-shrink: 0; }
+        .dr-player a { color: var(--text); text-decoration: none; font-weight: 700; }
+        .dr-player a:hover { color: var(--accent); }
+        .dr-player small { display: block; font-size: 10.5px; color: var(--muted); font-weight: 500; }
+        .dr-wait { color: var(--muted); font-weight: 500; font-style: italic; }
+        .dr-cur a { color: var(--text); font-weight: 800; text-decoration: none; }
+        .dr-clock { color: var(--live); font-weight: 800; }
+        .dr-na { color: var(--muted); font-weight: 500; }
+        .dr-note { font-size: 11px; color: var(--muted); margin-top: 8px; line-height: 1.7; }
+        .mock-banner { background: rgba(245,183,0,.14); color: var(--accent); font-size: 12px; font-weight: 700; text-align: center; padding: 6px 12px; border-radius: 6px; margin-bottom: 12px; }
+        .mock-banner a { color: inherit; }
+    </style>
+</head>
+<body class="theme-broadcast">
+
+<header>
+    <a class="site-logo" href="../games/">NBA <em>Daily</em></a>
+    <nav class="site-nav" aria-label="Pages">
+        <a href="../games/">Games</a>
+        <a class="on" href="../standings/" aria-current="page">Standings</a>
+        <a href="../players/">Players</a>
+        <a href="../teams/">Teams</a>
+        <a href="../salary/">Salary</a>
+        <a href="../predict/">Predict</a>
+    </nav>
+    <div class="header-right">
+        <div class="last-updated" id="last-updated"></div>
+    </div>
+</header>
+
+<div class="main-wrap">
+    <div class="tabs-nav">
+        <a class="tab-btn" href="./">Standings</a>
+        <a class="tab-btn" href="playoffs.html">Playoffs</a>
+        <a class="tab-btn" href="playoffs.html?tab=playin">Play-In</a>
+        <span class="tab-btn active">Draft</span>
+    </div>
+
+    <div id="mock"></div>
+    <div class="dr-head">
+        <div class="dr-title"><h2 id="dr-name">NBA Draft</h2><span class="dr-badge" id="dr-status"></span></div>
+        <div class="dr-title"><span class="dr-updated" id="dr-updated"></span><button class="dr-refresh" id="dr-refresh" hidden>↻ 更新</button></div>
+    </div>
+    <div class="dr-sub" id="dr-sub"></div>
+    <div class="dr-controls">
+        <div class="dr-seg" id="dr-round"><button data-r="0" class="active">すべて</button><button data-r="1">1巡目</button><button data-r="2">2巡目</button></div>
+        <select id="dr-team"><option value="">全チーム</option></select>
+    </div>
+    <div class="dr-scroll" id="dr-wrap"><div class="msg">Loading<span class="spinner"></span></div></div>
+    <p class="dr-note" id="dr-note"></p>
+</div>
+
+<script src="../assets/api.js?v=2026102901"></script>
+<script src="../assets/teams.js?v=2026102901"></script>
+<script src="../assets/ui.js?v=2026102901"></script>
+<script>
+/* ═══════════════════════════════════════════════
+   ドラフト結果: standings/draft.html
+   ・ふだんは直近の終わったドラフト（2026-27 シーズンなら 2026）
+   ・次のドラフトが始まったら（ESPN の状態が pre 以外になったら）そちらに切り替え、更新ボタンで指名を取り直す
+   ・指名された年の次のシーズンは、ルーキーの今季の成績を並べる
+   ═══════════════════════════════════════════════ */
+// ESPN の core API（ブラウザから読める。site API のドラフトは CORS で読めない）
+const CORE = y => `https://sports.core.api.espn.com/v2/sports/basketball/leagues/nba/seasons/${y}/draft`;
+const SIM = NBA.url.get('sim');   // 確認用: ?sim=live で「ドラフト当日」を再現（2026 の途中までを指名済みにする）
+const MONTH = 30 * NBA.api.DAY;
+
+// 状態: 終わったものは1週間、進行中は30秒、開始前は30分で取り直す
+const stateTtl = st => st === 'post' ? 7 * NBA.api.DAY : st === 'in' ? 30 * NBA.api.SEC : 30 * NBA.api.MIN;
+const loadStatus = (y, fresh) => NBA.api.json(`${CORE(y)}/status`, { fresh, ttl: d => stateTtl(d?.type?.state) });
+
+// 同時に投げる数を抑えて順に取得する
+async function mapLimit(items, limit, fn) {
+    const out = new Array(items.length);
+    let next = 0;
+    await Promise.all(Array.from({ length: Math.min(limit, items.length) }, async () => {
+        while (next < items.length) { const i = next++; out[i] = await fn(items[i]).catch(() => null); }
+    }));
+    return out;
+}
+
+const https = u => u.replace(/^http:/, 'https:').split('?')[0];
+
+// 指名の一覧（1回）+ 指名された選手（1人1回）+ 出身校（学校ごとに1回）。選手と学校は変わらないので30日使い回す
+async function loadDraft(y, fresh) {
+    const st = await loadStatus(y, fresh);
+    const state = st?.type?.state || 'pre';
+    const rounds = await NBA.api.json(`${CORE(y)}/rounds`, { fresh, ttl: stateTtl(state) });
+    const picks = (rounds.items || []).flatMap(r => r.picks || []);
+    const refs = picks.map(p => p.athlete?.$ref).filter(Boolean).map(https);
+    const aths = await mapLimit(refs, 6, u => NBA.api.json(u, { ttl: MONTH }));
+    const byRef = new Map(refs.map((u, i) => [u, aths[i]]));
+    const colRefs = [...new Set(aths.map(a => a?.college?.$ref).filter(Boolean).map(https))];
+    const cols = await mapLimit(colRefs, 6, u => NBA.api.json(u, { ttl: MONTH }));
+    const colBy = new Map(colRefs.map((u, i) => [u, cols[i]]));
+    return {
+        year: y, shortDisplayName: `${y} NBA Draft`,
+        status: { state, round: st?.round },
+        picks: picks.map(p => {
+            const a = p.athlete?.$ref ? byRef.get(https(p.athlete.$ref)) : null;
+            const nbaId = a?.links?.map(l => l.href?.match(/\/nba\/player\/_\/id\/(\d+)/)?.[1]).find(Boolean) || null;
+            const col = a?.college?.$ref ? colBy.get(https(a.college.$ref)) : null;
+            return {
+                overall: p.overall, pick: p.pick, round: p.round, tradeNote: p.tradeNote || '',
+                status: p.status?.name || '', teamId: p.team?.$ref?.match(/\/teams\/(\d+)/)?.[1] || '',
+                athlete: a ? { displayName: a.displayName, displayHeight: a.displayHeight, pos: a.position?.abbreviation || '',
+                    school: col?.shortName || col?.name || '', nbaId } : null,
+            };
+        }),
+    };
+}
+
+let draft = null, stats = new Map(), current = new Map(), round = 0, teamFilter = '';
+
+// 今の所属: 30チームのロスター（チームページなどと同じデータ。1日保存）から、NBA の選手 ID → チーム
+async function loadCurrent() {
+    const out = new Map();
+    const lists = await mapLimit(NBA.teams.list, 6, t => NBA.api.roster(t.id));
+    lists.forEach((d, i) => (d?.athletes || []).forEach(a => out.set(String(a.id), NBA.teams.list[i].abbr)));
+    current = out;
+}
+
+async function chooseDraft(fresh) {
+    if (SIM === 'live') {
+        const d = structuredClone(await loadDraft(NBA.SEASON - 1, fresh));
+        d.status = { state: 'in', round: 1 };
+        d.picks.forEach(p => {
+            if (p.overall === 24) { p.status = 'ON_THE_CLOCK'; delete p.athlete; }
+            else if (p.overall > 24) { p.status = 'PENDING'; delete p.athlete; }
+        });
+        return d;
+    }
+    // 次のドラフトが始まっていればそちら、まだなら直近の終わったドラフト
+    const next = await loadStatus(NBA.SEASON, fresh).catch(() => null);
+    return loadDraft(next?.type?.state && next.type.state !== 'pre' ? NBA.SEASON : NBA.SEASON - 1, fresh);
+}
+
+// ルーキーの今季の成績（指名された年の次のシーズンだけ）。選手は NBA の選手 ID（ドラフトの選手の ESPN のリンクから取る）で結ぶ
+async function loadStats(year) {
+    stats = new Map();
+    if (year >= NBA.SEASON) return;
+    try {
+        const d = await NBA.api.leaders(`season=${NBA.SEASON}&seasontype=2&limit=1000&qualified=false&sort=offensive.avgPoints:desc`);
+        const idx = {};
+        (d.categories || []).forEach(c => { idx[c.name] = Object.fromEntries((c.names || []).map((n, i) => [n, i])); });
+        const get = (a, c, n) => a.categories?.find(x => x.name === c)?.values?.[idx[c]?.[n]] ?? null;
+        (d.athletes || []).forEach(a => stats.set(String(a.athlete.id), {
+            gp: get(a, 'general', 'gamesPlayed'), min: get(a, 'general', 'avgMinutes'), pts: get(a, 'offensive', 'avgPoints'),
+            reb: get(a, 'general', 'avgRebounds'), ast: get(a, 'offensive', 'avgAssists'),
+        }));
+    } catch (e) { console.warn('rookie stats:', e); }
+}
+
+const f1 = v => v == null ? '-' : Number(v).toFixed(1);
+
+function render() {
+    const wrap = document.getElementById('dr-wrap');
+    const withStats = draft.year < NBA.SEASON;
+    const rows = draft.picks.map(p => {
+        const a = p.athlete, nbaId = a?.nbaId;
+        return { p, a, team: NBA.teams.byId(p.teamId)?.abbr || '', via: p.tradeNote || '', s: nbaId ? stats.get(String(nbaId)) : null, nbaId,
+            cur: a && nbaId ? current.get(String(nbaId)) || '' : null };
+    }).filter(r => (!round || r.p.round === round) && (!teamFilter || r.team === teamFilter || r.cur === teamFilter));
+    const withCur = draft.status?.state !== 'in' && current.size > 0;   // ドラフト中はロスターがまだ変わらないので出さない
+
+    const statCols = withStats ? [
+        { key: 'gp', label: 'GP', get: r => r.s?.gp, title: '今季の出場試合数' },
+        { key: 'min', label: 'MIN', get: r => r.s?.min, title: '今季の平均出場時間' },
+        { key: 'pts', label: 'PTS', get: r => r.s?.pts },
+        { key: 'reb', label: 'REB', get: r => r.s?.reb },
+        { key: 'ast', label: 'AST', get: r => r.s?.ast },
+    ] : [];
+    const cols = [
+        { key: 'no', label: '#', cls: 'dr-no', get: r => r.p.overall, asc: true },
+        { key: 'team', label: 'Team', cls: 'l', get: r => r.team, asc: true },
+        { key: 'name', label: 'Player', cls: 'l', get: r => r.a?.displayName || '', asc: true },
+        ...(withCur ? [{ key: 'cur', label: '現在', cls: 'l', get: r => r.cur ?? '', asc: true, title: '今どのチームのロスターにいるか' }] : []),
+        ...statCols,
+    ];
+    const player = r => {
+        if (!r.a) return r.p.status === 'ON_THE_CLOCK' ? '<span class="dr-clock">指名中…</span>' : '<span class="dr-wait">指名待ち</span>';
+        const meta = [r.a.pos, r.a.displayHeight, r.a.school].filter(Boolean).join(' · ');
+        // 写真: NBA の写真、なければ大学時代の写真
+        const img = r.nbaId ? `<img src="https://a.espncdn.com/i/headshots/nba/players/full/${r.nbaId}.png" alt="" loading="lazy"
+            onerror="if(!this.dataset.f){this.dataset.f=1;this.src='https://a.espncdn.com/i/headshots/mens-college-basketball/players/full/${r.nbaId}.png'}else{this.style.visibility='hidden'}">` : '<span class="ph"></span>';
+        const name = r.nbaId ? `<a href="${NBA.link.player(r.nbaId)}">${esc(r.a.displayName)}</a>` : esc(r.a.displayName);
+        return `<div class="dr-player">${img}<div>${name}<small>${esc(meta)}</small></div></div>`;
+    };
+    wrap.innerHTML = '<table class="dr-table"><thead></thead><tbody></tbody></table>';
+    let lastRound = null;
+    NBA.ui.sortable(wrap, {
+        rows, cols, initial: { key: 'no', asc: true },
+        render: (r, i, col) => {
+            if (i === 0) lastRound = null;
+            // 指名順で並べているときは、2巡目の始まりに線を引く
+            const start = col?.key === 'no' && lastRound != null && r.p.round !== lastRound;
+            lastRound = r.p.round;
+            return `<tr class="${r.p.round === 2 ? 'r2' : ''} ${start ? 'round-start' : ''}">
+                <td class="dr-no">${r.p.overall}<small>R${r.p.round}-${r.p.pick}</small></td>
+                <td class="l dr-team"><a href="${NBA.link.team(r.team)}">${esc(r.team)}</a>${r.via ? `<small>${esc(r.via)}</small>` : ''}</td>
+                <td class="l dr-player-td">${player(r)}</td>
+                ${withCur ? `<td class="l dr-cur">${r.cur ? `<a href="${NBA.link.team(r.cur)}">${esc(r.cur)}</a>` : r.a ? '<span class="dr-na">所属なし</span>' : ''}</td>` : ''}
+                ${withStats ? (r.s ? `<td>${r.s.gp ?? '-'}</td><td>${f1(r.s.min)}</td><td>${f1(r.s.pts)}</td><td>${f1(r.s.reb)}</td><td>${f1(r.s.ast)}</td>`
+                    : `<td colspan="5" class="dr-na" style="text-align:center">${r.a ? '今季は未出場' : ''}</td>`) : ''}
+            </tr>`;
+        },
+    });
+    if (!rows.length) wrap.innerHTML = '<div class="msg">該当する指名がありません</div>';
+}
+
+function renderHead() {
+    const st = draft.status || {};
+    const live = st.state === 'in';
+    document.getElementById('dr-name').textContent = draft.shortDisplayName || `${draft.year} NBA Draft`;
+    const badge = document.getElementById('dr-status');
+    badge.textContent = live ? `LIVE · ${st.round || ''}巡目` : st.state === 'post' ? 'FINAL' : '開始前';
+    badge.className = `dr-badge ${live ? 'live' : ''}`;
+    document.getElementById('dr-refresh').hidden = !live;
+    const made = draft.picks.filter(p => p.athlete).length;
+    document.getElementById('dr-sub').textContent = live
+        ? `ドラフト中: ${made} / ${draft.picks.length} 人を指名済み。「更新」で最新の指名を取り込みます`
+        : draft.year < NBA.SEASON
+            ? `${draft.year} 年のドラフトで指名された ${draft.picks.length} 人と、ルーキーシーズン（今季）の1試合平均`
+            : `${draft.year} 年のドラフトで指名された ${draft.picks.length} 人`;
+    document.getElementById('dr-updated').textContent = `更新 ${new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}`;
+    document.getElementById('dr-note').textContent = draft.year < NBA.SEASON
+        ? '「現在」は今そのチームのロスターにいるか（どのロスターにもいない選手は「所属なし」）。成績は今季（レギュラーシーズン）の1試合平均。NBA の試合に出ていない選手は「今季は未出場」。列の見出しを押すと並び替え。チームの絞り込みは、指名したチームと今のチームのどちらでも当てはまれば出します'
+        : 'via はトレードで手に入れた指名権。ドラフトの次のシーズンが始まると、ルーキーの成績が並びます';
+    const sel = document.getElementById('dr-team');
+    const teams = [...new Set(draft.picks.map(p => NBA.teams.byId(p.teamId)?.abbr))].filter(Boolean).sort();
+    sel.innerHTML = `<option value="">全チーム</option>${teams.map(t => `<option ${t === teamFilter ? 'selected' : ''}>${t}</option>`).join('')}`;
+}
+
+async function init(fresh = false) {
+    try {
+        draft = await chooseDraft(fresh);
+        await Promise.all([loadStats(draft.year), draft.status?.state !== 'in' ? loadCurrent().catch(e => console.warn('rosters:', e)) : null]);
+        renderHead();
+        render();
+    } catch (e) {
+        console.error(e);
+        document.getElementById('dr-wrap').innerHTML = '<div class="msg error">ドラフトのデータを取得できませんでした</div>';
+    }
+}
+
+if (SIM === 'live') document.getElementById('mock').innerHTML = '<div class="mock-banner">確認用: ドラフト当日の表示を再現しています（2026 のデータで 24位から先を未指名に）。<a href="draft.html">ふだんの表示に戻す</a></div>';
+
+document.getElementById('dr-round').addEventListener('click', e => {
+    const b = e.target.closest('[data-r]');
+    if (!b) return;
+    round = +b.dataset.r;
+    document.querySelectorAll('#dr-round button').forEach(x => x.classList.toggle('active', x === b));
+    render();
+});
+document.getElementById('dr-team').addEventListener('change', e => { teamFilter = e.target.value; render(); });
+document.getElementById('dr-refresh').addEventListener('click', async e => {
+    const b = e.currentTarget;
+    b.disabled = true; b.textContent = '更新中…';
+    await init(true);
+    b.disabled = false; b.textContent = '↻ 更新';
+});
+
+init();
+document.getElementById('last-updated').textContent = new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' });
+</script>
+</body>
+</html>
