@@ -12,8 +12,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&display=swap">
-    <link rel="stylesheet" href="../assets/common.css?v=2026102901">
-    <link rel="stylesheet" href="../assets/player-team.css?v=2026102901">
+    <link rel="stylesheet" href="../assets/common.css?v=2026110601">
+    <link rel="stylesheet" href="../assets/player-team.css?v=2026110601">
     <style>
         .main-wrap.single { max-width: 1100px; }
         .t-two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; margin-bottom: 24px; }
@@ -87,6 +87,13 @@
                     <div id="t-stats-detail" class="stats-detail sd sd-row"></div>
                 </div>
 
+                <!-- Team Style: 戦い方の型・スタイルマップ・攻守の強み・弱み（data/advanced.json） -->
+                <div class="lc-block" id="t-style-block">
+                    <div class="section-header"><h2>Team Style</h2></div>
+                    <div id="t-style-updated"></div>
+                    <div id="t-style"><div class="msg">Loading<span class="spinner"></span></div></div>
+                </div>
+
                 <!-- Roster Stats -->
                 <div class="lc-block">
                     <div class="section-header">
@@ -148,11 +155,11 @@
     </div>
 </main>
 
-<script src="../assets/api.js?v=2026102901"></script>
-<script src="../assets/teams.js?v=2026102901"></script>
-<script src="../assets/stats.js?v=2026102901"></script>
-<script src="../assets/ui.js?v=2026102901"></script>
-<script src="../assets/advanced.js?v=2026102901"></script>
+<script src="../assets/api.js?v=2026110601"></script>
+<script src="../assets/teams.js?v=2026110601"></script>
+<script src="../assets/stats.js?v=2026110601"></script>
+<script src="../assets/ui.js?v=2026110601"></script>
+<script src="../assets/advanced.js?v=2026110601"></script>
 <script>
 /* ─── Team Standings (rank / record / streak) ─── */
 let standingsCache = null;
@@ -718,6 +725,20 @@ async function loadTeamAdvanced(abbr) {
     }
 }
 
+// Team Style（data/advanced.json）
+async function loadTeamStyle(abbr) {
+    const el = document.getElementById('t-style');
+    try {
+        const d = await NBA.advanced.load();
+        const html = NBA.advanced.teamStyleHTML(d, abbr);
+        document.getElementById('t-style-updated').innerHTML = html ? NBA.advanced.updatedHTML(d) : '';
+        el.innerHTML = html || '<div class="msg">まだ集計した試合がありません</div>';
+    } catch (e) {
+        console.error('advanced:', e);
+        el.innerHTML = '<div class="msg error">分析データを読み込めませんでした</div>';
+    }
+}
+
 async function init() {
     if (!TEAM) {
         document.getElementById('team-section').innerHTML = '<div class="msg error">Team not found</div>';
@@ -743,6 +764,7 @@ async function init() {
         loadTeamScheduleFull(TEAM.id),
         loadTeamStandingsInfo(TEAM.id, TEAM.abbr),
         loadTeamAdvanced(TEAM.abbr),
+        loadTeamStyle(TEAM.abbr),
     ]);
 }
 

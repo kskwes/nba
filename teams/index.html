@@ -12,8 +12,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&display=swap">
-    <link rel="stylesheet" href="../assets/common.css?v=2026102901">
-    <link rel="stylesheet" href="../assets/player-team.css?v=2026102901">
+    <link rel="stylesheet" href="../assets/common.css?v=2026110601">
+    <link rel="stylesheet" href="../assets/player-team.css?v=2026110601">
     <style>
         /* タブの位置をほかのページとそろえる */
         .main-wrap.single { max-width: 1300px; display: block; padding-top: 0; }
@@ -124,6 +124,12 @@
             </div>
 
             <div class="lc-block">
+                <div class="section-header"><h2>Team Style</h2></div>
+                <p class="adv-desc">各チームが3Pとゴール下のどちらで多く打っているか。右上ほど両方が多く、左下ほどミドル寄り。上の Team でチームを選ぶと、そのチームを強調します。</p>
+                <div id="adv-style" class="adv-style"><div class="msg">Loading<span class="spinner"></span></div></div>
+            </div>
+
+            <div class="lc-block">
                 <div class="section-header"><h2>Team Clutch</h2></div>
                 <p class="adv-desc">第4Q・延長の残り5分以内で点差5点以内の時間（NBA.com の Clutch と同じ定義）の成績。W-L は、その時間があった試合の勝敗です。</p>
                 <div id="adv-clutch"><div class="msg">Loading<span class="spinner"></span></div></div>
@@ -135,10 +141,10 @@
     </div>
 </main>
 
-<script src="../assets/api.js?v=2026102901"></script>
-<script src="../assets/teams.js?v=2026102901"></script>
-<script src="../assets/ui.js?v=2026102901"></script>
-<script src="../assets/advanced.js?v=2026102901"></script>
+<script src="../assets/api.js?v=2026110601"></script>
+<script src="../assets/teams.js?v=2026110601"></script>
+<script src="../assets/ui.js?v=2026110601"></script>
+<script src="../assets/advanced.js?v=2026110601"></script>
 <script>
 /* ═══════════════════════════════════════════════
    チーム一覧: リーグ全体のスタッツ表 + ディビジョン別のチーム
@@ -263,12 +269,14 @@ function renderAdvanced() {
     const onMin = +document.getElementById('adv-onoff-min').value, unitMin = +document.getElementById('adv-unit-min').value;
     NBA.advanced.renderOnOff(document.getElementById('adv-onoff'), adv.onoff.filter(r => r.min >= onMin && teamMatch(r.team)));
     NBA.advanced.renderUnits(document.getElementById('adv-units'), adv.units.filter(r => r.min >= unitMin && teamMatch(r.team)));
+    const v = document.getElementById('adv-team').value;
+    document.getElementById('adv-style').innerHTML = adv.style.length ? NBA.advanced.styleMapSVG(adv.style, v) : '<div class="msg">まだ集計した試合がありません</div>';
 }
 async function loadAdvanced() {
     if (adv) return;
     try {
         const d = await NBA.advanced.load();
-        adv = { onoff: NBA.advanced.onOffRows(d), units: NBA.advanced.unitRows(d), clutch: NBA.advanced.clutchRows(d) };
+        adv = { onoff: NBA.advanced.onOffRows(d), units: NBA.advanced.unitRows(d), clutch: NBA.advanced.clutchRows(d), style: d.teamStyle || [] };
         document.getElementById('adv-updated').innerHTML = NBA.advanced.updatedHTML(d);
         const sel = document.getElementById('adv-team');
         sel.innerHTML += NBA.teams.list.slice().sort((a, b) => a.abbr.localeCompare(b.abbr)).map(t => `<option value="${t.abbr}">${t.abbr}</option>`).join('');
@@ -279,7 +287,7 @@ async function loadAdvanced() {
         NBA.advanced.renderClutch(document.getElementById('adv-clutch'), adv.clutch);
     } catch (e) {
         console.error('advanced:', e);
-        ['adv-onoff', 'adv-units', 'adv-clutch'].forEach(id => { document.getElementById(id).innerHTML = '<div class="msg error">分析データを読み込めませんでした</div>'; });
+        ['adv-onoff', 'adv-units', 'adv-style', 'adv-clutch'].forEach(id => { document.getElementById(id).innerHTML = '<div class="msg error">分析データを読み込めませんでした</div>'; });
     }
 }
 
