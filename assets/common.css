@@ -287,3 +287,10 @@ a.rk-name:hover { color: var(--accent); text-decoration: underline; }
 @media (max-width: 480px) {
     .rk-grid { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* 見どころのラベル（終わった試合。Games ページの試合カードと試合ページ。計算は assets/stats.js の gameExcitement） */
+.ex-tag { display: inline-block; font-family: var(--font-body, inherit); font-size: 11px; font-weight: 800; letter-spacing: 0; text-transform: none; line-height: 1.5; border: 1px solid currentColor; border-radius: 4px; padding: 0 6px; white-space: nowrap; }
+.ex-tag.best { color: var(--live); }
+.ex-tag.close { color: #F5B700; }
+.ex-tag.some { color: #16a6ba; }
+.ex-tag.flat { color: #8b8b95; }

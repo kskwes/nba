@@ -171,3 +171,26 @@ function boxAdvForPlayer(summary, athleteId) {
     const gamePie = pieNum(sumBoxLines(totals));
     return { usg: calcUSG(me, myTeam), pie: gamePie ? 100 * pieNum(me) / gamePie : null };
 }
+
+/* ── 見どころ（終わった試合）: Games ページの試合カードのラベルと、試合ページの Summary
+   ESPN の試合中の勝率の揺れ・リードの入れ替わり・終盤2分で3点差以内・延長・最終点差から内部で点数を出し、
+   名勝負（85〜）/ 接戦（60〜）/ 見どころあり（40〜）/ 一方的 に分ける。点数そのものは表示しない ── */
+function gameExcitement(d) {
+    const comp = d?.header?.competitions?.[0];
+    if (!comp?.status?.type?.completed || !d.plays?.length) return null;
+    const away = comp.competitors.find(c => c.homeAway === 'away'), home = comp.competitors.find(c => c.homeAway === 'home');
+    if (!away || !home) return null;
+    const margin = Math.abs((+away.score || 0) - (+home.score || 0));
+    const wp = (d.winprobability || []).map(w => w.homeWinPercentage).filter(v => v != null);
+    let swing = 0;
+    for (let i = 1; i < wp.length; i++) swing += Math.abs(wp[i] - wp[i - 1]);
+    const leadChanges = parseInt((d.boxscore?.teams || []).flatMap(t => t.statistics || []).find(s => s.name === 'leadChanges')?.displayValue) || 0;
+    const sec = c => { const [m, s] = String(c ?? '0').split(':'); return s == null ? parseFloat(m) || 0 : (parseInt(m) || 0) * 60 + (parseFloat(s) || 0); };
+    const lateClose = d.plays.some(x => (x.period?.number || 1) >= 4 && sec(x.clock?.displayValue) <= 120 && Math.abs((x.homeScore ?? 0) - (x.awayScore ?? 0)) <= 3);
+    const ot = Math.max(...d.plays.map(x => x.period?.number || 1)) - 4;
+    const score = 40 * Math.min(1, swing / 12) + 20 * Math.min(1, leadChanges / 12) + (lateClose ? 20 : 0) + (ot > 0 ? 10 : 0)
+        + (margin <= 5 ? 10 : margin <= 10 ? 5 : 0);
+    const level = score >= 85 ? ['名勝負', 'best'] : score >= 60 ? ['接戦', 'close'] : score >= 40 ? ['見どころあり', 'some'] : ['一方的', 'flat'];
+    const reasons = [ot > 0 ? `延長${ot > 1 ? ot : ''}` : '', lateClose ? '終盤まで接戦' : '', leadChanges >= 8 ? `リード交代${leadChanges}回` : '', swing >= 8 ? '勝率が大きく揺れた' : ''].filter(Boolean);
+    return { label: level[0], cls: level[1], reasons, margin };
+}

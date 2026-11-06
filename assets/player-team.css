@@ -664,3 +664,60 @@ a.t-sched-row:hover { background: rgba(255,255,255,0.04); }
 .adv-table .adv-key { font-family: var(--font-score); font-size: 14px; }
 .adv-table .adv-unit { white-space: normal; min-width: 260px; font-weight: 500; }
 .adv-note { font-size: 11px; color: var(--muted); line-height: 1.6; margin-top: 8px; max-width: 90ch; }
+
+/* ─── Player Profile（選手ページ）・Team Style（チームページ・Teams の Advanced タブ）。assets/advanced.js ─── */
+.ap-sub { color: var(--muted); font-weight: 400; letter-spacing: 0; text-transform: none; margin-left: 6px; }
+.ap-tiles { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 760px) { .ap-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.ap-tile { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 8px 7px; }
+.ap-tile span { display: block; font-size: 10px; color: var(--muted); font-weight: 700; letter-spacing: .3px; }
+.ap-tile b { display: block; font-family: var(--font-score); font-size: 21px; font-weight: 600; margin: 1px 0 4px; }
+.ap-tile small { display: block; font-size: 10px; color: var(--text-dim); line-height: 1.4; }
+.ap-tile .pos { color: var(--pos); } .ap-tile .neg { color: var(--neg); }
+.ap-pct { height: 5px; border-radius: 3px; background: var(--surface2); overflow: hidden; margin-top: 3px; }
+.ap-pct i { display: block; height: 100%; border-radius: 3px; }
+.ap-desc { font-size: 11px; color: var(--muted); margin: 6px 0 0; line-height: 1.6; }
+.ap-note { font-size: 10.5px; color: var(--muted); margin-top: 6px; line-height: 1.6; }
+.ap-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
+.ap-grid2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; margin-top: 16px; }
+.ap-grid2 .sd-title { margin-top: 0; }
+@media (max-width: 760px) { .ap-grid2 { grid-template-columns: minmax(0, 1fr); } }
+/* スタイルマップを広く、強み・弱みを狭く。2つのカードの高さをそろえる */
+.ap-eq { grid-template-columns: minmax(0, 1.75fr) minmax(0, 1fr); }
+.ap-eq > div { display: flex; flex-direction: column; }
+.ap-eq > div > .ap-card { flex: 1; }
+@media (max-width: 760px) { .ap-eq { grid-template-columns: minmax(0, 1fr); } }
+.ap-zr { display: grid; grid-template-columns: 70px 1fr 54px 64px; gap: 8px; align-items: center; font-size: 12px; padding: 5px 0; border-bottom: 1px solid var(--line-soft); }
+.ap-zr:last-of-type { border-bottom: 0; }
+.ap-zhead { font-size: 10px; color: var(--muted); font-weight: 700; }
+.ap-zr .r { text-align: right; }
+.ap-zbar { height: 12px; background: var(--surface2); border-radius: 3px; position: relative; }
+.ap-zbar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; background: #16a6ba; }
+.ap-zbar b { position: absolute; top: -2px; bottom: -2px; width: 2px; background: #f2f2f4; opacity: .55; }
+.ap-zr .v { font-family: var(--font-score); font-weight: 600; text-align: right; }
+.ap-zr .v small { display: block; font-family: inherit; font-size: 9.5px; color: var(--muted); font-weight: 400; }
+.ap-zr .d { font-size: 11px; text-align: right; font-weight: 700; }
+.ap-zr .pos { color: var(--pos); } .ap-zr .neg { color: var(--neg); } .ap-zr .mut { color: var(--muted); }
+.ap-gs { display: flex; align-items: flex-end; gap: 3px; height: 70px; margin: 8px 0 4px; border-bottom: 1px solid var(--border); position: relative; }
+.ap-gs span { flex: 1; background: #16a6ba; border-radius: 2px 2px 0 0; min-width: 2px; }
+.ap-gs .avg { position: absolute; left: 0; right: 0; border-top: 1px dashed #F5B700; }
+.ap-kv { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: var(--muted); align-items: baseline; }
+.ap-kv b { font-family: var(--font-score); font-size: 18px; color: var(--text); margin-left: 4px; }
+.ap-tag { display: inline-block; font-size: 11px; font-weight: 800; border-radius: 4px; padding: 1px 7px; margin-left: 4px; }
+.ap-tag.good { background: rgba(61,220,132,.13); color: var(--pos); }
+.ap-tag.mid { background: var(--surface2); color: var(--text-dim); }
+.ap-tag.bad { background: rgba(255,107,97,.13); color: var(--neg); }
+.ap-tag.acc { background: rgba(245,183,0,.14); color: var(--accent); }
+.ap-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.ap-tags .ap-tag { margin-left: 0; }
+.ap-oo { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.ap-map { display: block; width: 100%; height: auto; }
+.ap-map a:hover text { fill: var(--text); }
+.ap-ff-sum { font-size: 12px; line-height: 1.8; margin-bottom: 6px; }
+.ap-ff-sum b { font-weight: 800; margin-right: 4px; }
+.ap-ff-grp { font-size: 10.5px; color: var(--text-dim); font-weight: 800; letter-spacing: 1px; margin: 10px 0 2px; }
+.ap-ff-row { display: grid; grid-template-columns: minmax(0, 1fr) 44px 64px; gap: 8px; align-items: center; padding: 5px 0; border-top: 1px solid var(--line-soft); font-size: 12px; }
+.ap-ff-row span small { display: block; font-size: 10px; color: var(--muted); }
+.ap-ff-row .v { font-family: var(--font-score); font-weight: 600; font-size: 15px; text-align: right; }
+.ap-ff-row .r { font-size: 10.5px; color: var(--muted); }
+.adv-style { max-width: 640px; }
