@@ -12,7 +12,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&display=swap">
-    <link rel="stylesheet" href="../assets/common.css?v=2026102901">
+    <link rel="stylesheet" href="../assets/common.css?v=2026110601">
     <style>
         /* ステータス帯（ボックススコアのモーダルで使用） */
         .status {
@@ -288,6 +288,9 @@
 
         /* ─── タブ（ページ内） ─── */
         .game-tabs { margin: 18px 0 14px; }
+        .game-summary { margin: 14px 0 0; padding: 10px 12px; border-radius: 8px; background: var(--surface2); }
+        .game-summary-h { font-family: var(--font-score); font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+        .game-summary-body { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; font-size: 12.5px; color: var(--text-dim); }
         .game-panel { display: none; }
         .game-panel.active { display: block; }
         .box-controls { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; justify-content: space-between; margin: 0 0 10px; }
@@ -411,12 +414,12 @@
     </div>
 </main>
 
-<script src="../assets/api.js?v=2026102901"></script>
-<script src="../assets/teams.js?v=2026102901"></script>
-<script src="../assets/stats.js?v=2026102901"></script>
-<script src="../assets/rotation.js?v=2026102901"></script>
+<script src="../assets/api.js?v=2026110601"></script>
+<script src="../assets/teams.js?v=2026110601"></script>
+<script src="../assets/stats.js?v=2026110601"></script>
+<script src="../assets/rotation.js?v=2026110601"></script>
 <script src="../assets/timeouts.js?v=2026103001"></script>
-<script src="../assets/ui.js?v=2026102901"></script>
+<script src="../assets/ui.js?v=2026110601"></script>
 <script>
 /* ── Box Score ── */
 const BOX_COLS = [
@@ -1457,7 +1460,16 @@ function headerHTML() {
             ${teamHead(home, isOver && homeNum > awayNum)}
         </div>
         <div class="game-sub"><a href="${espnUrl}" target="_blank" rel="noopener">ESPN ↗</a></div>
-        ${lineHTML}`;
+        ${lineHTML}
+        ${isOver ? summaryHTML() : ''}`;
+}
+
+/* ── Summary（終わった試合）: 見どころのラベルと理由（assets/stats.js の gameExcitement） ── */
+function summaryHTML() {
+    const ex = gameExcitement(game.data);
+    if (!ex) return '';
+    return `<div class="game-summary"><div class="game-summary-h">Summary</div>
+        <div class="game-summary-body"><span class="ex-tag ${ex.cls}">${ex.label}</span><span>${ex.reasons.join(' · ') || `${ex.margin}点差`}</span></div></div>`;
 }
 
 /* ── 怪我人（summary の injuries。チームごと） ── */

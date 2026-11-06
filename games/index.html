@@ -12,7 +12,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&display=swap">
-    <link rel="stylesheet" href="../assets/common.css?v=2026102901">
+    <link rel="stylesheet" href="../assets/common.css?v=2026110601">
     <style>
         /* ─── Refresh button ─── */
         .header-right {
@@ -391,10 +391,10 @@
 
 </div><!-- /main-wrap -->
 
-<script src="../assets/api.js?v=2026102901"></script>
-<script src="../assets/teams.js?v=2026102901"></script>
-<script src="../assets/stats.js?v=2026102901"></script>
-<script src="../assets/ui.js?v=2026102901"></script>
+<script src="../assets/api.js?v=2026110601"></script>
+<script src="../assets/teams.js?v=2026110601"></script>
+<script src="../assets/stats.js?v=2026110601"></script>
+<script src="../assets/ui.js?v=2026110601"></script>
 <script>
 /* ── ET date helpers (America/New_York, handles DST automatically) ── */
 function etDateStr(utcDate) {
@@ -598,14 +598,27 @@ function buildCard(event) {
         ${teamRow(hw, home, homeScore, awayWon)}
         ${(isPlayoffMode && seriesNote) ? `<div class="g-series">${seriesNote}</div>` : ''}
         <div class="g-foot">
-            <span class="g-status ${statusClass}">${statusLabel}</span>
+            <span><span class="g-status ${statusClass}">${statusLabel}</span>${isOver ? `  <span class="g-ex" data-ex="${event.id}"></span>` : ''}</span>
             ${cupLabel(comp) ? `<span class="g-cup">${cupLabel(comp)}</span>` : ''}
             <span class="g-box">${showScore ? 'Box Score' : 'Preview'} ›</span>
         </div>`;
     return card;
 }
 
-/* ── 試合の summary（Top 10 / Off Nights / 怪我人に使う） ── */
+/* ── 見どころのラベル: 終わった試合の summary（Top 10 と同じキャッシュ）から計算して、カードのフッターに入れる ── */
+function fillExcitement(events) {
+    events.filter(e => e.status.type.completed || e.status.type.state === 'post').forEach(e => {
+        fetchBoxScore(e.id).then(d => {
+            const ex = gameExcitement(d);
+            if (!ex) return;
+            document.querySelectorAll(`.g-ex[data-ex="${e.id}"]`).forEach(el => {
+                el.innerHTML = `<span class="ex-tag ${ex.cls}">${ex.label}</span>`;
+            });
+        });
+    });
+}
+
+/* ── 試合の summary（Top 10 / Off Nights / 怪我人 / 見どころに使う） ── */
 function fetchBoxScore(eventId, opts) {
     return NBA.api.summary(eventId, opts).catch(() => null);
 }
@@ -943,6 +956,7 @@ async function init(force = false) {
             document.getElementById(id).innerHTML = '<div class="msg error">Failed to load data</div>';
         };
         extractTopPlayers(topPlayerEvents).then(setTopPlayers).catch(showError('rankings', 'top players:'));
+        fillExcitement([...resultsEvents, ...yesterdayEvents]);
         fetchInjuryPlayers(todayEvents).then(renderInjuryPlayers).catch(showError('injury-players', 'injuries:'));
 
     } catch (err) {
