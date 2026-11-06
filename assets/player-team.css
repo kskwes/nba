@@ -721,3 +721,43 @@ a.t-sched-row:hover { background: rgba(255,255,255,0.04); }
 .ap-ff-row .v { font-family: var(--font-score); font-weight: 600; font-size: 15px; text-align: right; }
 .ap-ff-row .r { font-size: 10.5px; color: var(--muted); }
 .adv-style { max-width: 640px; }
+
+/* ─── Assist Map（チームページ。assets/assist-map.js） ─── */
+.am-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+.am-sub { font-size: 11.5px; color: var(--muted); }
+.am-seg { display: inline-flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+.am-seg button { background: none; border: 0; color: var(--muted); font-size: 11.5px; font-weight: 700; padding: 5px 10px; cursor: pointer; }
+.am-seg button.active { background: var(--surface2); color: var(--text); }
+.am-duos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 700px) { .am-duos { grid-template-columns: minmax(0, 1fr); } }
+.am-duo { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; cursor: pointer; }
+.am-duo:hover { border-color: var(--accent); }
+.am-duo .rk { font-family: var(--font-score); color: var(--accent); font-size: 13px; margin-right: 6px; }
+.am-duo .names { font-size: 13px; font-weight: 800; }
+.am-duo .names em { font-style: normal; color: var(--accent); margin: 0 4px; }
+.am-duo .nums { font-family: var(--font-score); font-size: 22px; font-weight: 600; margin: 4px 0 2px; }
+.am-duo .nums small { font-family: inherit; font-size: 12px; color: var(--muted); margin-left: 6px; }
+.am-kinds { display: flex; height: 8px; border-radius: 4px; overflow: hidden; margin: 6px 0 4px; background: var(--surface2); }
+.am-kinds span { height: 100%; }
+.am-kind-legend { font-size: 10.5px; color: var(--text-dim); display: flex; flex-wrap: wrap; gap: 2px 10px; }
+.am-kind-legend i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 3px; }
+.am-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.am-chip { display: inline-flex; align-items: center; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 3px 10px 3px 3px; cursor: pointer; font: inherit; font-size: 12px; font-weight: 700; color: var(--text-dim); }
+.am-chip.on { border-color: var(--accent); color: var(--text); background: rgba(245,183,0,.08); }
+.am-chip svg { display: block; }
+.am-chip small { font-size: 10px; color: var(--muted); font-weight: 600; }
+.am-ego { background: var(--surface-deep); border: 1px solid var(--line-soft); border-radius: 10px; padding: 8px 6px 4px; margin-top: 10px; }
+.am-ego[hidden] { display: none; }
+.am-ego svg { display: block; width: 100%; height: auto; }
+.am-node { cursor: pointer; }
+.am-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 14px; font-size: 10.5px; color: var(--text-dim); padding: 6px 8px; }
+.am-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; vertical-align: -1px; }
+.am-tables { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; margin-top: 14px; }
+@media (max-width: 760px) { .am-tables { grid-template-columns: minmax(0, 1fr); } }
+.am-tables h4 { font-size: 12px; margin: 0 0 4px; }
+.am-tables h4 small { color: var(--muted); font-weight: 500; }
+.am-pt { width: 100%; border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; }
+.am-pt th { font-size: 10px; color: var(--muted); font-weight: 700; padding: 5px 6px; text-align: right; border-bottom: 1px solid var(--border); }
+.am-pt td { padding: 6px; text-align: right; border-bottom: 1px solid var(--line-soft); font-weight: 600; }
+.am-pt .l { text-align: left; }
+.am-pt td .am-kinds { width: 90px; margin: 0 0 0 auto; height: 7px; }
