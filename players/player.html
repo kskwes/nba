@@ -12,10 +12,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&display=swap">
-    <link rel="stylesheet" href="../assets/common.css?v=2026102901">
-    <link rel="stylesheet" href="../assets/player-team.css?v=2026102901">
+    <link rel="stylesheet" href="../assets/common.css?v=2026110601">
+    <link rel="stylesheet" href="../assets/player-team.css?v=2026110601">
     <style>
         .main-wrap.single { max-width: 1100px; }
+        #p-profile-block[hidden] { display: none; }
         @media (max-width: 600px) { .profile-card { align-items: flex-start; } }
     </style>
 </head>
@@ -72,6 +73,13 @@
                     <div id="stats-detail" class="stats-detail sd sd-row"></div>
                 </div>
 
+                <!-- Player Profile: 効率と役割・シュートの傾向・Game Score の安定度・On/Off（data/advanced.json） -->
+                <div class="lc-block" id="p-profile-block" hidden>
+                    <div class="section-header"><h2>Player Profile</h2></div>
+                    <div id="p-profile-updated"></div>
+                    <div id="p-profile"></div>
+                </div>
+
                 <!-- Recent Stats -->
                 <div class="lc-block">
                     <div class="section-header">
@@ -88,11 +96,12 @@
     </div>
 </main>
 
-<script src="../assets/api.js?v=2026102901"></script>
-<script src="../assets/teams.js?v=2026102901"></script>
-<script src="../assets/stats.js?v=2026102901"></script>
-<script src="../assets/ui.js?v=2026102901"></script>
-<script src="../assets/player-index.js?v=2026102901"></script>
+<script src="../assets/api.js?v=2026110601"></script>
+<script src="../assets/teams.js?v=2026110601"></script>
+<script src="../assets/stats.js?v=2026110601"></script>
+<script src="../assets/ui.js?v=2026110601"></script>
+<script src="../assets/player-index.js?v=2026110601"></script>
+<script src="../assets/advanced.js?v=2026110601"></script>
 <script>
 /* ─── Season stats（計算は assets/stats.js） ─── */
 // シーズン平均（"7.3-16.0" 形式を含む）から計算用の値を作る
@@ -570,6 +579,18 @@ async function loadProfile() {
     return { teamId: team?.id ? String(team.id) : '' };
 }
 
+// Player Profile（data/advanced.json）。集計にない選手（出場10分未満など）はブロックごと出さない
+async function loadPlayerProfile(id) {
+    try {
+        const d = await NBA.advanced.load();
+        const html = NBA.advanced.profileHTML(d, id);
+        if (!html) return;
+        document.getElementById('p-profile-updated').innerHTML = NBA.advanced.updatedHTML(d);
+        document.getElementById('p-profile').innerHTML = html;
+        document.getElementById('p-profile-block').hidden = false;
+    } catch (e) { console.error('advanced:', e); }
+}
+
 async function init() {
     if (!PLAYER_ID) {
         document.getElementById('player-section').innerHTML = '<div class="msg">選手を検索してください</div>';
@@ -579,7 +600,7 @@ async function init() {
     chartWrap.innerHTML = '<div class="msg">Loading<span class="spinner"></span></div>';
     const p = await loadProfile();
     if (!p) return;
-    await Promise.all([loadStats(PLAYER_ID, p.teamId), loadGamelog(PLAYER_ID, p.teamId)]);
+    await Promise.all([loadStats(PLAYER_ID, p.teamId), loadGamelog(PLAYER_ID, p.teamId), loadPlayerProfile(PLAYER_ID)]);
 }
 
 init();
