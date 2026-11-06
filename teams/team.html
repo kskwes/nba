@@ -12,8 +12,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&display=swap">
-    <link rel="stylesheet" href="../assets/common.css?v=2026110601">
-    <link rel="stylesheet" href="../assets/player-team.css?v=2026110601">
+    <link rel="stylesheet" href="../assets/common.css?v=2026110602">
+    <link rel="stylesheet" href="../assets/player-team.css?v=2026110602">
     <style>
         .main-wrap.single { max-width: 1100px; }
         .t-two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; margin-bottom: 24px; }
@@ -116,6 +116,13 @@
                     <p class="adv-note">ポゼッションは play-by-play から実際に数えた回数。出場区間は交代記録から再現しているため、公式の +/- と数点ずれることがあります。集計した時点の数字です。</p>
                 </div>
 
+                <!-- Assist Map: 誰が誰にアシストしているか（data/assists.json） -->
+                <div class="lc-block" id="t-assist-block">
+                    <div class="section-header"><h2>Assist Map</h2></div>
+                    <div id="t-assist-updated"></div>
+                    <div id="t-assist"><div class="msg">Loading<span class="spinner"></span></div></div>
+                </div>
+
                 <div class="t-two">
                     <!-- Schedule -->
                     <div class="lc-block" id="t-schedule-block">
@@ -155,11 +162,12 @@
     </div>
 </main>
 
-<script src="../assets/api.js?v=2026110601"></script>
-<script src="../assets/teams.js?v=2026110601"></script>
-<script src="../assets/stats.js?v=2026110601"></script>
-<script src="../assets/ui.js?v=2026110601"></script>
-<script src="../assets/advanced.js?v=2026110601"></script>
+<script src="../assets/api.js?v=2026110602"></script>
+<script src="../assets/teams.js?v=2026110602"></script>
+<script src="../assets/stats.js?v=2026110602"></script>
+<script src="../assets/ui.js?v=2026110602"></script>
+<script src="../assets/advanced.js?v=2026110602"></script>
+<script src="../assets/assist-map.js?v=2026110602"></script>
 <script>
 /* ─── Team Standings (rank / record / streak) ─── */
 let standingsCache = null;
@@ -739,6 +747,19 @@ async function loadTeamStyle(abbr) {
     }
 }
 
+// Assist Map（data/assists.json）
+async function loadAssistMap(abbr) {
+    const el = document.getElementById('t-assist');
+    try {
+        const d = await NBA.assistMap.load();
+        document.getElementById('t-assist-updated').innerHTML = NBA.advanced.updatedHTML(d);
+        NBA.assistMap.mount(el, d, abbr);
+    } catch (e) {
+        console.error('assists:', e);
+        el.innerHTML = '<div class="msg error">アシストのデータを読み込めませんでした</div>';
+    }
+}
+
 async function init() {
     if (!TEAM) {
         document.getElementById('team-section').innerHTML = '<div class="msg error">Team not found</div>';
@@ -765,6 +786,7 @@ async function init() {
         loadTeamStandingsInfo(TEAM.id, TEAM.abbr),
         loadTeamAdvanced(TEAM.abbr),
         loadTeamStyle(TEAM.abbr),
+        loadAssistMap(TEAM.abbr),
     ]);
 }
 
