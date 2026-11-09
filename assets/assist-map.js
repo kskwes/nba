@@ -8,6 +8,7 @@ window.NBA = window.NBA || {};
 
 (function () {
     const GOLD = '#F5B700', TEAL = '#16a6ba', GRAY = '#55555f';
+    const TOGETHER_MIN = 50;   // 一緒に出た時間がこれ未満の得失点差は灰色に（ぶれが大きいため）
     const KIND_COLORS = ['#ff9f6b', '#ff6b61', '#c9a7ff', '#7ad7a8', GOLD];   // ロブ・ダンク・レイアップ・ジャンパー・3P
 
     let promise = null;
@@ -52,13 +53,13 @@ window.NBA = window.NBA || {};
             <div class="am-ego"><svg></svg>
                 <div class="am-legend"><span><i style="background:${GOLD}"></i>アシストした</span><span><i style="background:${TEAL}"></i>アシストされて決めた</span><span><i style="background:${GRAY}"></i>自分で決めた</span><span>（円のふちの割合）</span></div></div>
             <div class="am-tables"></div>
-            <p class="adv-note">得点プレー（フリースローを除く）の記録で、決めた選手とアシストした選手が両方記録されているものを数えています。シュートの型は記録の種類と文章から分けています（ロブ＝アリウープ）。</p>`;
+            <p class="adv-note">名コンビの得失点差は On/Off と同じ計算（ポゼッションは play-by-play から実際に数えた回数）。得点プレー（フリースローを除く）の記録で、決めた選手とアシストした選手が両方記録されているものを数えています。シュートの型は記録の種類と文章から分けています（ロブ＝アリウープ）。</p>`;
 
         function render() {
             const D = T[range];
             const players = Object.entries(D.players).map(([id, v]) => ({ id, name: T.names[id] || id, min: v[0], gp: v[1], ast: v[2], astd: v[3], fgm: v[4] })).sort((a, b) => b.min - a.min);
             const by = Object.fromEntries(players.map(p => [p.id, p]));
-            const pairs = D.pairs.map(([from, to, n, pts, k]) => ({ from, to, n, pts, k })).sort((a, b) => b.n - a.n || b.pts - a.pts);
+            const pairs = D.pairs.map(([from, to, n, pts, k, tg]) => ({ from, to, n, pts, k, tg })).sort((a, b) => b.n - a.n || b.pts - a.pts);
             if (!center || !by[center]) center = [...players].sort((a, b) => b.ast - a.ast)[0]?.id;
             root.querySelector('.am-sub').textContent = `${range === 'season' ? '今季' : '直近'} ${D.games} 試合`;
             if (!pairs.length || !center) {
@@ -69,11 +70,19 @@ window.NBA = window.NBA || {};
             }
             root.querySelector('.am-ego').hidden = false;
 
-            // 名コンビ
+            // 名コンビ。下に「2人が一緒にコートにいるとき」の100ポゼッションあたりの得失点差（On/Off と同じ計算）とチーム全体
+            const net = t => t && t[2] && t[3] ? 100 * t[0] / t[2] - 100 * t[1] / t[3] : null;
+            const sgn = v => v == null ? '-' : (v > 0 ? '+' : '') + v.toFixed(1);
+            const teamNet = net(D.team);
+            const together = p => {
+                const v = net(p.tg), min = Math.round((p.tg?.[4] || 0) / 60), short = min < TOGETHER_MIN;
+                const c = short || v == null ? 'mut' : v > 0 ? 'pos' : 'neg';
+                return `<div class="am-together"><b class="${c}">${sgn(v)}</b>2人が一緒にコートにいるとき<small>${min}分${short ? '（短いのでぶれが大きい）' : ''} · チーム全体は ${sgn(teamNet)}（100ポゼッションあたりの得失点差）</small></div>`;
+            };
             root.querySelector('.am-duos').innerHTML = pairs.slice(0, 3).map((p, i) => `<div class="am-duo" data-center="${p.from}">
                 <div class="names"><span class="rk">${i + 1}</span>${esc(by[p.from].name)}<em>→</em>${esc(by[p.to].name)}</div>
                 <div class="nums">${p.n}本<small>${p.pts}点 · 1試合 ${(p.n / D.games).toFixed(1)}本</small></div>
-                ${kindsBar(p.k)}<div class="am-kind-legend">${kindsText(p.k)}</div></div>`).join('');
+                ${kindsBar(p.k)}<div class="am-kind-legend">${kindsText(p.k)}</div>${together(p)}</div>`).join('');
 
             // 選手の選択（出場時間の多い12人）。役割の一言は、ふちの3色のうち一番多いもの
             const role = p => { const m = Math.max(p.ast, p.astd, p.fgm - p.astd); return m === p.ast ? '司令塔' : m === p.astd ? '仕上げ役' : '自力型'; };
@@ -84,8 +93,8 @@ window.NBA = window.NBA || {};
             const c = by[center];
             const out = pairs.filter(p => p.from === center).slice(0, 7), inn = pairs.filter(p => p.to === center).slice(0, 7);
             const w = root.querySelector('.am-ego').clientWidth;
-            const narrow = w < 520, W = narrow ? 380 : 620, rows = Math.max(out.length, inn.length, 3);
-            const TOP = 30, H = Math.max(250, rows * 50 + TOP + 20), CX = W / 2, CY = TOP + (H - TOP) / 2;
+            const narrow = w < 520, W = narrow ? 380 : 620, rows = Math.max(out.length, inn.length, 3);   // 1人あたりの高さは42（PC では図の幅を640px までにして、文字や円が大きくなりすぎないように）
+            const TOP = 30, H = Math.max(220, rows * 42 + TOP + 20), CX = W / 2, CY = TOP + (H - TOP) / 2;
             const XR = narrow ? W * 0.68 : W * 0.72, XL = W - XR;
             const label = n => narrow ? n.split(' ').slice(1).join(' ') || n : n;   // スマホは名字だけ
             const nMax = Math.max(1, ...out.map(p => p.n), ...inn.map(p => p.n));

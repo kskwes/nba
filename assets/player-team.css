@@ -735,7 +735,7 @@ a.t-sched-row:hover { background: rgba(255,255,255,0.04); }
 .am-duo .rk { font-family: var(--font-score); color: var(--accent); font-size: 13px; margin-right: 6px; }
 .am-duo .names { font-size: 13px; font-weight: 800; }
 .am-duo .names em { font-style: normal; color: var(--accent); margin: 0 4px; }
-.am-duo .nums { font-family: var(--font-score); font-size: 22px; font-weight: 600; margin: 4px 0 2px; }
+.am-duo .nums { font-family: var(--font-score); font-size: 19px; font-weight: 600; margin: 4px 0 2px; }
 .am-duo .nums small { font-family: inherit; font-size: 12px; color: var(--muted); margin-left: 6px; }
 .am-kinds { display: flex; height: 8px; border-radius: 4px; overflow: hidden; margin: 6px 0 4px; background: var(--surface2); }
 .am-kinds span { height: 100%; }
@@ -748,7 +748,7 @@ a.t-sched-row:hover { background: rgba(255,255,255,0.04); }
 .am-chip small { font-size: 10px; color: var(--muted); font-weight: 600; }
 .am-ego { background: var(--surface-deep); border: 1px solid var(--line-soft); border-radius: 10px; padding: 8px 6px 4px; margin-top: 10px; }
 .am-ego[hidden] { display: none; }
-.am-ego svg { display: block; width: 100%; height: auto; }
+.am-ego svg { display: block; width: 100%; max-width: 640px; height: auto; margin: 0 auto; }
 .am-node { cursor: pointer; }
 .am-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 14px; font-size: 10.5px; color: var(--text-dim); padding: 6px 8px; }
 .am-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; vertical-align: -1px; }
@@ -761,3 +761,13 @@ a.t-sched-row:hover { background: rgba(255,255,255,0.04); }
 .am-pt td { padding: 6px; text-align: right; border-bottom: 1px solid var(--line-soft); font-weight: 600; }
 .am-pt .l { text-align: left; }
 .am-pt td .am-kinds { width: 90px; margin: 0 0 0 auto; height: 7px; }
+
+/* 使われ方と効率（リーグ全体の USG%×TS%。選手ページと Teams の Advanced タブ） */
+.ap-umap-card { max-width: 640px; }
+.ap-umap circle[data-id] { cursor: pointer; }
+.ap-umap-cap { font-size: 12px; color: var(--text-dim); min-height: 20px; margin-top: 6px; }
+.ap-umap-cap b { color: var(--text); }
+.am-together { margin-top: 8px; padding: 7px 8px; border-radius: 6px; background: var(--surface2); font-size: 11.5px; color: var(--text-dim); line-height: 1.5; }
+.am-together b { font-family: var(--font-score); font-size: 17px; font-weight: 600; margin-right: 4px; }
+.am-together b.pos { color: var(--pos); } .am-together b.neg { color: var(--neg); } .am-together b.mut { color: var(--muted); }
+.am-together small { display: block; color: var(--muted); font-size: 10.5px; }

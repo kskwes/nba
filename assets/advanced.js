@@ -126,14 +126,68 @@ window.NBA = window.NBA || {};
         return `<div class="ap-pct"><i style="width:${Math.max(4, p * 100)}%;background:${c}"></i></div>`;
     };
 
-    /* ── Player Profile（選手ページ）: 効率と役割・シュートの傾向・Game Score の安定度・On/Off ──
-       順位の対象は出場200分以上の選手。それ未満の選手は値だけ出す */
-    const PROFILE_MIN = 200;
+    /* ── 順位と散布図の対象: 出場時間が「所属チームの試合数 × 20分」以上の選手 ──
+       データ（advanced.json）を更新すれば、試合数に合わせて基準も上がる */
+    const MIN_PER_GAME = 20;
+    const teamGames = (d, team) => (d.teamStyle || []).find(t => t.team === team)?.gp || 0;
+    const minNeeded = (d, team) => teamGames(d, team) * MIN_PER_GAME;
+    const qualified = d => (d.profiles || []).filter(p => p.min >= minNeeded(d, p.team));
+
+    /* ── 使われ方と効率（リーグ全体）: 横 USG%・縦 TS% の散布図。isMe の選手を金色で ──
+       名前は、強調した選手と両軸の端にいる数人だけ。重なる名前は上下にずらし、置けなければ出さない。点を押すと下に名前と数字 */
+    function usageMapHTML(d, isMe) {
+        const list = qualified(d);
+        if (list.length < 5) return '';
+        const W = 420, H = 320, L = 38, R = 12, T = 12, B = 32;
+        const xs = list.map(p => p.usg), ys = list.map(p => p.ts);
+        const x0 = Math.floor(Math.min(...xs) - 1), x1 = Math.ceil(Math.max(...xs) + 1), y0 = Math.floor(Math.min(...ys) - 2), y1 = Math.ceil(Math.max(...ys) + 2);
+        const X = v => L + (W - L - R) * (v - x0) / (x1 - x0), Y = v => T + (H - T - B) * (1 - (v - y0) / (y1 - y0));
+        const ax = xs.reduce((n, v) => n + v, 0) / xs.length, ay = ys.reduce((n, v) => n + v, 0) / ys.length;
+        let g = `<line x1="${X(ax)}" x2="${X(ax)}" y1="${T}" y2="${H - B}" stroke="#55555f" stroke-dasharray="4 3"/><line x1="${L}" x2="${W - R}" y1="${Y(ay)}" y2="${Y(ay)}" stroke="#55555f" stroke-dasharray="4 3"/>`;
+        const boxes = [];
+        const hit = (a0, b0, a1, b1) => boxes.some(b => a0 < b[2] && a1 > b[0] && b0 < b[3] && b1 > b[1]);
+        const corner = (x, y, t, a) => { const w = t.length * 9, s0 = a === 'end' ? x - w : x; boxes.push([s0, y - 10, s0 + w, y + 2]); return `<text x="${x}" y="${y}" font-size="9.5" fill="#6f6f78" text-anchor="${a}">${t}</text>`; };
+        g += corner(W - R - 2, H - B - 6, '任されているが 効率が低い', 'end') + corner(L + 4, H - B - 6, 'どちらも低い', 'start');
+        for (let v = Math.ceil(x0 / 5) * 5; v <= x1; v += 5) g += `<text x="${X(v)}" y="${H - B + 12}" font-size="9" fill="#6f6f78" text-anchor="middle">${v}</text>`;
+        for (let v = Math.ceil(y0 / 5) * 5; v <= y1; v += 5) g += `<text x="${L - 4}" y="${Y(v) + 3}" font-size="9" fill="#6f6f78" text-anchor="end">${v}</text>`;
+        [...list].sort((a, b) => isMe(a) - isMe(b)).forEach(p => {
+            const me = isMe(p);
+            g += `<circle data-id="${p.id}" cx="${X(p.usg)}" cy="${Y(p.ts)}" r="${me ? 6 : 3.5}" fill="${me ? GOLD : TEAL}" fill-opacity="${me ? 1 : .45}"/>`;
+        });
+        const by = (k, dir) => [...list].sort((a, b) => dir * (b[k] - a[k]));
+        const edge = new Set([...by('usg', 1).slice(0, 3), ...by('ts', 1).slice(0, 2), ...by('ts', -1).slice(0, 2)].map(p => p.id));
+        [...list.filter(isMe), ...list.filter(p => !isMe(p) && edge.has(p.id))].forEach(p => {
+            const me = isMe(p), fs = me ? 10.5 : 9, w = p.name.length * fs * 0.6;
+            const cx = X(p.usg), cy = Y(p.ts), right = cx < W - w - 14, x = cx + (right ? 8 : -8), s0 = right ? x : x - w;
+            for (const dy of [0, -11, 11, -22, 22]) {
+                const y = cy + 3 + dy;
+                if (y < T + 8 || y > H - B - 2 || hit(s0, y - fs, s0 + w, y + 2)) continue;
+                boxes.push([s0, y - fs, s0 + w, y + 2]);
+                g += `<text x="${x}" y="${y}" font-size="${fs}" font-weight="${me ? 800 : 600}" fill="${me ? GOLD : '#8b8b95'}" text-anchor="${right ? 'start' : 'end'}" pointer-events="none">${esc(p.name)}</text>`;
+                break;
+            }
+        });
+        g += `<text x="${(L + W) / 2}" y="${H - 4}" font-size="10" fill="#8b8b95" text-anchor="middle">USG%（任されている度合い）→</text><text transform="translate(10 ${(T + H - B) / 2}) rotate(-90)" font-size="10" fill="#8b8b95" text-anchor="middle">TS%（効率）→</text>`;
+        return `<div class="ap-umap"><svg class="ap-map" viewBox="0 0 ${W} ${H}">${g}</svg><div class="ap-umap-cap">点を押すと名前と数字が出ます</div>
+            <div class="ap-note">今季の通算。出場が チームの試合数 × ${MIN_PER_GAME}分 以上の ${list.length} 人。点線はその平均</div></div>`;
+    }
+    // 点を押したとき（散布図はページに何度でも描き直されるので、押した点の図の下に出す）
+    let usageData = null;
+    document.addEventListener('click', e => {
+        const c = e.target.closest('.ap-umap circle[data-id]');
+        if (!c || !usageData) return;
+        const p = usageData.profiles.find(x => x.id === c.dataset.id);
+        if (p) c.closest('.ap-umap').querySelector('.ap-umap-cap').innerHTML = `<a class="plain-link" href="${NBA.link.player(p.id)}"><b>${esc(p.name)}</b></a>（${esc(p.team)}） USG ${f1(p.usg)}% · TS ${f1(p.ts)}% · ${p.gp}試合 ${p.min}分`;
+    });
+    const usageMap = (d, isMe) => { usageData = d; return usageMapHTML(d, isMe); };
+
+    /* ── Player Profile（選手ページ）: 効率と役割・使われ方と効率・シュートの傾向・Game Score の安定度・On/Off ──
+       順位の対象は qualified の選手。それ未満の選手は値だけ出す */
     const ZN = { rim: 'ゴール下', paint: 'ペイント', mid: 'ミドル', corner3: 'コーナー3', ab3: 'トップ3' };
     function profileHTML(d, id) {
         const p = (d.profiles || []).find(x => x.id === String(id));
         if (!p) return null;
-        const L = d.profiles.filter(x => x.min >= PROFILE_MIN), ranked = p.min >= PROFILE_MIN;
+        const L = qualified(d), need = minNeeded(d, p.team), ranked = p.min >= need;
         const tile = (label, key, lowGood) => {
             const r = ranked ? rankOf(L, x => x[key], p[key], lowGood) : null;
             return `<div class="ap-tile"><span>${label}</span><b>${f1(p[key])}%</b>${r ? `${pctBar(r, L.length)}<small>${r}位 / ${L.length}</small>` : ''}</div>`;
@@ -166,9 +220,11 @@ window.NBA = window.NBA || {};
         const ooHTML = o ? `<div class="ap-oo"><div class="ap-tile"><span>出場中</span><b class="${cls(o.onNet)}">${sgn(o.onNet)}</b></div><div class="ap-tile"><span>ベンチ中</span><b class="${cls(o.offNet)}">${sgn(o.offNet)}</b></div><div class="ap-tile"><span>差（On − Off）</span><b class="${cls(o.diff)}">${sgn(o.diff)}</b></div></div>`
             : '<div class="ap-note">集計の対象外です</div>';
 
-        return `<div class="sd-title">効率と役割 <span class="ap-sub">${ranked ? `バーと順位は、出場${PROFILE_MIN}分以上の ${L.length} 人の中での位置` : `出場${PROFILE_MIN}分未満のため順位はありません`}</span></div>
+        const umap = usageMap(d, x => x.id === p.id);
+        return `<div class="sd-title">効率と役割 <span class="ap-sub">${ranked ? `バーと順位は、出場が チームの試合数 × ${MIN_PER_GAME}分（${p.team} は${need}分）以上の ${L.length} 人の中での位置` : `出場が チームの試合数 × ${MIN_PER_GAME}分（${p.team} は${need}分）に届かないため、順位はありません`}</span></div>
             <div class="ap-tiles">${tiles}</div>
             <p class="ap-desc">TS%: FT も含めたシュートの効率 / eFG%: 3P を1.5本分に数えた FG% / USG%: 出場中の攻撃のうち、その選手が終えた割合 / AST%: 出場中に味方が決めたシュートのうち、その選手のアシストの割合 / TOV%: 攻撃を終えたうち、ターンオーバーだった割合（低いほど良い） / REB%: 出場中のリバウンドのうち、その選手が取った割合</p>
+            ${umap ? `<div class="sd-title" style="margin-top:16px">使われ方と効率 <span class="ap-sub">リーグ全体の中での位置（金色がこの選手${ranked ? '' : '。対象外のため表示なし'}）</span></div><div class="ap-card ap-umap-card">${umap}</div>` : ''}
             <div class="ap-grid2">
                 <div><div class="sd-title">シュートの傾向 <span class="ap-sub">打った割合と成功率</span></div><div class="ap-card">${zones}</div></div>
                 <div><div class="sd-title">Game Score の安定度 <span class="ap-sub">試合ごとの出来</span></div><div class="ap-card">${gsHTML}</div>
@@ -230,5 +286,5 @@ window.NBA = window.NBA || {};
             </div>`;
     }
 
-    NBA.advanced = { load, updatedHTML, onOffRows, unitRows, clutchRows, renderOnOff, renderUnits, renderClutch, profileHTML, teamStyleHTML, styleMapSVG, f1, sgn, cls, mmss };
+    NBA.advanced = { load, updatedHTML, onOffRows, unitRows, clutchRows, renderOnOff, renderUnits, renderClutch, profileHTML, teamStyleHTML, styleMapSVG, usageMap, MIN_PER_GAME, f1, sgn, cls, mmss };
 })();
