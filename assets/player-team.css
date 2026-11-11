@@ -771,3 +771,17 @@ a.t-sched-row:hover { background: rgba(255,255,255,0.04); }
 .am-together b { font-family: var(--font-score); font-size: 17px; font-weight: 600; margin-right: 4px; }
 .am-together b.pos { color: var(--pos); } .am-together b.neg { color: var(--neg); } .am-together b.mut { color: var(--muted); }
 .am-together small { display: block; color: var(--muted); font-size: 10.5px; }
+
+/* ハーフコートと速攻（チームページの Team Style・Teams の Advanced タブ） */
+.ap-hc-sum { font-size: 13px; color: var(--text-dim); line-height: 1.8; margin-bottom: 8px; }
+.ap-hc-sum b { color: var(--text); }
+.ap-hc-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 600px) { .ap-hc-cols { grid-template-columns: minmax(0, 1fr); } }
+.ap-hc-row { display: grid; grid-template-columns: minmax(0, 1fr) 50px 64px; gap: 8px; align-items: center; padding: 6px 0; border-top: 1px solid var(--line-soft); font-size: 12px; }
+.ap-hc-row.key > span:first-child { font-weight: 800; color: var(--text); }
+.ap-hc-row span small { display: block; font-size: 10px; color: var(--muted); font-weight: 400; }
+.ap-hc-row .v { font-family: var(--font-score); font-weight: 600; font-size: 16px; text-align: right; }
+.ap-hc-row .r { font-size: 10.5px; color: var(--muted); }
+.adv-table tr.adv-me td { background: rgba(245,183,0,.08); }
+.adv-hc { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 16px; align-items: start; }
+@media (max-width: 860px) { .adv-hc { grid-template-columns: minmax(0, 1fr); } }

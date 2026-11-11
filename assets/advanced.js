@@ -283,8 +283,88 @@ window.NBA = window.NBA || {};
             <div class="ap-grid2 ap-eq">
                 <div><div class="sd-title">スタイルマップ</div><div class="ap-card">${styleMapSVG(T, abbr)}</div></div>
                 <div><div class="sd-title">攻守の強み・弱み <span class="ap-sub">Four Factors の今季の順位</span></div><div class="ap-card">${ffHTML}</div></div>
-            </div>`;
+            </div>
+            ${halfCourtHTML(T, t)}`;
     }
 
-    NBA.advanced = { load, updatedHTML, onOffRows, unitRows, clutchRows, renderOnOff, renderUnits, renderClutch, profileHTML, teamStyleHTML, styleMapSVG, usageMap, MIN_PER_GAME, f1, sgn, cls, mmss };
+    /* ── ハーフコート／速攻（チームページの Team Style）: 攻撃・守備の2列と結論の一言 ──
+       速攻 = 攻撃の始まり（守備リバウンド・相手の TO・相手の得点）から6秒以内にシュート・FT・TO があったもの（集計は aggregate.js） */
+    function halfCourtHTML(T, t) {
+        const L = T.filter(x => x.hc?.ortg != null), n = L.length;
+        if (!t.hc || n < 2) return '';
+        const g = (x, k) => x.hc[k];
+        const avg = k => L.reduce((s, x) => s + g(x, k), 0) / n;
+        const rank = (k, lowGood) => rankOf(L, x => g(x, k), g(t, k), lowGood);
+        const row = (label, sub, k, lowGood, key) => {
+            const r = rank(k, lowGood);
+            return `<div class="ap-hc-row ${key ? 'key' : ''}"><span>${label}<small>${sub} · 平均 ${f1(avg(k))}</small></span><span class="v">${f1(g(t, k))}</span><span class="r">${r}位${pctBar(r, n)}</span></div>`;
+        };
+        const off = `<div class="ap-ff-grp">攻撃</div>` + row('ハーフコート ORtg', 'セットした攻撃100回の得点', 'ortg', false, true)
+            + row('速攻 ORtg', '速攻100回の得点', 'trOrtg') + row('速攻の割合', '攻撃のうち速攻（%）', 'trFreq') + row('全体 ORtg', '参考', 'allOrtg');
+        const def = `<div class="ap-ff-grp">守備</div>` + row('ハーフコート DRtg', '相手のセットした攻撃100回の失点', 'drtg', true, true)
+            + row('速攻 DRtg', '相手の速攻100回の失点', 'trDrtg', true) + row('相手の速攻の割合', '相手の攻撃のうち速攻（%）', 'trFreqD', true) + row('全体 DRtg', '参考', 'allDrtg', true);
+        // 結論の一言: ハーフコートの攻守の順位と、速攻の多さ
+        const ro = rank('ortg'), rd = rank('drtg', true), rf = rank('trFreq'), rfd = rank('trFreqD', true);
+        const lv = r => r <= 5 ? 'リーグ上位' : r <= 12 ? '上の方' : r <= 18 ? '平均的' : r <= 25 ? '下の方' : 'リーグ下位';
+        const tr = rf <= 8 ? '速攻が多いチーム' : rf >= n - 7 ? '速攻が少なく、ほとんどをセットした攻撃で戦うチーム' : '速攻の多さは平均的';
+        const trD = rfd <= 8 ? '相手に速攻をあまり出させない' : rfd >= n - 7 ? '相手に速攻を多く出されている' : '';
+        const sum = `<b>${t.team}</b> はハーフコートの攻撃が<b>${lv(ro)}（${ro}位）</b>、守備が<b>${lv(rd)}（${rd}位）</b>。${tr}${trD ? `で、${trD}` : ''}。`;
+        return `<div class="sd-title" style="margin-top:16px">ハーフコートと速攻 <span class="ap-sub">攻撃・守備を、セットした攻撃（ハーフコート）と速攻に分けた100回あたりの得点・失点</span></div>
+            <div class="ap-card"><div class="ap-hc-sum">${sum}</div><div class="ap-hc-cols"><div>${off}</div><div>${def}</div></div>
+            <div class="ap-note">速攻 = 攻撃の始まり（守備リバウンド・相手の TO・相手の得点）から6秒以内にシュート・FT・TO があったもの。ガベージタイム（第4Q以降で25点差以上）は除く。順位は良い順（攻撃は高いほど、守備は低いほど上。速攻の割合は多い順）。速攻は1試合に13回前後なので、速攻の数字はぶれが大きい。</div></div>`;
+    }
+
+    /* ── ハーフコートの攻守の散布図（Teams の Advanced タブ）: 横 HC ORtg、縦 HC DRtg（失点が少ないほど上）。me のチームを金色で ── */
+    function halfCourtMapSVG(T, me) {
+        const L = T.filter(x => x.hc?.ortg != null);
+        if (L.length < 2) return '';
+        const W = 420, H = 320, Lp = 40, R = 12, Tp = 12, B = 30;
+        const xs = L.map(x => x.hc.ortg), ys = L.map(x => x.hc.drtg);
+        const x0 = Math.floor(Math.min(...xs) - 1), x1 = Math.ceil(Math.max(...xs) + 1), y0 = Math.floor(Math.min(...ys) - 1), y1 = Math.ceil(Math.max(...ys) + 1);
+        const X = v => Lp + (W - Lp - R) * (v - x0) / (x1 - x0), Y = v => Tp + (H - Tp - B) * (v - y0) / (y1 - y0);
+        const ax = xs.reduce((n, v) => n + v, 0) / xs.length, ay = ys.reduce((n, v) => n + v, 0) / ys.length;
+        let g = `<line x1="${X(ax)}" x2="${X(ax)}" y1="${Tp}" y2="${H - B}" stroke="#55555f" stroke-dasharray="4 3"/><line x1="${Lp}" x2="${W - R}" y1="${Y(ay)}" y2="${Y(ay)}" stroke="#55555f" stroke-dasharray="4 3"/>`;
+        const boxes = [[W - R - 70, Tp, W - R, Tp + 12], [Lp, H - B - 16, Lp + 70, H - B - 4]];
+        const hit = (a0, b0, a1, b1) => boxes.some(b => a0 < b[2] && a1 > b[0] && b0 < b[3] && b1 > b[1]);
+        g += `<text x="${W - R - 2}" y="${Tp + 10}" font-size="9.5" fill="#6f6f78" text-anchor="end">攻守とも強い</text><text x="${Lp + 4}" y="${H - B - 6}" font-size="9.5" fill="#6f6f78">攻守とも弱い</text>`;
+        const sorted = [...L].sort((a, b) => (a.team === me) - (b.team === me));
+        sorted.forEach(t => { const m = t.team === me; g += `<a href="${NBA.link.team(t.team)}"><circle cx="${X(t.hc.ortg)}" cy="${Y(t.hc.drtg)}" r="${m ? 7 : 4}" fill="${m ? GOLD : TEAL}" fill-opacity="${m ? 1 : .55}"/></a>`; });
+        // 名前は重なったら上下にずらす（自チームを先に置く）
+        [...sorted].reverse().forEach(t => {
+            const m = t.team === me, fs = m ? 11 : 8.5, w = t.team.length * fs * 0.7, cx = X(t.hc.ortg), cy = Y(t.hc.drtg);
+            const right = cx < W - w - 14, x = cx + (right ? (m ? 9 : 6) : -(m ? 9 : 6)), s0 = right ? x : x - w;
+            for (const dy of [0, -9, 9, -18, 18]) {
+                const y = cy + 3 + dy;
+                if (hit(s0, y - fs, s0 + w, y + 1)) continue;
+                boxes.push([s0, y - fs, s0 + w, y + 1]);
+                g += `<text x="${x}" y="${y}" font-size="${fs}" font-weight="${m ? 800 : 600}" fill="${m ? GOLD : '#8b8b95'}" text-anchor="${right ? 'start' : 'end'}" pointer-events="none">${t.team}</text>`;
+                break;
+            }
+        });
+        g += `<text x="${(Lp + W) / 2}" y="${H - 6}" font-size="10" fill="#8b8b95" text-anchor="middle">ハーフコートの攻撃（HC ORtg）→</text><text transform="translate(11 ${(Tp + H - B) / 2}) rotate(-90)" font-size="10" fill="#8b8b95" text-anchor="middle">ハーフコートの守備（HC DRtg）→</text>`;
+        return `<svg class="ap-map" viewBox="0 0 ${W} ${H}">${g}</svg><div class="ap-note">点線はリーグ平均。縦軸は失点が少ないほど上。点を押すとそのチームへ</div>`;
+    }
+
+    // ハーフコート／速攻の表（Teams の Advanced タブ）。me のチームの行を目立たせる
+    function renderHalfCourt(wrap, T, me) {
+        const rows = T.filter(x => x.hc?.ortg != null).map(x => ({ team: x.team, ...x.hc, net: x.hc.ortg - x.hc.drtg }));
+        if (!rows.length) { wrap.innerHTML = '<div class="msg">まだ集計した試合がありません</div>'; return; }
+        const cols = [
+            { key: 'team', label: 'Team', cls: 'l', get: r => r.team, asc: true },
+            { key: 'ortg', label: 'HC ORtg', get: r => r.ortg, title: 'セットした攻撃100回の得点' },
+            { key: 'drtg', label: 'HC DRtg', get: r => r.drtg, asc: true, title: '相手のセットした攻撃100回の失点' },
+            { key: 'net', label: 'HC NET', get: r => r.net },
+            { key: 'trFreq', label: '速攻%', get: r => r.trFreq, title: '攻撃のうち速攻の割合' },
+            { key: 'trOrtg', label: '速攻 ORtg', get: r => r.trOrtg },
+            { key: 'trFreqD', label: '相手の速攻%', get: r => r.trFreqD, asc: true },
+            { key: 'trDrtg', label: '速攻 DRtg', get: r => r.trDrtg, asc: true },
+        ];
+        NBA.ui.sortable(shell(wrap), {
+            rows, cols, initial: { key: 'net', asc: false },
+            render: r => `<tr class="${r.team === me ? 'adv-me' : ''}"><td class="l">${team(r.team)}</td><td>${f1(r.ortg)}</td><td>${f1(r.drtg)}</td>
+                <td class="adv-key ${cls(r.net)}">${sgn(r.net)}</td><td>${f1(r.trFreq)}</td><td>${f1(r.trOrtg)}</td><td>${f1(r.trFreqD)}</td><td>${f1(r.trDrtg)}</td></tr>`,
+        });
+    }
+
+    NBA.advanced = { load, updatedHTML, onOffRows, unitRows, clutchRows, renderOnOff, renderUnits, renderClutch, profileHTML, teamStyleHTML, styleMapSVG, usageMap, halfCourtMapSVG, renderHalfCourt, MIN_PER_GAME, f1, sgn, cls, mmss };
 })();

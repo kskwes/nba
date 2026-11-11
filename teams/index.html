@@ -12,8 +12,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&display=swap">
-    <link rel="stylesheet" href="../assets/common.css?v=2026110902">
-    <link rel="stylesheet" href="../assets/player-team.css?v=2026110902">
+    <link rel="stylesheet" href="../assets/common.css?v=2026111101">
+    <link rel="stylesheet" href="../assets/player-team.css?v=2026111101">
     <style>
         /* タブの位置をほかのページとそろえる */
         .main-wrap.single { max-width: 1300px; display: block; padding-top: 0; }
@@ -130,6 +130,12 @@
             </div>
 
             <div class="lc-block">
+                <div class="section-header"><h2>Half-Court &amp; Transition</h2></div>
+                <p class="adv-desc">攻撃・守備を、セットした攻撃（ハーフコート）と速攻に分けた100回あたりの得点・失点。散布図は右上ほどハーフコートの攻守が両方強い。速攻は、攻撃の始まり（守備リバウンド・相手の TO・相手の得点）から6秒以内にシュート・FT・TO があったもの。ガベージタイム（第4Q以降で25点差以上）は除く。</p>
+                <div class="adv-hc"><div id="adv-hc-map" class="ap-umap-card"></div><div id="adv-hc"><div class="msg">Loading<span class="spinner"></span></div></div></div>
+            </div>
+
+            <div class="lc-block">
                 <div class="section-header"><h2>Usage &amp; Efficiency</h2></div>
                 <p class="adv-desc">選手ごとの、ボールを任されている度合い（USG%、横）と得点の効率（TS%、縦）。右上ほど多く任されて効率も高い。上の Team でチームを選ぶと、そのチームの選手を強調します。</p>
                 <div id="adv-usage" class="ap-umap-card"><div class="msg">Loading<span class="spinner"></span></div></div>
@@ -147,10 +153,10 @@
     </div>
 </main>
 
-<script src="../assets/api.js?v=2026110902"></script>
-<script src="../assets/teams.js?v=2026110902"></script>
-<script src="../assets/ui.js?v=2026110902"></script>
-<script src="../assets/advanced.js?v=2026110902"></script>
+<script src="../assets/api.js?v=2026111101"></script>
+<script src="../assets/teams.js?v=2026111101"></script>
+<script src="../assets/ui.js?v=2026111101"></script>
+<script src="../assets/advanced.js?v=2026111101"></script>
 <script>
 /* ═══════════════════════════════════════════════
    チーム一覧: リーグ全体のスタッツ表 + ディビジョン別のチーム
@@ -277,6 +283,8 @@ function renderAdvanced() {
     NBA.advanced.renderUnits(document.getElementById('adv-units'), adv.units.filter(r => r.min >= unitMin && teamMatch(r.team)));
     const v = document.getElementById('adv-team').value;
     document.getElementById('adv-style').innerHTML = adv.style.length ? NBA.advanced.styleMapSVG(adv.style, v) : '<div class="msg">まだ集計した試合がありません</div>';
+    document.getElementById('adv-hc-map').innerHTML = NBA.advanced.halfCourtMapSVG(adv.style, v);
+    NBA.advanced.renderHalfCourt(document.getElementById('adv-hc'), adv.style, v);
     document.getElementById('adv-usage').innerHTML = NBA.advanced.usageMap(adv.raw, p => p.team === v) || '<div class="msg">まだ集計した試合がありません</div>';
 }
 async function loadAdvanced() {
@@ -294,7 +302,7 @@ async function loadAdvanced() {
         NBA.advanced.renderClutch(document.getElementById('adv-clutch'), adv.clutch);
     } catch (e) {
         console.error('advanced:', e);
-        ['adv-onoff', 'adv-units', 'adv-style', 'adv-usage', 'adv-clutch'].forEach(id => { document.getElementById(id).innerHTML = '<div class="msg error">分析データを読み込めませんでした</div>'; });
+        ['adv-onoff', 'adv-units', 'adv-style', 'adv-hc', 'adv-usage', 'adv-clutch'].forEach(id => { document.getElementById(id).innerHTML = '<div class="msg error">分析データを読み込めませんでした</div>'; });
     }
 }
 
