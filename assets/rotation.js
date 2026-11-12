@@ -129,3 +129,34 @@ function lineupUnits(rot, side, possEnds) {
     }
     return Object.values(units);
 }
+
+/* ── ハーフコート／速攻: countPossessions のポゼッションを、始まり（直前のポゼッションの終わりのプレー）から
+   最初の動き（攻撃側のシュート・FT・TO）までの秒数で分ける。クォーターの最初の攻撃は速攻にしない。
+   6秒は、ESPN の速攻の得点（fastBreakPoints）とリーグ平均がそろい、チームごとの相関も一番高かった（2026-11-11、140試合）
+   exclude: true なら、ガベージタイム（第4Q以降で25点差以上）と、クォーター残り3秒以下で始まったポゼッションを除く（シーズンの集計用）
+   戻り値: { a: { hc: [回数, 得点], tr: [回数, 得点] }, h: { ... } } ── */
+const HC_TR_SEC = 6, HC_GARBAGE = 25, HC_SHORT_END = 3;
+function halfCourtSplit(plays, sideOf, { exclude = false } = {}) {
+    const out = { a: { hc: [0, 0], tr: [0, 0] }, h: { hc: [0, 0], tr: [0, 0] } };
+    if (!plays?.length) return out;
+    const poss = countPossessions(plays, sideOf);
+    const tOf = x => flElapsed(x.period?.number || 1, x.clock?.displayValue ?? '0');
+    poss.ends.forEach((e, k) => {
+        const prev = poss.ends[k - 1], per = plays[e.i].period?.number || 1;
+        const samePer = prev && (plays[prev.i].period?.number || 1) === per && !/End Period/.test(plays[prev.i].type?.text || '');
+        const from = samePer ? prev.i : plays.findIndex(x => (x.period?.number || 1) === per) - 1;
+        const startP = samePer ? plays[prev.i] : null;
+        if (exclude) {
+            const startClock = startP ? flClockSec(startP.clock?.displayValue ?? '0') : flPeriodLen(per);
+            const sc = startP || plays[Math.max(0, from)] || {};
+            if ((per >= 4 && Math.abs((sc.homeScore ?? 0) - (sc.awayScore ?? 0)) >= HC_GARBAGE) || startClock <= HC_SHORT_END) return;
+        }
+        const o = e.side, t0 = startP ? tOf(startP) : flPeriodStart(per);
+        const span = plays.slice(from + 1, e.i + 1);
+        const pts = span.filter(x => x.scoringPlay && sideOf(x.team?.id) === o).reduce((n, x) => n + (x.scoreValue || 0), 0);
+        const first = span.find(x => sideOf(x.team?.id) === o && (x.shootingPlay || /^Free Throw/.test(x.type?.text || '') || POSS_TO_RE.test(x.type?.text || '')));
+        const k2 = startP && first && tOf(first) - t0 <= HC_TR_SEC ? 'tr' : 'hc';
+        out[o][k2][0]++; out[o][k2][1] += pts;
+    });
+    return out;
+}

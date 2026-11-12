@@ -12,7 +12,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&display=swap">
-    <link rel="stylesheet" href="../assets/common.css?v=2026111101">
+    <link rel="stylesheet" href="../assets/common.css?v=2026111201">
     <style>
         /* ステータス帯（ボックススコアのモーダルで使用） */
         .status {
@@ -419,12 +419,12 @@
     </div>
 </main>
 
-<script src="../assets/api.js?v=2026111101"></script>
-<script src="../assets/teams.js?v=2026111101"></script>
-<script src="../assets/stats.js?v=2026111101"></script>
-<script src="../assets/rotation.js?v=2026111101"></script>
+<script src="../assets/api.js?v=2026111201"></script>
+<script src="../assets/teams.js?v=2026111201"></script>
+<script src="../assets/stats.js?v=2026111201"></script>
+<script src="../assets/rotation.js?v=2026111201"></script>
 <script src="../assets/timeouts.js?v=2026103001"></script>
-<script src="../assets/ui.js?v=2026111101"></script>
+<script src="../assets/ui.js?v=2026111201"></script>
 <script>
 /* ── Box Score ── */
 const BOX_COLS = [
@@ -475,7 +475,9 @@ const TEAM_STATS = [
     ]],
     ['Scoring', '', [
         { label: 'Paint Pts',  type: 'split', num: m => m.n('pointsInPaint') },
-        { label: 'Fast Break', type: 'split', num: m => m.n('fastBreakPoints') },
+        // セットした攻撃（速攻以外）での得点。分け方は assets/rotation.js の halfCourtSplit（チームページの「ハーフコートと速攻」と同じ）
+        { label: 'Half-Court Pts', desc: 'セットした攻撃での得点', type: 'split', num: m => m.hc, has: m => m.hc != null },
+        { label: 'Fast Break', desc: 'ESPN の記録', type: 'split', num: m => m.n('fastBreakPoints') },
         // ESPN の turnoverPoints は「自チームのTOから失った点」なので相手側の値を使う
         { label: 'Pts off TO', type: 'split', num: (m, o) => o.n('turnoverPoints'), has: (m, o) => o.v('turnoverPoints') !== '' },
         { label: 'Bench Pts', type: 'split', num: m => m.bench, has: m => m.bench != null },
@@ -494,9 +496,13 @@ function boxTeamStats(awayTeam, homeTeam) {
         if (!sg?.athletes?.length) return null;
         return sg.athletes.filter(a => !a.starter).reduce((n, a) => n + (parseBoxLine(sg, a)?.pts || 0), 0);
     };
+    // ハーフコートの得点（試合単位なので、ガベージタイムなども含めて全部の攻撃を分ける）
+    const plays = game?.data?.plays;
+    const split = plays?.length ? halfCourtSplit(plays, id => id === game.away.team.id ? 'a' : id === game.home.team.id ? 'h' : undefined) : null;
+    const hcPts = teamId => split ? split[teamId === game.away.team.id ? 'a' : 'h'].hc[1] : null;
     const acc = t => {
         const v = name => t.statistics.find(x => x.name === name)?.displayValue ?? '';
-        return { v, n: name => parseFloat(v(name)) || 0, bench: benchPts(t.team?.id) };
+        return { v, n: name => parseFloat(v(name)) || 0, bench: benchPts(t.team?.id), hc: hcPts(t.team?.id) };
     };
     const A = acc(awayTeam), H = acc(homeTeam);
     const abA = normAbbr(awayTeam.team?.abbreviation || ''), abH = normAbbr(homeTeam.team?.abbreviation || '');
@@ -529,7 +535,7 @@ function boxTeamStats(awayTeam, homeTeam) {
         return `<div class="ts-row" title="${tip}">
             <div class="ts-head">
                 <span class="ts-val ${leadA ? 'lead' : ''}">${vA}${subA ? `<small>${subA}</small>` : ''}</span>
-                <span class="ts-lbl">${r.label}</span>
+                <span class="ts-lbl">${r.label}${r.desc ? `<small class="an-sub">${r.desc}</small>` : ''}</span>
                 <span class="ts-val right ${leadH ? 'lead' : ''}">${subH ? `<small>${subH}</small>` : ''}${vH}</span>
             </div>${chart}
         </div>`;
