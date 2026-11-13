@@ -12,8 +12,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&display=swap">
-    <link rel="stylesheet" href="../assets/common.css?v=2026111201">
-    <link rel="stylesheet" href="../assets/player-team.css?v=2026111201">
+    <link rel="stylesheet" href="../assets/common.css?v=2026111301">
+    <link rel="stylesheet" href="../assets/player-team.css?v=2026111301">
     <style>
         /* タブの位置をほかのページとそろえる */
         .main-wrap.single { max-width: 1300px; display: block; padding-top: 0; }
@@ -21,7 +21,7 @@
         .lt-controls { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; margin-bottom: 10px; }
         .lt-note { font-size: 11px; color: var(--muted); }
         .league-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
-        .league-table { width: 100%; border-collapse: collapse; font-size: 12.5px; white-space: nowrap; min-width: 1200px; }
+        .league-table { width: 100%; border-collapse: collapse; font-size: 12.5px; white-space: nowrap; }
         .league-table th {
             background: var(--surface2); color: var(--muted); font-size: 10.5px; font-weight: 700; letter-spacing: .5px;
             padding: 9px 8px; text-align: right; border-bottom: 1px solid var(--border); position: sticky; top: 0;
@@ -31,7 +31,24 @@
         .league-table tbody tr:hover td { background: rgba(255,255,255,0.03); }
         .league-table .lt-rank { text-align: center; color: var(--muted); width: 34px; font-size: 11px; }
         .league-table th.team-col, .league-table td.team-col { text-align: left; }
-        .league-table td.team-col { position: sticky; left: 0; background: var(--surface); }
+        /* チーム名の列は横スクロールしても左に残す */
+        .league-table td.team-col { position: sticky; left: 0; z-index: 1; background: var(--surface); box-shadow: 1px 0 0 var(--border); }
+        .league-table th.team-col { left: 0; z-index: 3; box-shadow: 1px 0 0 var(--border); }
+        .league-table tbody tr:hover td.team-col { background: var(--surface2); }
+        .league-table .lt-rk { display: inline-block; width: 18px; color: var(--muted); font-size: 11px; font-weight: 600; text-align: right; margin-right: 8px; }
+        /* 列のグループの区切り */
+        .league-table .g1 { border-left: 1px solid var(--border); }
+        .lt-ctl { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; }
+        .lt-ctl .sl-exp { margin-top: 0; }
+        @media (max-width: 640px) { .league-table .lt-name { display: none; } }
+        @media (min-width: 641px) { .league-table .lt-ab { display: none; } }
+        /* Advanced: 横に広がりすぎないよう、本文の幅を抑える */
+        .adv-body { max-width: 1040px; }
+        .adv-body .secnav { margin: 0 0 14px; }
+        .adv-body .lc-block { scroll-margin-top: 110px; }
+        .adv-body .adv-scroll { max-width: 760px; }
+        .adv-body #adv-units .adv-scroll { max-width: none; }
+        .adv-body .adv-controls input[type=checkbox] { accent-color: var(--accent); margin: 0; }
         .league-table .lt-team { display: inline-flex; align-items: center; gap: 8px; color: inherit; text-decoration: none; font-weight: 700; }
         .league-table .lt-team:hover { color: var(--accent); }
         .league-table .lt-team img { width: 22px; height: 22px; object-fit: contain; }
@@ -80,86 +97,99 @@
                 <span id="season-badge" class="badge"></span>
             </div>
             <div class="lt-controls">
-                <div class="sl-exp" id="conf-filter" style="margin-top:0">
-                    <button class="sl-exp-btn active" data-conf="all">All</button>
-                    <button class="sl-exp-btn" data-conf="East">East</button>
-                    <button class="sl-exp-btn" data-conf="West">West</button>
+                <div class="lt-ctl">
+                    <div class="sl-exp" id="conf-filter">
+                        <button class="sl-exp-btn active" data-conf="all">All</button>
+                        <button class="sl-exp-btn" data-conf="East">East</button>
+                        <button class="sl-exp-btn" data-conf="West">West</button>
+                    </div>
+                    <div class="sl-exp" id="view-filter">
+                        <button class="sl-exp-btn active" data-view="basic">Basic</button>
+                        <button class="sl-exp-btn" data-view="eff">Efficiency</button>
+                    </div>
                 </div>
-                <div class="lt-note">列見出しをクリックで並び替え（もう一度で逆順）・1試合平均・xW はピタゴラス勝率の勝ち数、ORtg / DRtg / NET は100ポゼッションあたり</div>
+                <div class="lt-note"><span data-ja="列見出しをクリックで並び替え（もう一度で逆順）・1試合平均">Click a header to sort (again to reverse). Per game.</span></div>
             </div>
             <div class="league-wrap" id="league-wrap">
                 <table class="league-table"><thead></thead><tbody><tr><td><div class="msg">Loading<span class="spinner"></span></div></td></tr></tbody></table>
             </div>
-            <!-- 表の指標の説明 -->
-            <dl class="lt-glossary">
-                <div><dt>xW（ピタゴラス勝率）</dt><dd>得点と失点だけから計算した「本来この程度は勝てているはず」という勝ち数。得点 <sup>14</sup> ÷（得点 <sup>14</sup> ＋ 失点 <sup>14</sup>）で勝率を出し、試合数を掛けています。野球のビル・ジェームズが考えた式を、NBA 向けに指数を 14 にしたものです。</dd></div>
-                <div><dt>W−xW</dt><dd>実際の勝ち数 − xW。プラスは得失点差のわりに勝てている（接戦に強い・運が良い）、マイナスは内容のわりに勝てていないことを表します。大きくずれたチームは、その後 xW の方へ近づいていくことが多いとされています。</dd></div>
-                <div><dt>ORtg / DRtg / NET・PACE</dt><dd>100ポゼッション（攻撃の回数）あたりの得点・失点・その差と、1試合のポゼッション数。試合のテンポの違いをならして攻守の強さを比べられます。ポゼッションは ESPN の推定値です。</dd></div>
+            <!-- 表の指標の説明（Efficiency のときだけ） -->
+            <dl class="lt-glossary" id="lt-glossary" hidden>
+                <div><dt>ORtg / DRtg / NET・PACE</dt><dd><span data-ja="100ポゼッション（攻撃の回数）あたりの得点・失点・その差と、1試合のポゼッション数。">ORtg / DRtg / NET = pts scored / allowed / diff per 100 poss. PACE = poss. per game.</span><br><span data-ja="試合のテンポの違いをならして攻守の強さを比べられます。">Compares offense and defense with game tempo evened out.</span><br><span data-ja="ポゼッションは ESPN の推定値です。">Possessions are ESPN estimates.</span></dd></div>
+                <div><dt>TS% / eFG%</dt><dd><span data-ja="TS% は FT も含めたシュートの効率。eFG% は 3P を1.5本分に数えた FG%。">TS% = shooting efficiency incl. FT. eFG% = FG% with a 3 counted as 1.5.</span></dd></div>
+                <div><dt>TOV% / ORB%</dt><dd><span data-ja="TOV% は攻撃のうちターンオーバーで終わった割合（低いほど良い）。ORB% は取れるオフェンスリバウンドのうち取った割合。">TOV% = share of plays ending in a turnover (lower is better). ORB% = share of available offensive rebounds grabbed.</span></dd></div>
             </dl>
         </div>
-
-        <!-- チーム一覧（カンファレンス → ディビジョン） -->
-        <div id="team-list" class="team-list lc-block"><div class="msg">Loading<span class="spinner"></span></div></div>
 
         </div><!-- /tab-teams -->
 
         <div class="tab-panel" id="tab-advanced">
-            <div id="adv-updated"></div>
+          <div class="adv-body">
             <div class="adv-controls">
+                <span id="adv-badge"></span>
                 <label>Team <select id="adv-team"><option value="all">All</option><option value="East">East</option><option value="West">West</option></select></label>
             </div>
+            <nav class="secnav" id="adv-nav" aria-label="Sections">
+                <a href="#sec-onoff">On / Off</a><a href="#sec-lineups">Lineups</a><a href="#sec-style">Team Style</a><a href="#sec-hc">Half-court &amp; Transition</a><a href="#sec-usage">Usage &amp; Efficiency</a><a href="#sec-clutch">Clutch</a>
+            </nav>
 
-            <div class="lc-block">
+            <div class="lc-block" id="sec-onoff" data-sec>
                 <div class="section-header"><h2>On / Off</h2></div>
-                <p class="adv-desc">選手がコートにいる時間（On）といない時間（Off）で、チームの得失点が100ポゼッションあたりどう変わるか。<b>On − Off</b> が大きいほど、その選手がいるとチームが良くなっています。</p>
-                <div class="adv-controls"><label>最低出場時間 <select id="adv-onoff-min"></select></label></div>
+                <p class="adv-desc"><span data-ja="選手がコートにいる時間（On）といない時間（Off）で、チームの得失点が100ポゼッションあたりどう変わるか。">Team point diff per 100 poss. with the player on vs. off the court.</span><br><span data-ja="On − Off が大きいほど、その選手がいるとチームが良くなっています。">Higher <b>On − Off</b> = the team is better with him.</span><br><span data-ja="On と Off のどちらかが最低出場時間に届かない選手は、出さない（チェックを入れると薄く表示）。">Players under the minimum on or off are hidden (dimmed when shown).</span></p>
+                <div class="adv-controls">
+                    <label>Min. on &amp; off <select id="adv-onoff-min"></select></label>
+                    <label><input type="checkbox" id="adv-onoff-low"> Show low-sample rows</label>
+                </div>
                 <div id="adv-onoff"><div class="msg">Loading<span class="spinner"></span></div></div>
             </div>
 
-            <div class="lc-block">
+            <div class="lc-block" id="sec-lineups" data-sec>
                 <div class="section-header"><h2>Top Lineups</h2></div>
-                <p class="adv-desc">5人の組み合わせごとの出場時間と、100ポゼッションあたりの得点（ORtg）・失点（DRtg）・差（NET）。</p>
-                <div class="adv-controls"><label>最低出場時間 <select id="adv-unit-min"></select></label></div>
+                <p class="adv-desc"><span data-ja="5人の組み合わせごとの出場時間と、100ポゼッションあたりの得点（ORtg）・失点（DRtg）・差（NET）。">Minutes for each 5-man unit, with pts scored (ORtg), allowed (DRtg) and diff (NET) per 100 poss.</span><br><span data-ja="出場20分未満の組み合わせは薄く表示。">Lineups under 20 min are dimmed.</span></p>
+                <div class="adv-controls"><label>Min. minutes <select id="adv-unit-min"></select></label></div>
                 <div id="adv-units"><div class="msg">Loading<span class="spinner"></span></div></div>
             </div>
 
-            <div class="lc-block">
+            <div class="lc-block" id="sec-style" data-sec>
                 <div class="section-header"><h2>Team Style</h2></div>
-                <p class="adv-desc">各チームが3Pとゴール下のどちらで多く打っているか。右上ほど両方が多く、左下ほどミドル寄り。上の Team でチームを選ぶと、そのチームを強調します。</p>
-                <div id="adv-style" class="adv-style"><div class="msg">Loading<span class="spinner"></span></div></div>
+                <div class="adv-map-wrap">
+                    <div id="adv-style" class="ap-card"><div class="msg">Loading<span class="spinner"></span></div></div>
+                    <div id="adv-style-howto" class="adv-howto"></div>
+                </div>
             </div>
 
-            <div class="lc-block">
+            <div class="lc-block" id="sec-hc" data-sec>
                 <div class="section-header"><h2>Half-Court &amp; Transition</h2></div>
-                <p class="adv-desc">攻撃・守備を、セットした攻撃（ハーフコート）と速攻に分けた100回あたりの得点・失点。散布図は右上ほどハーフコートの攻守が両方強い。速攻は、攻撃の始まり（守備リバウンド・相手の TO・相手の得点）から6秒以内にシュート・FT・TO があったもの。ガベージタイム（第4Q以降で25点差以上）は除く。</p>
+                <p class="adv-desc"><span data-ja="攻撃・守備を、セットした攻撃（ハーフコート）と速攻に分けた100回あたりの得点・失点。">Pts scored / allowed per 100 plays, split into half-court and transition.</span><br><span data-ja="散布図は右上ほどハーフコートの攻守が両方強い。">Upper right on the chart = good half-court offense and defense.</span><br><span data-ja="速攻は、攻撃の始まり（守備リバウンド・相手の TO・相手の得点）から6秒以内にシュート・FT・TO があったもの。">Transition = shot, FT or TO within 6 sec of the start of a possession (def. rebound, opp. TO, opp. score).</span><br><span data-ja="ガベージタイム（第4Q以降で25点差以上）は除く。">Excludes garbage time (Q4 or later, 25+ pt margin).</span></p>
                 <div class="adv-hc"><div id="adv-hc-map" class="ap-umap-card"></div><div id="adv-hc"><div class="msg">Loading<span class="spinner"></span></div></div></div>
             </div>
 
-            <div class="lc-block">
+            <div class="lc-block" id="sec-usage" data-sec>
                 <div class="section-header"><h2>Usage &amp; Efficiency</h2></div>
-                <p class="adv-desc">選手ごとの、ボールを任されている度合い（USG%、横）と得点の効率（TS%、縦）。右上ほど多く任されて効率も高い。上の Team でチームを選ぶと、そのチームの選手を強調します。</p>
+                <p class="adv-desc"><span data-ja="選手ごとの、ボールを任されている度合い（USG%、横）と得点の効率（TS%、縦）。">Each player's usage (USG%, across) and scoring efficiency (TS%, up).</span><br><span data-ja="右上ほど多く任されて効率も高い。">Upper right = high usage and efficient.</span><br><span data-ja="上の Team でチームを選ぶと、そのチームの選手を強調します。">Pick a team above to highlight its players.</span></p>
                 <div id="adv-usage" class="ap-umap-card"><div class="msg">Loading<span class="spinner"></span></div></div>
             </div>
 
-            <div class="lc-block">
+            <div class="lc-block" id="sec-clutch" data-sec>
                 <div class="section-header"><h2>Team Clutch</h2></div>
-                <p class="adv-desc">第4Q・延長の残り5分以内で点差5点以内の時間（NBA.com の Clutch と同じ定義）の成績。W-L は、その時間があった試合の勝敗です。</p>
+                <p class="adv-desc"><span data-ja="第4Q・延長の残り5分以内で点差5点以内の時間（NBA.com の Clutch と同じ定義）の成績。">Last 5 min of Q4/OT, score within 5 (NBA.com definition).</span><br><span data-ja="W-L は、その時間があった試合の勝敗です。">W-L = record in games with clutch time.</span><br><span data-ja="Clutch の時間が15分未満のチームは薄く表示。">Teams under 15 clutch min are dimmed.</span></p>
                 <div id="adv-clutch"><div class="msg">Loading<span class="spinner"></span></div></div>
             </div>
 
-            <p class="adv-note">ポゼッションは play-by-play から実際に数えた回数（NBA.com の OffRtg と一致することを確認済み）。On/Off とラインナップの出場区間は交代記録から再現しているため、公式の +/- と数点ずれることがあります。このデータは毎日自動では更新されず、集計した時点の数字です。</p>
+            <p class="adv-note"><span data-ja="ポゼッションは play-by-play から実際に数えた回数（NBA.com の OffRtg と一致することを確認済み）。">Possessions are counted from play-by-play (matches NBA.com OffRtg).</span><br><span data-ja="On/Off とラインナップの出場区間は交代記録から再現しているため、公式の +/- と数点ずれることがあります。">On/Off and lineup stints are rebuilt from substitutions, so they can differ from official +/- by a few points.</span><br><span data-ja="このデータは毎日自動では更新されず、集計した時点の数字です。">Not updated daily; numbers are as of the last update.</span></p>
+          </div>
         </div><!-- /tab-advanced -->
 
     </div>
 </main>
 
-<script src="../assets/api.js?v=2026111201"></script>
-<script src="../assets/teams.js?v=2026111201"></script>
-<script src="../assets/ui.js?v=2026111201"></script>
-<script src="../assets/advanced.js?v=2026111201"></script>
+<script src="../assets/api.js?v=2026111301"></script>
+<script src="../assets/teams.js?v=2026111301"></script>
+<script src="../assets/ui.js?v=2026111301"></script>
+<script src="../assets/advanced.js?v=2026111301"></script>
 <script>
 /* ═══════════════════════════════════════════════
-   チーム一覧: リーグ全体のスタッツ表 + ディビジョン別のチーム
+   Teams タブ: リーグ全体のスタッツ表（Basic / Efficiency）
    ═══════════════════════════════════════════════ */
 let teams = [];   // [{ id, abbr, name, location, nickname, logo, conf, w, l, ... }]
 
@@ -167,59 +197,63 @@ let teams = [];   // [{ id, abbr, name, location, nickname, logo, conf, w, l, ..
 async function loadTeams() {
     const lg = await NBA.teams.leagueStats();
     teams = lg.teams;
-    document.getElementById('season-badge').textContent = `${lg.year - 1}-${String(lg.year).slice(2)} Regular Season`;
+    document.getElementById('season-badge').outerHTML = NBA.ui.src.live(`ESPN · ${lg.year - 1}-${String(lg.year).slice(2)} Regular Season`);
 }
 
 /* ── スタッツ表 ── */
-const f1 = v => v == null ? '-' : v.toFixed(1);
-const LEAGUE_COLS = [
+const f1 = v => v == null || isNaN(v) ? '-' : v.toFixed(1);
+const f2 = v => v == null || isNaN(v) ? '-' : v.toFixed(2);
+const sgnCell = v => v == null || isNaN(v) ? '-' : `<span class="${v > 0 ? 'pos' : v < 0 ? 'neg' : ''}">${v > 0 ? '+' : ''}${v.toFixed(1)}</span>`;
+// 数字の列。g: グループの最初の列（左に区切りの線）
+const num = (key, label, { fmt = f1, asc = false, g = false, title } = {}) => ({ key, label, get: t => t[key], fmt: t => fmt(t[key]), asc, cls: g ? 'g1' : '', title });
+const LEAD_COLS = [
     { key: 'name', label: 'Team', cls: 'team-col', get: t => t.name, asc: true },
-    { key: 'w',    label: 'W',    get: t => t.w,    fmt: t => t.w ?? '-' },
-    { key: 'l',    label: 'L',    get: t => t.l,    fmt: t => t.l ?? '-', asc: true },
-    { key: 'pct',  label: 'PCT',  get: t => t.pct,  fmt: t => t.pct == null ? '-' : t.pct.toFixed(3).replace(/^0/, '') },
-    { key: 'ppg',  label: 'PPG',  get: t => t.ppg,  fmt: t => f1(t.ppg) },
-    { key: 'opp',  label: 'OPP PPG', get: t => t.opp, fmt: t => f1(t.opp), asc: true },
-    { key: 'diff', label: 'DIFF', get: t => t.diff, fmt: t => t.diff == null ? '-' : `<span class="${t.diff > 0 ? 'pos' : t.diff < 0 ? 'neg' : ''}">${t.diff > 0 ? '+' : ''}${t.diff.toFixed(1)}</span>` },
-    // ピタゴラス勝率で見た勝ち数と、実際との差（＋は実力以上に勝っている＝接戦に強い・運が良い）
-    { key: 'pyW',  label: 'xW',   get: t => t.pyW,  fmt: t => f1(t.pyW), title: 'ピタゴラス勝率から計算した勝ち数' },
-    { key: 'luck', label: 'W−xW', get: t => t.luck, fmt: t => t.luck == null ? '-' : `<span class="${t.luck > 0.5 ? 'pos' : t.luck < -0.5 ? 'neg' : ''}">${t.luck > 0 ? '+' : ''}${t.luck.toFixed(1)}</span>`, title: '実際の勝ち数 − ピタゴラスの勝ち数' },
-    // 100ポゼッションあたりの得点・失点・差と、1試合のポゼッション数
-    { key: 'ortg', label: 'ORtg', get: t => t.ortg, fmt: t => f1(t.ortg) },
-    { key: 'drtg', label: 'DRtg', get: t => t.drtg, fmt: t => f1(t.drtg), asc: true },
-    { key: 'net',  label: 'NET',  get: t => t.net,  fmt: t => t.net == null ? '-' : `<span class="${t.net > 0 ? 'pos' : t.net < 0 ? 'neg' : ''}">${t.net > 0 ? '+' : ''}${t.net.toFixed(1)}</span>` },
-    { key: 'pace', label: 'PACE', get: t => t.pace, fmt: t => f1(t.pace) },
-    { key: 'rpg',  label: 'RPG',  get: t => t.rpg,  fmt: t => f1(t.rpg) },
-    { key: 'apg',  label: 'APG',  get: t => t.apg,  fmt: t => f1(t.apg) },
-    { key: 'spg',  label: 'SPG',  get: t => t.spg,  fmt: t => f1(t.spg) },
-    { key: 'bpg',  label: 'BPG',  get: t => t.bpg,  fmt: t => f1(t.bpg) },
-    { key: 'tov',  label: 'TOV',  get: t => t.tov,  fmt: t => f1(t.tov), asc: true },
-    { key: 'fg',   label: 'FG%',  get: t => t.fg,   fmt: t => f1(t.fg) },
-    { key: 'tp',   label: '3P%',  get: t => t.tp,   fmt: t => f1(t.tp) },
-    { key: 'ft',   label: 'FT%',  get: t => t.ft,   fmt: t => f1(t.ft) },
-    { key: 'ts',   label: 'TS%',  get: t => t.ts,   fmt: t => f1(t.ts) },
+    { key: 'gp',   label: 'GP',   get: t => t.gp, fmt: t => t.gp ?? '-', cls: 'g1' },
+    { key: 'w',    label: 'W',    get: t => t.w,  fmt: t => t.w ?? '-' },
+    { key: 'l',    label: 'L',    get: t => t.l,  fmt: t => t.l ?? '-', asc: true },
+    { key: 'pct',  label: 'PCT',  get: t => t.pct, fmt: t => t.pct == null ? '-' : t.pct.toFixed(3).replace(/^0/, '') },
 ];
+const VIEW_COLS = {
+    basic: [
+        num('ppg', 'PPG', { g: true }), num('opp', 'OPP PPG', { asc: true }), num('diff', 'DIFF', { fmt: sgnCell }),
+        num('rpg', 'REB', { g: true }), num('oreb', 'OREB'), num('dreb', 'DREB'),
+        num('apg', 'AST', { g: true }), num('tov', 'TO', { asc: true }), num('astTo', 'AST/TO', { fmt: f2 }),
+        num('spg', 'STL', { g: true }), num('bpg', 'BLK'), num('fouls', 'PF', { asc: true }),
+        num('fgm', 'FGM', { g: true }), num('fga', 'FGA'), num('fg', 'FG%'),
+        num('tpm', '3PM', { g: true }), num('tpa', '3PA'), num('tp', '3P%'),
+        num('ftm', 'FTM', { g: true }), num('fta', 'FTA'), num('ft', 'FT%'),
+    ],
+    eff: [
+        num('ortg', 'ORtg', { g: true }), num('drtg', 'DRtg', { asc: true }), num('net', 'NET', { fmt: sgnCell }), num('pace', 'PACE'),
+        num('ts', 'TS%', { g: true }), num('efg', 'eFG%'), num('tovPct', 'TOV%', { asc: true }), num('orbPct', 'ORB%'), num('astTo', 'AST/TO', { fmt: f2 }),
+    ],
+};
 let confFilter = NBA.url.get('conf') || 'all';
+let view = NBA.url.get('view') === 'eff' ? 'eff' : 'basic';
 let table = null;
 const shownTeams = () => confFilter === 'all' ? teams : teams.filter(t => t.conf === confFilter);
 
 function renderLeagueTable() {
     const wrap = document.getElementById('league-wrap');
+    const cols = [...LEAD_COLS, ...VIEW_COLS[view]];
     const sortParam = NBA.url.get('sort');   // 例: ppg / -opp（- は小さい順）
     const initKey = sortParam?.replace(/^-/, '') || 'pct';
-    const col0 = LEAGUE_COLS.find(c => c.key === initKey) || LEAGUE_COLS[3];
+    // 今の表示にない列で並んでいたら PCT に戻す
+    const col0 = cols.find(c => c.key === initKey) || cols.find(c => c.key === 'pct');
+    const keepSort = sortParam && col0.key === initKey;
+    wrap.innerHTML = '<table class="league-table"><thead></thead><tbody></tbody></table>';
     table = NBA.ui.sortable(wrap, {
-        rows: shownTeams(), cols: LEAGUE_COLS,
-        head: '<th class="lt-rank">#</th>',
-        initial: { key: col0.key, asc: sortParam ? sortParam.startsWith('-') : !!col0.asc },
+        rows: shownTeams(), cols,
+        initial: { key: col0.key, asc: keepSort ? sortParam.startsWith('-') : !!col0.asc },
         // 並び順は URL に残す（戻ったときに同じ並びで開く）
         onSort: (key, asc) => NBA.url.set({ sort: (asc ? '-' : '') + key }),
         render: (t, i, col) => `<tr>
-            <td class="lt-rank">${i + 1}</td>
-            ${LEAGUE_COLS.map(c => c.key === 'name'
-                ? `<td class="team-col"><a class="lt-team" href="${NBA.link.team(t.abbr)}"><img src="${esc(t.logo)}" alt="" onerror="this.style.display='none'">${esc(t.name)}</a><span class="lt-conf">${t.conf[0]}${t.seed || ''}</span></td>`
-                : `<td class="${col?.key === c.key ? 'sorted-col' : ''}">${c.fmt(t)}</td>`).join('')}
+            ${cols.map(c => c.key === 'name'
+                ? `<td class="team-col"><span class="lt-rk">${i + 1}</span><a class="lt-team" href="${NBA.link.team(t.abbr)}"><img src="${esc(t.logo)}" alt="" onerror="this.style.display='none'"><span class="lt-name">${esc(t.name)}</span><span class="lt-ab">${esc(t.abbr)}</span></a><span class="lt-conf">${t.conf[0]}${t.seed || ''}</span></td>`
+                : `<td class="${c.cls || ''} ${col?.key === c.key ? 'sorted-col' : ''}">${c.fmt(t)}</td>`).join('')}
         </tr>`,
     });
+    document.getElementById('lt-glossary').hidden = view !== 'eff';
 }
 
 document.querySelectorAll('#conf-filter button').forEach(b => {
@@ -231,27 +265,16 @@ document.querySelectorAll('#conf-filter button').forEach(b => {
         table?.set(shownTeams());
     });
 });
-
-/* ── チーム一覧（カンファレンス → ディビジョン） ── */
-function renderTeamList() {
-    const byId = new Map(teams.map(t => [t.id, t]));
-    document.getElementById('team-list').innerHTML = NBA.teams.DIVISIONS.map(([conf, , divs]) => `
-        <div>
-            <div class="section-header"><h2>${conf}</h2></div>
-            ${divs.map(([div, ids]) => {
-                const list = ids.map(id => byId.get(String(id))).filter(Boolean).sort((a, b) => a.name.localeCompare(b.name));
-                return `<div class="tl-div">
-                    <div class="sd-title">${div}</div>
-                    <div class="tl-teams">${list.map(t => `
-                        <a class="tl-team" href="${NBA.link.team(t.abbr)}">
-                            <img class="tl-logo" src="${esc(t.logo || FALLBACK_IMG)}" alt="" onerror="this.src='${FALLBACK_IMG}'">
-                            <span>${esc(t.name)}</span>
-                        </a>`).join('')}
-                    </div>
-                </div>`;
-            }).join('')}
-        </div>`).join('');
-}
+document.querySelectorAll('#view-filter button').forEach(b => {
+    b.classList.toggle('active', b.dataset.view === view);
+    b.addEventListener('click', () => {
+        if (view === b.dataset.view) return;
+        view = b.dataset.view;
+        document.querySelectorAll('#view-filter button').forEach(x => x.classList.toggle('active', x === b));
+        NBA.url.set({ view: view === 'basic' ? null : view });
+        if (teams.length) renderLeagueTable();
+    });
+});
 
 /* ── タブ（?tab=advanced で Advanced を開く。Advanced のデータは開いたときに読み込む） ── */
 function switchTab(tab) {
@@ -262,14 +285,14 @@ function switchTab(tab) {
 }
 document.querySelectorAll('.tab-btn').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
 
-/* ── Advanced: リーグ全体の On/Off・ラインナップ・Clutch（data/advanced.json） ── */
+/* ── Advanced: リーグ全体の On/Off・ラインナップ・Clutch など（data/advanced.json） ── */
 let adv = null;
-// 最低出場時間の選択肢。初期値はシーズンの進み具合に合わせる（最も長い選手・組み合わせの一定割合以下で最大の選択肢）
-const ONOFF_MINS = [60, 120, 240, 480, 960], UNIT_MINS = [10, 20, 40, 80, 160];
+// ラインナップの最低出場時間の選択肢。初期値はシーズンの進み具合に合わせる（最も長い組み合わせの一定割合以下で最大の選択肢）
+const UNIT_MINS = [10, 20, 40, 80, 160];
 const pickDefault = (opts, max, share) => opts.filter(m => m <= max * share).pop() || opts[0];
 function fillMinSelect(id, opts, def) {
     const el = document.getElementById(id);
-    el.innerHTML = opts.map(m => `<option value="${m}" ${m === def ? 'selected' : ''}>${m}分以上</option>`).join('');
+    el.innerHTML = opts.map(m => `<option value="${m}" ${m === def ? 'selected' : ''}>${m}+ min</option>`).join('');
     el.addEventListener('change', renderAdvanced);
 }
 function teamMatch(abbr) {
@@ -278,43 +301,51 @@ function teamMatch(abbr) {
 }
 function renderAdvanced() {
     if (!adv) return;
-    const onMin = +document.getElementById('adv-onoff-min').value, unitMin = +document.getElementById('adv-unit-min').value;
-    NBA.advanced.renderOnOff(document.getElementById('adv-onoff'), adv.onoff.filter(r => r.min >= onMin && teamMatch(r.team)));
-    NBA.advanced.renderUnits(document.getElementById('adv-units'), adv.units.filter(r => r.min >= unitMin && teamMatch(r.team)));
+    const A = NBA.advanced;
+    // On/Off: 最低出場時間を On と Off の両方にかける。チェックを入れると下限未満も薄く（tr.low）出す
+    const onMin = +document.getElementById('adv-onoff-min').value, showLow = document.getElementById('adv-onoff-low').checked;
+    A.renderOnOff(document.getElementById('adv-onoff'),
+        adv.onoff.filter(r => teamMatch(r.team) && (showLow || (r.min >= onMin && r.offMin >= onMin))), { minMin: onMin });
+    const unitMin = +document.getElementById('adv-unit-min').value;
+    A.renderUnits(document.getElementById('adv-units'), adv.units.filter(r => r.min >= unitMin && teamMatch(r.team)));
     const v = document.getElementById('adv-team').value;
-    document.getElementById('adv-style').innerHTML = adv.style.length ? NBA.advanced.styleMapSVG(adv.style, v) : '<div class="msg">まだ集計した試合がありません</div>';
-    document.getElementById('adv-hc-map').innerHTML = NBA.advanced.halfCourtMapSVG(adv.style, v);
-    NBA.advanced.renderHalfCourt(document.getElementById('adv-hc'), adv.style, v);
-    document.getElementById('adv-usage').innerHTML = NBA.advanced.usageMap(adv.raw, p => p.team === v) || '<div class="msg">まだ集計した試合がありません</div>';
+    document.getElementById('adv-style').innerHTML = adv.style.length ? A.styleMapSVG(adv.style, v, { note: false }) : '<div class="msg">No data</div>';
+    document.getElementById('adv-hc-map').innerHTML = A.halfCourtMapSVG(adv.style, v);
+    A.renderHalfCourt(document.getElementById('adv-hc'), adv.style, v);
+    document.getElementById('adv-usage').innerHTML = A.usageMap(adv.raw, p => p.team === v) || '<div class="msg">No data</div>';
 }
 async function loadAdvanced() {
     if (adv) return;
     try {
-        const d = await NBA.advanced.load();
-        adv = { onoff: NBA.advanced.onOffRows(d), units: NBA.advanced.unitRows(d), clutch: NBA.advanced.clutchRows(d), style: d.teamStyle || [], raw: d };
-        document.getElementById('adv-updated').innerHTML = NBA.advanced.updatedHTML(d);
+        const A = NBA.advanced, d = await A.load();
+        adv = { onoff: A.onOffRows(d), units: A.unitRows(d), clutch: A.clutchRows(d), style: d.teamStyle || [], raw: d };
+        // 集計の期間はバッジで（集計した日時はバッジの title）
+        document.getElementById('adv-badge').innerHTML = A.anaBadge(d);
+        document.getElementById('adv-style-howto').innerHTML = A.styleHowToHTML(d);
         const sel = document.getElementById('adv-team');
         sel.innerHTML += NBA.teams.list.slice().sort((a, b) => a.abbr.localeCompare(b.abbr)).map(t => `<option value="${t.abbr}">${t.abbr}</option>`).join('');
         sel.addEventListener('change', renderAdvanced);
-        fillMinSelect('adv-onoff-min', ONOFF_MINS, pickDefault(ONOFF_MINS, Math.max(...adv.onoff.map(r => r.min)), 0.2));
+        const oo = document.getElementById('adv-onoff-min');
+        oo.innerHTML = A.ONOFF_MIN_OPTS.map(m => `<option value="${m}" ${m === A.ONOFF_LOW ? 'selected' : ''}>${m} min</option>`).join('');
+        oo.addEventListener('change', renderAdvanced);
+        document.getElementById('adv-onoff-low').addEventListener('change', renderAdvanced);
         fillMinSelect('adv-unit-min', UNIT_MINS, pickDefault(UNIT_MINS, Math.max(...adv.units.map(r => r.min)), 0.1));
         renderAdvanced();
-        NBA.advanced.renderClutch(document.getElementById('adv-clutch'), adv.clutch);
+        A.renderClutch(document.getElementById('adv-clutch'), adv.clutch);
     } catch (e) {
         console.error('advanced:', e);
-        ['adv-onoff', 'adv-units', 'adv-style', 'adv-hc', 'adv-usage', 'adv-clutch'].forEach(id => { document.getElementById(id).innerHTML = '<div class="msg error">分析データを読み込めませんでした</div>'; });
+        ['adv-onoff', 'adv-units', 'adv-style', 'adv-hc', 'adv-usage', 'adv-clutch'].forEach(id => { document.getElementById(id).innerHTML = '<div class="msg error">Failed to load analytics data</div>'; });
     }
 }
+NBA.ui.secnav(document.getElementById('adv-nav'));
 
 async function init() {
     if (NBA.url.get('tab') === 'advanced') switchTab('advanced');
     await loadTeams();
     renderLeagueTable();
-    renderTeamList();
 }
 init();
-document.getElementById('last-updated').textContent =
-    new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' });
+NBA.ui.fetched();
 </script>
 </body>
 </html>

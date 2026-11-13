@@ -12,7 +12,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&display=swap">
-    <link rel="stylesheet" href="../assets/common.css?v=2026111201">
+    <link rel="stylesheet" href="../assets/common.css?v=2026111301">
     <style>
         /* ─── Conf sub-tabs ─── */
         .conf-tabs { display: flex; gap: 8px; margin-bottom: 20px; }
@@ -175,9 +175,10 @@
 
 <div class="main-wrap">
 
-    <!-- 区分内のタブ: Standings | Playoffs | Play-In（playoffs.html）| Draft（draft.html） -->
+    <!-- 区分内のタブ: Standings | Trends（trends.html）| Playoffs | Play-In（playoffs.html）| Draft（draft.html） -->
     <div class="tabs-nav">
         <span class="tab-btn active">Standings</span>
+        <a class="tab-btn" href="trends.html">Trends</a>
         <a class="tab-btn" href="playoffs.html">Playoffs</a>
         <a class="tab-btn" href="playoffs.html?tab=playin">Play-In</a>
         <a class="tab-btn" href="draft.html">Draft</a>
@@ -215,11 +216,15 @@
 
 </div><!-- /main-wrap -->
 
-<script src="../assets/api.js?v=2026111201"></script>
-<script src="../assets/teams.js?v=2026111201"></script>
-<script src="../assets/ui.js?v=2026111201"></script>
+<script src="../assets/api.js?v=2026111301"></script>
+<script src="../assets/teams.js?v=2026111301"></script>
+<script src="../assets/ui.js?v=2026111301"></script>
 <script>
 const rankMap = {};
+// チームID → 100ポゼッションあたりの得失点差（assets/teams.js の leagueStats。Teams ページと同じ値・キャッシュ共有）
+let netMap = null;
+// チームID → 残りの相手（試合ごとのチームID の配列）。30チームの日程（trends.html と同じ URL・キャッシュ共有）から
+let remainMap = null;
 const standingsData = { East: [], West: [] };
 let isPlayoffMode = false;
 
@@ -235,8 +240,8 @@ const LOTTERY_GROUPS = [
 const LOTTERY_REL_FLOOR = 12;  // ワースト3はこの順位より後にならない
 // 連続制限（元の指名権が2年連続1位・3年連続トップ5にならない）。minPick より前で当たったら minPick に移る。2027年ドラフト用
 const LOTTERY_RESTRICTIONS = {
-    WAS: { minPick: 2, label: 'No #1',    note: 'WAS can\'t land #1 (No. 1 pick in 2026).' },
-    UTA: { minPick: 6, label: 'No Top 5', note: 'UTA can\'t land a top-5 pick (top 5 in 2025 and 2026).' },
+    WAS: { minPick: 2, label: 'No #1',    note: 'WAS can\'t land #1 (No. 1 pick in 2026).', noteJa: 'WAS は1位にならない（2026年に1位指名のため）' },
+    UTA: { minPick: 6, label: 'No Top 5', note: 'UTA can\'t land a top-5 pick (top 5 in 2025 and 2026).', noteJa: 'UTA はトップ5にならない（2025年と2026年にトップ5指名のため）' },
 };
 
 /* ── Conf switching ── */
@@ -282,6 +287,54 @@ async function loadStandings() {
     } catch (e) { console.warn('standings:', e); }
 }
 
+/* ── NET（取得前は …、取れなければ -） ── */
+function netCell(id) {
+    if (netMap === null) return '<span style="color:var(--muted)">…</span>';
+    const v = netMap[String(id)];
+    if (v == null) return '-';
+    const color = v > 0 ? 'var(--pos)' : v < 0 ? 'var(--neg)' : 'inherit';
+    return `<span style="color:${color}">${v > 0 ? '+' : ''}${v.toFixed(1)}</span>`;
+}
+async function loadNet() {
+    try {
+        const lg = await NBA.teams.leagueStats();
+        netMap = Object.fromEntries(lg.teams.map(t => [t.id, t.net]));
+    } catch (e) { console.warn('league stats:', e); netMap = {}; }
+}
+
+/* ── SOS: 残り日程の強さ = 残りの相手の NET の平均（プラスほどきつい）。NET と日程の両方がそろうまでは … ── */
+function sosOf(id) {
+    const opps = remainMap?.[String(id)];
+    if (!opps?.length || !netMap) return null;
+    const vals = opps.map(o => netMap[o]).filter(v => v != null);
+    return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+}
+function sosCell(id) {
+    if (netMap === null || remainMap === null) return '<span style="color:var(--muted)">…</span>';
+    const v = sosOf(id);
+    if (v == null) return '-';
+    const color = v > 0 ? 'var(--neg)' : v < 0 ? 'var(--pos)' : 'inherit';   // きつい日程を赤
+    const n = remainMap[String(id)].length;
+    return `<span style="color:${color}" title="${n} games left">${v > 0 ? '+' : ''}${v.toFixed(1)}</span>`;
+}
+async function loadRemaining() {
+    try {
+        const scheds = await Promise.all(NBA.teams.list.map(t =>
+            NBA.api.schedule(t.id, `?season=${NBA.SEASON}&seasontype=2`).catch(() => null)));
+        const out = {};
+        NBA.teams.list.forEach((t, i) => {
+            if (!scheds[i]) return;   // 取れなかったチームは -
+            out[String(t.id)] = (scheds[i].events || []).flatMap(ev => {
+                const comp = ev.competitions?.[0];
+                if (!comp || comp.status?.type?.completed) return [];
+                const opp = (comp.competitors || []).find(c => String(c.team?.id) !== String(t.id));
+                return opp?.team?.id ? [String(opp.team.id)] : [];
+            });
+        });
+        remainMap = out;
+    } catch (e) { console.warn('schedules:', e); remainMap = {}; }
+}
+
 /* ── Standings table render ── */
 function renderStandingsTable(conf) {
     const el = document.getElementById(`conf-${conf.toLowerCase()}`);
@@ -306,6 +359,8 @@ function renderStandingsTable(conf) {
             <td>${t.home}</td>
             <td>${t.road}</td>
             <td>${t.conf}</td>
+            <td>${netCell(t.id)}</td>
+            <td>${sosCell(t.id)}</td>
             <td>${t.l10}</td>
             <td>${t.streak}</td>
         </tr>`;
@@ -317,7 +372,10 @@ function renderStandingsTable(conf) {
                 <thead><tr>
                     <th>#</th><th>Team</th>
                     <th>W</th><th>L</th><th>PCT</th><th>GB</th>
-                    <th>Home</th><th>Away</th><th>Conf</th><th>L10</th><th>Strk</th>
+                    <th>Home</th><th>Away</th><th>Conf</th>
+                    <th title="Net rating: point differential per 100 possessions (same as the Teams page)\n100ポゼッションあたりの得失点差（Teams ページと同じ値）">NET</th>
+                    <th title="Strength of remaining schedule: average NET of remaining opponents (higher = tougher)\n残り日程の強さ: 残りの相手の NET の平均（プラスほどきつい）">SOS</th>
+                    <th>L10</th><th>Strk</th>
                 </tr></thead>
                 <tbody>${rows}</tbody>
             </table>
@@ -435,7 +493,7 @@ function renderLottery() {
         }).join('');
     }).join('');
 
-    const restrictionNotes = teams.filter(x => x.restriction).map(x => x.restriction.note);
+    const restrictionNotes = teams.filter(x => x.restriction).map(x => `<span data-ja="${x.restriction.noteJa}">${x.restriction.note}</span>`);
 
     el.innerHTML = `
         <table class="lt-table">
@@ -446,27 +504,34 @@ function renderLottery() {
         </table>`;
     document.getElementById('lottery-note').innerHTML = `
         <ul class="lt-rules">
-            <li>Picks <b>1–16</b> go to <b>16 teams</b> — the 10 that miss the Play-In plus 6 Play-In teams — and are all decided by a drawing.</li>
-            <li>Each team gets <b>1–3 lottery balls</b> based on its finish. More balls mean better odds of an early pick.</li>
-            <li>The bottom 3 teams lose one ball, but can't fall below <b>#12</b>.</li>
+            <li><span data-ja="1〜16位の指名権は16チーム（Play-In に届かなかった10チームと Play-In の6チーム）に入り、すべて抽選で決まる">Picks <b>1–16</b> go to <b>16 teams</b> — the 10 that miss the Play-In plus 6 Play-In teams — and are all decided by a drawing.</span></li>
+            <li><span data-ja="各チームは順位に応じて1〜3個の抽選ボールを持つ">Each team gets <b>1–3 lottery balls</b> based on its finish.</span> <span data-ja="ボールが多いほど上位指名の確率が高い">More balls mean better odds of an early pick.</span></li>
+            <li><span data-ja="ワースト3はボールが1個減るが、12位より後にはならない">The bottom 3 teams lose one ball, but can't fall below <b>#12</b>.</span></li>
         </ul>
         <div class="lottery-note">
-            #1 and Top 4 are the chances of landing that pick. Range is every pick the team can end up with.<br>
-            † Projected: assumes the lower seed loses the 7-vs-8 Play-In game.<br>
+            <span data-ja="#1 と Top 4 はその順位の指名権を得る確率">#1 and Top 4 are the chances of landing that pick.</span> <span data-ja="Range はそのチームがなりうる指名順位の範囲">Range is every pick the team can end up with.</span><br>
+            <span data-ja="† 予想: Play-In の7位・8位決定戦は下のシードが負けると仮定">† Projected: assumes the lower seed loses the 7-vs-8 Play-In game.</span><br>
             ${restrictionNotes.map(n => n + '<br>').join('')}
-            Projections based on current standings. Rules:
+            <span data-ja="予想は今の順位にもとづく">Projections based on current standings.</span> Rules:
             <a href="https://www.nba.com/news/nba-board-governors-approve-new-draft-lottery-system" target="_blank" rel="noopener"
                style="color:var(--muted);text-decoration:underline">NBA.com</a>
         </div>`;
 }
 
 async function init() {
-    document.getElementById('last-updated').textContent =
-        'Updated: ' + new Date().toLocaleTimeString('en-US', { timeZone: 'Asia/Tokyo' });
+    NBA.ui.fetched();
+    const net = loadNet();   // 30チームのスタッツは時間がかかるので、順位表を先に出してから NET を埋める
+    const remain = loadRemaining();   // SOS 用の30チームの日程も同じく後から
     await loadStandings();
     renderStandingsTable('West');
     renderStandingsTable('East');
     renderLottery();
+    await net;
+    renderStandingsTable('West');
+    renderStandingsTable('East');
+    await remain;
+    renderStandingsTable('West');
+    renderStandingsTable('East');
 }
 
 init();

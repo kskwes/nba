@@ -785,3 +785,24 @@ a.t-sched-row:hover { background: rgba(255,255,255,0.04); }
 .adv-table tr.adv-me td { background: rgba(245,183,0,.08); }
 .adv-hc { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 16px; align-items: start; }
 @media (max-width: 860px) { .adv-hc { grid-template-columns: minmax(0, 1fr); } }
+
+/* ─── 2026-11 段階2: advanced.js の部品 ─── */
+/* Team Style のマップと「How to read」パネル（狭い画面ではパネルを下に） */
+.adv-map-wrap { display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 14px; align-items: start; }
+@media (max-width: 860px) { .adv-map-wrap { grid-template-columns: minmax(0, 1fr); } }
+.adv-howto { display: grid; gap: 12px; align-content: start; font-size: 12px; line-height: 1.55; color: var(--text-dim); }
+.adv-howto b { display: block; color: var(--text); font-size: 12px; margin-bottom: 2px; }
+.adv-pps { display: grid; grid-template-columns: 1fr auto; gap: 3px 10px; margin-top: 8px; padding: 8px 10px; font-size: 11.5px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 8px; }
+.adv-pps span:nth-child(even) { text-align: right; color: var(--text); font-weight: 700; font-variant-numeric: tabular-nums; }
+.adv-pps small { color: var(--muted); }
+.adv-lg { display: grid; gap: 4px; margin-top: 4px; font-size: 11px; color: var(--muted); }
+.adv-lg span { display: flex; align-items: center; gap: 6px; }
+.adv-lg i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+/* Player Profile の On/Off の信頼度（3つの小さな棒） */
+.ap-tile .ap-rel { display: flex; align-items: flex-end; gap: 2px; font-weight: 700; }
+.ap-rel i { display: inline-block; width: 4px; border-radius: 1px; background: var(--border); }
+.ap-rel i:nth-child(1) { height: 5px; } .ap-rel i:nth-child(2) { height: 8px; } .ap-rel i:nth-child(3) { height: 11px; margin-right: 4px; }
+.ap-rel.lv1 i:nth-child(-n+1) { background: var(--neg); }
+.ap-rel.lv2 i:nth-child(-n+2) { background: var(--warn); }
+.ap-rel.lv3 i { background: var(--pos); }

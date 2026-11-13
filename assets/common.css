@@ -294,3 +294,107 @@ a.rk-name:hover { color: var(--accent); text-decoration: underline; }
 .ex-tag.close { color: #F5B700; }
 .ex-tag.some { color: #16a6ba; }
 .ex-tag.flat { color: #8b8b95; }
+
+/* ═══════════════════════════════════════════════
+   ヘッダーの共通部品（2026-11 リニューアル。assets/ui.js）
+   ═══════════════════════════════════════════════ */
+/* 全体検索 */
+.gsearch { position: relative; }
+.gsearch input {
+    width: 230px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+    padding: 6px 28px 6px 30px; color: var(--text); outline: none; font-size: 12.5px; -webkit-appearance: none;
+}
+.gsearch input::-webkit-search-cancel-button { display: none; }
+.gsearch input:focus { border-color: var(--accent); }
+.gsearch::before { content: '⌕'; position: absolute; left: 10px; top: 3px; color: var(--muted); font-size: 16px; pointer-events: none; }
+.gsearch kbd { position: absolute; right: 8px; top: 6px; font: 10px/1.4 inherit; color: var(--muted); border: 1px solid var(--border); border-radius: 4px; padding: 0 5px; pointer-events: none; }
+.gsearch input:focus ~ kbd { display: none; }
+.gsearch ul {
+    display: none; position: absolute; top: calc(100% + 6px); right: 0; width: 320px; list-style: none; margin: 0; padding: 0; z-index: 200;
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,.5);
+}
+.gsearch.open ul { display: block; }
+.gsearch li a { display: flex; gap: 10px; align-items: center; padding: 7px 12px; color: var(--text); text-decoration: none; font-size: 13px; }
+.gsearch li a:hover, .gsearch li.sel a { background: var(--surface); }
+.gsearch li img, .gsearch li .ph { width: 26px; height: 26px; object-fit: cover; border-radius: 50%; background: var(--surface); flex: none; }
+.gsearch li .nm { font-weight: 600; }
+.gsearch li .sub { margin-left: auto; font-size: 11px; color: var(--muted); white-space: nowrap; }
+.gsearch li.msg-li { padding: 10px 12px; font-size: 12px; color: var(--muted); }
+
+/* データの鮮度 */
+.fresh { display: flex; gap: 6px; }
+.fresh-chip {
+    display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; font-size: 11px; color: var(--text-dim, #c9c9d1);
+    background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 3px 9px;
+}
+.fresh-chip i { width: 7px; height: 7px; border-radius: 50%; background: var(--pos, #3ddc84); }
+.fresh-chip.warn i { background: var(--warn, #ffb547); }
+.fresh-chip.stale i { background: var(--neg, #ff6b61); }
+@media (max-width: 768px) {
+    .fresh-chip .long, .gsearch kbd { display: none; }
+    .gsearch input { width: 34px; padding-right: 6px; color: transparent; }
+    .gsearch input::placeholder { color: transparent; }
+    .gsearch input:focus { width: calc(100vw - 150px); color: var(--text); }
+    /* 検索中は鮮度表示と更新ボタンを隠して、検索欄を広げる */
+    .header-right:focus-within .fresh, .header-right:focus-within .refresh-btn { display: none; }
+    .gsearch ul { position: fixed; top: 52px; left: 12px; right: 12px; width: auto; }
+}
+
+/* 日本語訳（JA ボタン）。マウスを乗せると吹き出し、押すと下に固定表示 */
+.ja-btn {
+    position: relative; display: inline-block; margin-left: 5px; vertical-align: 1px;
+    font: 800 9px/1 -apple-system, BlinkMacSystemFont, sans-serif; letter-spacing: .5px; text-transform: none;
+    color: var(--muted); background: none; border: 1px solid var(--border); border-radius: 3px; padding: 2px 4px; cursor: pointer;
+}
+.ja-btn:hover, .ja-btn.on { color: var(--accent); border-color: var(--accent); }
+@media (hover: hover) {
+    .ja-btn:not(.on):hover::after {
+        content: attr(data-tip); position: absolute; z-index: 300; left: 50%; bottom: calc(100% + 6px); transform: translateX(-50%);
+        width: max-content; max-width: 280px; white-space: normal; text-align: left;
+        background: #26262d; color: var(--text); border: 1px solid #3a3a44; border-radius: 6px;
+        padding: 6px 9px; font-size: 12px; font-weight: 400; letter-spacing: 0; line-height: 1.5; box-shadow: 0 6px 18px rgba(0,0,0,.5);
+    }
+}
+.ja-line { display: block; margin-top: 3px; font-size: 12px; color: #e8dcb0; font-weight: 400; letter-spacing: 0; text-transform: none; text-align: left; }
+
+/* ═══════════════════════════════════════════════
+   段階2の共通部品（assets/ui.js の NBA.ui.src / NBA.ui.secnav）
+   ═══════════════════════════════════════════════ */
+/* 出どころと期間のバッジ。見出しの横に置く */
+.src {
+    display: inline-flex; gap: 5px; align-items: center; vertical-align: middle;
+    font: 600 11px/1.5 -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif; letter-spacing: 0; text-transform: none;
+    border-radius: 5px; padding: 1px 7px; border: 1px solid; white-space: nowrap;
+}
+.src.live { color: #7fd4e0; border-color: #1f4d55; background: #0f2226; }
+.src.ana  { color: #d9b4ff; border-color: #4a3166; background: #1c1426; }
+.src.ana.warn { color: var(--warn, #ffb547); border-color: #5a4316; background: #241b08; }
+.src.ana.stale { color: var(--neg, #ff6b61); border-color: #5a2320; background: #24100e; }
+.src.file { color: var(--text-dim, #c9c9d1); border-color: #3a3a44; background: #18181d; }
+
+/* サンプルが少ない行: 薄く表示して LOW を付ける（表の tr に .low） */
+tr.low > td { opacity: .4; }
+tr.low > td:first-child::after {
+    content: 'LOW'; font-size: 9px; font-weight: 700; color: var(--warn, #ffb547); border: 1px solid var(--warn, #ffb547);
+    border-radius: 3px; padding: 0 3px; margin-left: 6px; vertical-align: 1px;
+}
+
+/* ページ内の目次（長いページの上部に固定） */
+.secnav {
+    position: sticky; top: 54px; z-index: 90; display: flex; gap: 4px; overflow-x: auto;
+    background: rgba(10,10,12,.94); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+    border-bottom: 1px solid var(--border); margin: 16px 0 0; padding: 0 4px;
+}
+.secnav a { padding: 10px 12px; font-size: 12px; font-weight: 700; color: var(--muted); white-space: nowrap; text-decoration: none; border-bottom: 2px solid transparent; }
+.secnav a:hover { color: var(--text); }
+.secnav a.on { color: var(--accent); border-bottom-color: var(--accent); }
+[data-sec] { scroll-margin-top: 110px; }
+@media (max-width: 768px) { .secnav { top: 48px; } [data-sec] { scroll-margin-top: 100px; } }
+
+/* 折りたたみ（DNP・明細など） */
+details.fold { border: 1px solid var(--border); border-radius: 8px; background: var(--surface); margin-top: 10px; }
+details.fold > summary { cursor: pointer; padding: 9px 14px; font-size: 12px; color: var(--text-dim, #c9c9d1); font-weight: 700; list-style: none; }
+details.fold > summary::-webkit-details-marker { display: none; }
+details.fold > summary::before { content: '▸ '; color: var(--accent); }
+details.fold[open] > summary::before { content: '▾ '; }
+details.fold > .fold-body { padding: 0 14px 12px; }

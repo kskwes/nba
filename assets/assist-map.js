@@ -10,6 +10,8 @@ window.NBA = window.NBA || {};
     const GOLD = '#F5B700', TEAL = '#16a6ba', GRAY = '#55555f';
     const TOGETHER_MIN = 50;   // 一緒に出た時間がこれ未満の得失点差は灰色に（ぶれが大きいため）
     const KIND_COLORS = ['#ff9f6b', '#ff6b61', '#c9a7ff', '#7ad7a8', GOLD];   // ロブ・ダンク・レイアップ・ジャンパー・3P
+    // assists.json の kinds は日本語のまま（データの形は変えない）。表示は英語に
+    const KIND_EN = { 'ロブ': 'Lob', 'ダンク': 'Dunk', 'レイアップ': 'Layup', 'ジャンパー': 'Jumper', '3P': '3P' };
 
     let promise = null;
     const load = () => promise ||= fetch('../data/assists.json', { cache: 'no-cache' })
@@ -34,8 +36,8 @@ window.NBA = window.NBA || {};
 
     function mount(root, data, abbr) {
         const T = data.teams[abbr];
-        if (!T) { root.innerHTML = '<div class="msg">まだ集計した試合がありません</div>'; return; }
-        const KINDS = data.kinds.map((n, i) => [n, KIND_COLORS[i]]);
+        if (!T) { root.innerHTML = '<div class="msg">No data</div>'; return; }
+        const KINDS = data.kinds.map((n, i) => [KIND_EN[n] || n, KIND_COLORS[i]]);
         const kindsBar = k => {
             const tot = k.reduce((n, v) => n + v, 0) || 1;
             return `<div class="am-kinds">${KINDS.map(([n, c], i) => k[i] ? `<span style="width:${k[i] / tot * 100}%;background:${c}" title="${n} ${k[i]}"></span>` : '').join('')}</div>`;
@@ -45,15 +47,15 @@ window.NBA = window.NBA || {};
         let range = 'season', center = null;
 
         root.innerHTML = `
-            <div class="am-head"><div class="am-sub"></div><div class="am-seg"><button data-v="season" class="active">今季</button><button data-v="last5">直近5試合</button></div></div>
-            <div class="sd-title">名コンビ <span class="ap-sub">パスした選手 → 決めた選手</span></div>
+            <div class="am-head"><div class="am-sub"></div><div class="am-seg"><button data-v="season" class="active">Season</button><button data-v="last5">Last 5</button></div></div>
+            <div class="sd-title">Top Duos <span class="ap-sub">Passer → scorer</span></div>
             <div class="am-duos"></div>
-            <div class="sd-title" style="margin-top:16px">選手ごとのパスの行き先 <span class="ap-sub">押した選手を真ん中に表示</span></div>
+            <div class="sd-title" style="margin-top:16px">Passing by Player <span class="ap-sub">Click a player to center him</span></div>
             <div class="am-chips"></div>
             <div class="am-ego"><svg></svg>
-                <div class="am-legend"><span><i style="background:${GOLD}"></i>アシストした</span><span><i style="background:${TEAL}"></i>アシストされて決めた</span><span><i style="background:${GRAY}"></i>自分で決めた</span><span>（円のふちの割合）</span></div></div>
+                <div class="am-legend"><span><i style="background:${GOLD}"></i>Assists</span><span><i style="background:${TEAL}"></i>Assisted FGM</span><span><i style="background:${GRAY}"></i>Unassisted FGM</span><span>(ring = share)</span></div></div>
             <div class="am-tables"></div>
-            <p class="adv-note">名コンビの得失点差は On/Off と同じ計算（ポゼッションは play-by-play から実際に数えた回数）。得点プレー（フリースローを除く）の記録で、決めた選手とアシストした選手が両方記録されているものを数えています。シュートの型は記録の種類と文章から分けています（ロブ＝アリウープ）。</p>`;
+            <p class="adv-note"><span data-ja="名コンビの得失点差は On/Off と同じ計算（ポゼッションは play-by-play から実際に数えた回数）。">Duo point diff uses the same method as On/Off (possessions counted from play-by-play).</span><br><span data-ja="得点プレー（フリースローを除く）の記録で、決めた選手とアシストした選手が両方記録されているものを数えています。">Counts made FGs (no FTs) where both scorer and assister are recorded.</span><br><span data-ja="シュートの型は記録の種類と文章から分けています（ロブ＝アリウープ）。">Shot type comes from play type and text (Lob = alley-oop).</span></p>`;
 
         function render() {
             const D = T[range];
@@ -61,10 +63,10 @@ window.NBA = window.NBA || {};
             const by = Object.fromEntries(players.map(p => [p.id, p]));
             const pairs = D.pairs.map(([from, to, n, pts, k, tg]) => ({ from, to, n, pts, k, tg })).sort((a, b) => b.n - a.n || b.pts - a.pts);
             if (!center || !by[center]) center = [...players].sort((a, b) => b.ast - a.ast)[0]?.id;
-            root.querySelector('.am-sub').textContent = `${range === 'season' ? '今季' : '直近'} ${D.games} 試合`;
+            root.querySelector('.am-sub').textContent = `${range === 'season' ? 'Season' : 'Last'} · ${D.games} games`;
             if (!pairs.length || !center) {
                 ['.am-duos', '.am-chips', '.am-tables'].forEach(s => { root.querySelector(s).innerHTML = ''; });
-                root.querySelector('.am-duos').innerHTML = '<div class="msg">まだアシストの記録がありません</div>';
+                root.querySelector('.am-duos').innerHTML = '<div class="msg">No assists yet</div>';
                 root.querySelector('.am-ego').hidden = true;
                 return;
             }
@@ -77,15 +79,15 @@ window.NBA = window.NBA || {};
             const together = p => {
                 const v = net(p.tg), min = Math.round((p.tg?.[4] || 0) / 60), short = min < TOGETHER_MIN;
                 const c = short || v == null ? 'mut' : v > 0 ? 'pos' : 'neg';
-                return `<div class="am-together"><b class="${c}">${sgn(v)}</b>2人が一緒にコートにいるとき<small>${min}分${short ? '（短いのでぶれが大きい）' : ''} · チーム全体は ${sgn(teamNet)}（100ポゼッションあたりの得失点差）</small></div>`;
+                return `<div class="am-together"><b class="${c}">${sgn(v)}</b>when both on court<small>${min} min${short ? ' <span data-ja="短いのでぶれが大きい">(small sample)</span>' : ''} · team ${sgn(teamNet)} (point diff per 100 poss.)</small></div>`;
             };
             root.querySelector('.am-duos').innerHTML = pairs.slice(0, 3).map((p, i) => `<div class="am-duo" data-center="${p.from}">
                 <div class="names"><span class="rk">${i + 1}</span>${esc(by[p.from].name)}<em>→</em>${esc(by[p.to].name)}</div>
-                <div class="nums">${p.n}本<small>${p.pts}点 · 1試合 ${(p.n / D.games).toFixed(1)}本</small></div>
+                <div class="nums">${p.n} AST<small>${p.pts} PTS · ${(p.n / D.games).toFixed(1)} per game</small></div>
                 ${kindsBar(p.k)}<div class="am-kind-legend">${kindsText(p.k)}</div>${together(p)}</div>`).join('');
 
             // 選手の選択（出場時間の多い12人）。役割の一言は、ふちの3色のうち一番多いもの
-            const role = p => { const m = Math.max(p.ast, p.astd, p.fgm - p.astd); return m === p.ast ? '司令塔' : m === p.astd ? '仕上げ役' : '自力型'; };
+            const role = p => { const m = Math.max(p.ast, p.astd, p.fgm - p.astd); return m === p.ast ? 'Playmaker' : m === p.astd ? 'Finisher' : 'Self-creator'; };
             root.querySelector('.am-chips').innerHTML = players.slice(0, 12).map(p => `<button class="am-chip ${p.id === center ? 'on' : ''}" data-center="${p.id}">
                 <svg width="22" height="22" viewBox="0 0 22 22">${ring(11, 11, 8, p, 4)}</svg>${esc(p.name)} <small>${role(p)}</small></button>`).join('');
 
@@ -115,22 +117,22 @@ window.NBA = window.NBA || {};
             g += `${ring(CX, CY, 30, c, 7)}<circle cx="${CX}" cy="${CY}" r="25" fill="#1d1d22"/>
                 <text x="${CX}" y="${CY - 2}" text-anchor="middle" font-size="11" font-weight="800" fill="#f2f2f4">${esc(c.name.split(' ').pop())}</text>
                 <text x="${CX}" y="${CY + 12}" text-anchor="middle" font-size="9.5" fill="#8b8b95">${c.ast} AST</text>`;
-            g += `<text x="${XR}" y="14" text-anchor="middle" font-size="10" font-weight="700" fill="${GOLD}">パスした相手 →</text>`;
-            g += `<text x="${XL}" y="14" text-anchor="middle" font-size="10" font-weight="700" fill="${TEAL}">← パスを受けた相手</text>`;
-            if (!out.length) g += `<text x="${XR}" y="${CY}" text-anchor="middle" font-size="11" fill="#8b8b95">なし</text>`;
-            if (!inn.length) g += `<text x="${XL}" y="${CY}" text-anchor="middle" font-size="11" fill="#8b8b95">なし</text>`;
+            g += `<text x="${XR}" y="14" text-anchor="middle" font-size="10" font-weight="700" fill="${GOLD}">Passes to →</text>`;
+            g += `<text x="${XL}" y="14" text-anchor="middle" font-size="10" font-weight="700" fill="${TEAL}">← Passes from</text>`;
+            if (!out.length) g += `<text x="${XR}" y="${CY}" text-anchor="middle" font-size="11" fill="#8b8b95">None</text>`;
+            if (!inn.length) g += `<text x="${XL}" y="${CY}" text-anchor="middle" font-size="11" fill="#8b8b95">None</text>`;
             const svg = root.querySelector('.am-ego svg');
             svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
             svg.innerHTML = g;
 
             // 相手ごとの表
-            const table = (list, isOut, title, total) => `<div><h4>${title} <small>${total}本</small></h4>
-                <table class="am-pt"><thead><tr><th class="l">相手</th><th>本数</th><th>割合</th><th>得点</th><th>シュートの型</th></tr></thead><tbody>
-                ${list.map(p => `<tr><td class="l">${esc(by[isOut ? p.to : p.from].name)}</td><td>${p.n}</td><td>${Math.round(p.n / (total || 1) * 100)}%</td><td>${p.pts}</td><td>${kindsBar(p.k)}</td></tr>`).join('') || '<tr><td class="l" colspan="5">なし</td></tr>'}
+            const table = (list, isOut, title, total) => `<div><h4>${title} <small>${total} AST</small></h4>
+                <table class="am-pt"><thead><tr><th class="l">Player</th><th>AST</th><th>Share</th><th>PTS</th><th>Shot type</th></tr></thead><tbody>
+                ${list.map(p => `<tr><td class="l">${esc(by[isOut ? p.to : p.from].name)}</td><td>${p.n}</td><td>${Math.round(p.n / (total || 1) * 100)}%</td><td>${p.pts}</td><td>${kindsBar(p.k)}</td></tr>`).join('') || '<tr><td class="l" colspan="5">None</td></tr>'}
                 </tbody></table></div>`;
             root.querySelector('.am-tables').innerHTML =
-                table(pairs.filter(p => p.from === center), true, `${esc(c.name)} がパスした相手`, c.ast) +
-                table(pairs.filter(p => p.to === center), false, `${esc(c.name)} にパスした相手`, c.astd) +
+                table(pairs.filter(p => p.from === center), true, `${esc(c.name)} › Passes to`, c.ast) +
+                table(pairs.filter(p => p.to === center), false, `${esc(c.name)} › Passes from`, c.astd) +
                 `<div class="am-kind-legend" style="grid-column:1/-1">${KINDS.map(([n, col]) => `<span><i style="background:${col}"></i>${n}</span>`).join('')}</div>`;
         }
 

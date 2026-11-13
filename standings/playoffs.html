@@ -12,7 +12,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&display=swap">
-    <link rel="stylesheet" href="../assets/common.css?v=2026111201">
+    <link rel="stylesheet" href="../assets/common.css?v=2026111301">
     <style>
         /* ─── Bracket layout ─── */
         .bracket-outer { overflow-x: auto; padding-bottom: 12px; }
@@ -259,6 +259,12 @@
             .playin-wrap { flex-direction: column; }
         }
 
+        /* ─── 見出し（シーズン名を必ず出す） ─── */
+        .po-head { margin-bottom: 10px; }
+        .po-head h2 { font-family: var(--font-score); font-size: 22px; font-weight: 600; letter-spacing: .5px; }
+        .po-season { color: var(--accent); }
+        .po-prev { font-size: 11.5px; color: var(--muted); margin: -4px 0 12px; line-height: 1.6; }
+
         /* ─── Modal ─── */
         .modal-overlay {
             display: none;
@@ -364,18 +370,23 @@
 <div class="main-wrap">
     <div class="tabs-nav">
         <a class="tab-btn" href="./">Standings</a>
+        <a class="tab-btn" href="trends.html">Trends</a>
         <button class="tab-btn active" data-tab="playoffs">Playoffs</button>
         <button class="tab-btn" data-tab="playin">Play-In</button>
         <a class="tab-btn" href="draft.html">Draft</a>
     </div>
 
     <div class="tab-panel active" id="tab-playoffs">
+        <div class="po-head"><h2><span class="po-season"></span> Playoffs</h2></div>
+        <p class="po-prev" hidden></p>
         <div id="bracket-wrap">
             <div class="msg">Loading<span class="spinner"></span></div>
         </div>
     </div>
 
     <div class="tab-panel" id="tab-playin">
+        <div class="po-head"><h2><span class="po-season"></span> Play-In</h2></div>
+        <p class="po-prev" hidden></p>
         <div id="playin-wrap">
             <div class="msg">Loading<span class="spinner"></span></div>
         </div>
@@ -393,15 +404,16 @@
     </div>
 </div>
 
-<script src="../assets/api.js?v=2026111201"></script>
-<script src="../assets/teams.js?v=2026111201"></script>
-<script src="../assets/ui.js?v=2026111201"></script>
+<script src="../assets/api.js?v=2026111301"></script>
+<script src="../assets/teams.js?v=2026111301"></script>
+<script src="../assets/ui.js?v=2026111301"></script>
 <script>
 /* ══════════════════════════════════════════════
-   CONFIG  – change SEASON to test different years
-   2025 = 2024-25 season
+   CONFIG  – 表示するシーズン（2026 = 2025-26 シーズン）
+   今季のプレーオフ（Play-In が始まる 4/14 ごろ）までは前シーズンを表示する。
+   別の年を試すときは数字を直書きする
    ══════════════════════════════════════════════ */
-const SEASON = 2026;
+const SEASON = Date.now() >= new Date(`${NBA.SEASON}-04-14T00:00:00`).getTime() ? NBA.SEASON : NBA.SEASON - 1;
 
 const ESPN_STANDINGS  = 'https://site.api.espn.com/apis/v2/sports/basketball/nba/standings';
 
@@ -410,6 +422,19 @@ const seedMap    = {};   // teamId → { seed, conf, abbr, logo, name }
 const seriesMap  = {};   // "minId-maxId" → series object
 const playInData = { West: [], East: [] };
 const TBD_ID     = '__tbd__';  // placeholder for unresolved play-in opponent
+
+/* ── 見出しのシーズン名（例 "2025-26"）。今季のプレーオフ前は前シーズンを出していることを書き添える ── */
+(function () {
+    const label = y => `${y - 1}-${String(y).slice(2)}`;
+    document.querySelectorAll('.po-season').forEach(el => { el.textContent = label(SEASON); });
+    if (SEASON < NBA.SEASON) {
+        document.querySelectorAll('.po-prev').forEach(el => {
+            el.innerHTML = `<span data-ja="${label(NBA.SEASON)} シーズンのプレーオフはまだ始まっていないため、${label(SEASON)} シーズンの結果を表示しています">The ${label(NBA.SEASON)} playoffs haven't started yet, so this shows the ${label(SEASON)} season.</span>`;
+            el.hidden = false;
+        });
+    }
+    document.title = `${label(SEASON)} NBA Playoffs`;
+})();
 
 /* ── Helpers ── */
 
@@ -1153,8 +1178,7 @@ function renderPlayIn() {
 
 /* ── Main ── */
 async function init() {
-    document.getElementById('last-updated').textContent =
-        new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' });
+    NBA.ui.fetched();
 
     // Fetch phase — errors are isolated so cleanup always runs
     try { await fetchStandings(); }      catch(e) { console.warn('standings:', e); }

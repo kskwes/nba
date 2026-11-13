@@ -12,7 +12,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&display=swap">
-    <link rel="stylesheet" href="../assets/common.css?v=2026111201">
+    <link rel="stylesheet" href="../assets/common.css?v=2026111301">
     <style>
         /* ─── Refresh button ─── */
         .header-right {
@@ -216,7 +216,7 @@
             grid-template-columns: repeat(3, minmax(0, 1fr));
         }
 
-        /* ─── Top 10 Players タブ: ランキングのカード ─── */
+        /* ─── Daily Leaders タブ: ランキングのカード ─── */
         .tp-controls {
             display: flex; align-items: center; justify-content: space-between;
             flex-wrap: wrap; gap: 8px 14px; margin: 0 0 14px;
@@ -228,6 +228,15 @@
         .tp-filter .conf-btn { padding: 3px 10px; font-size: 11px; border: 0; border-radius: 5px; background: transparent; }
         .tp-filter .conf-btn.active { background: var(--accent); color: var(--on-accent); }
         .tp-subtitle { font-size: 11px; color: var(--muted); }
+
+        /* 4〜10位は折りたたむので、カードの高さはそろえない（common.css の grid-auto-rows: 1fr を上書き。
+           開いたカードに合わせて同じ行のカードが伸びないよう上寄せ） */
+        #rankings.rk-grid { grid-auto-rows: auto; align-items: start; }
+        .rk-card details.fold.rk-more { border: 0; border-radius: 0; background: none; margin: 0; }
+        .rk-card details.fold.rk-more > summary { padding: 7px 14px; font-size: 11px; color: var(--muted); }
+        .rk-card details.fold.rk-more > summary:hover { color: var(--text); }
+        .rk-card details.fold.rk-more[open] > summary { border-bottom: 1px solid var(--line-soft); }
+        .rk-card details.fold.rk-more > .fold-body { padding: 0; }
 
         a.ip-name { color: inherit; text-decoration: none; }
         a.ip-name:hover { color: var(--accent); text-decoration: underline; }
@@ -279,6 +288,18 @@
         .ip-d    { background: rgba(255,152,0,0.15);   color: #ff9800; }
         .ip-dtd  { background: rgba(122,133,163,0.15); color: var(--muted); }
 
+        /* 怪我人: Tomorrow / Today は試合ごと、All teams はチームごとにまとめる */
+        .inj-view { margin: 0 0 10px; }
+        .inj-group-head {
+            display: flex; align-items: baseline; gap: 8px;
+            padding: 7px 14px; background: var(--surface2);
+            border-bottom: 1px solid var(--line-soft);
+            font-size: 11.5px; font-weight: 700;
+        }
+        .inj-group-head .inj-time { margin-left: auto; font-size: 10.5px; font-weight: 400; color: var(--muted); }
+        .inj-group + .inj-group .inj-group-head { border-top: 1px solid var(--border); }
+        .inj-note { padding: 8px 14px; font-size: 10.5px; color: var(--muted); border-top: 1px solid var(--border); }
+
         @media (max-width: 1060px) {
             .games-layout { flex-direction: column; align-items: stretch; }
             .games-main, .games-side { flex: none; width: 100%; }
@@ -292,7 +313,7 @@
             .games-main .games-grid { grid-template-columns: 1fr; }
         }
 
-        /* ─── タブ: Schedule / Top 10 Players ─── */
+        /* ─── タブ: Schedule / Daily Leaders ─── */
         .tab-panel.games-panel { display: none; }
         .tab-panel.games-panel.active { display: block; }
     </style>
@@ -317,10 +338,10 @@
 
 <div class="main-wrap">
 
-    <!-- タブ: Schedule（試合一覧・怪我人）/ Top 10 Players（ランキング） -->
+    <!-- タブ: Schedule（試合一覧・怪我人）/ Daily Leaders（ランキング） -->
     <div class="tabs-nav">
         <button class="tab-btn active" data-tab="schedule">Schedule</button>
-        <button class="tab-btn" data-tab="top">Top 10 Players</button>
+        <button class="tab-btn" data-tab="top">Daily Leaders</button>
     </div>
 
     <div class="tab-panel games-panel active" id="tab-schedule">
@@ -357,8 +378,13 @@
             <aside class="games-side">
                 <section class="section injury-players-wrap">
                     <div class="section-header">
-                        <h2>Today's Injury Report</h2>
+                        <h2>Injury Report</h2>
                         <span class="date-badge" id="injury-date"></span>
+                    </div>
+                    <div class="conf-tabs tp-filter inj-view" id="inj-view">
+                        <button class="conf-btn" data-view="tomorrow">Tomorrow</button>
+                        <button class="conf-btn" data-view="today">Today</button>
+                        <button class="conf-btn" data-view="all">All teams</button>
                     </div>
                     <div class="injury-players-col">
                         <div id="injury-players">
@@ -372,7 +398,7 @@
 
     <div class="tab-panel games-panel" id="tab-top">
         <div class="section-header">
-            <h2>Top 10 Players</h2>
+            <h2>Daily Leaders</h2>
             <span class="date-badge" id="top-players-date"></span>
         </div>
         <div class="tp-controls">
@@ -382,7 +408,7 @@
                 <button class="conf-btn" data-exp="sophomore">Sophomore</button>
                 <button class="conf-btn" data-exp="veteran">Veteran</button>
             </div>
-            <div class="tp-subtitle">その日の終わった試合のスタッツ（今日の試合がまだなら前日）</div>
+            <div class="tp-subtitle" data-ja="その日の終わった試合のスタッツ（今日の試合がまだなら前日）">Stats from that day's final games (previous day if none have finished today)</div>
         </div>
         <div class="rk-grid" id="rankings">
             <div class="msg">Loading<span class="spinner"></span></div>
@@ -391,10 +417,10 @@
 
 </div><!-- /main-wrap -->
 
-<script src="../assets/api.js?v=2026111201"></script>
-<script src="../assets/teams.js?v=2026111201"></script>
-<script src="../assets/stats.js?v=2026111201"></script>
-<script src="../assets/ui.js?v=2026111201"></script>
+<script src="../assets/api.js?v=2026111301"></script>
+<script src="../assets/teams.js?v=2026111301"></script>
+<script src="../assets/stats.js?v=2026111301"></script>
+<script src="../assets/ui.js?v=2026111301"></script>
 <script>
 /* ── ET date helpers (America/New_York, handles DST automatically) ── */
 function etDateStr(utcDate) {
@@ -418,16 +444,17 @@ function fmtJstDate(utcDate) {
     return `${datePart} (${weekday})`;
 }
 
-/* ── Tab switching（?tab=top で Top 10 Players を開く） ── */
+/* ── Tab switching（?tab=top で Daily Leaders を開く） ── */
 function switchTab(tab) {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
     document.querySelectorAll('.games-panel').forEach(p => p.classList.toggle('active', p.id === `tab-${tab}`));
     NBA.url.set({ tab: tab === 'top' ? 'top' : null });
+    // Above Average の今季平均は、Daily Leaders を開いたときだけ取得する
+    if (tab === 'top') loadSeasonAvg();
 }
 
 document.querySelectorAll('.tab-btn').forEach(btn =>
     btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
-if (NBA.url.get('tab') === 'top') switchTab('top');
 document.getElementById('refresh-btn').addEventListener('click', () => init(true));
 
 /* ── Standings（カードの順位・L10・連勝表示に使う） ── */
@@ -605,7 +632,7 @@ function buildCard(event) {
     return card;
 }
 
-/* ── 見どころのラベル: 終わった試合の summary（Top 10 と同じキャッシュ）から計算して、カードのフッターに入れる ── */
+/* ── 見どころのラベル: 終わった試合の summary（Daily Leaders と同じキャッシュ）から計算して、カードのフッターに入れる ── */
 function fillExcitement(events) {
     events.filter(e => e.status.type.completed || e.status.type.state === 'post').forEach(e => {
         fetchBoxScore(e.id).then(d => {
@@ -618,7 +645,7 @@ function fillExcitement(events) {
     });
 }
 
-/* ── 試合の summary（Top 10 / Off Nights / 怪我人 / 見どころに使う） ── */
+/* ── 試合の summary（Daily Leaders / Off Nights / 怪我人 / 見どころに使う） ── */
 function fetchBoxScore(eventId, opts) {
     return NBA.api.summary(eventId, opts).catch(() => null);
 }
@@ -641,8 +668,11 @@ const expClass = years => years == null ? null
     : years <= 1 ? 'rookie' : years === 2 ? 'sophomore' : 'veteran';
 
 let topPlayersAll = [];
+let topLoaded = false;   // その日の選手を読み終えたか（今季平均が先に届いても Loading を消さない）
 let expFilter = 'all';   // 経験年数の絞り込み（全ランキング共通）
+const openFolds = new Set();   // 4〜10位を開いている部門（key）
 const OFF_NIGHTS_MIN = 20;
+const TS_MIN_FGA = 10;
 
 const num = v => parseInt(String(v).replace(/^\+/, '')) || 0;
 const fmtPm = v => { const n = num(v); return n > 0 ? `+${n}` : n === 0 ? '±0' : String(n); };
@@ -652,8 +682,16 @@ const split = v => String(v).replace('-', '/');
 // AST/TO は TO=0 のとき AST をそのまま比率として扱う。同値は AST → PTS+REB+AST の多い順
 const RANKINGS = [
     // 総合: Game Score（計算は assets/stats.js）。PTS+REB+AST と違い、シュートの効率・守備・TO も入る
-    { key: 'gs',  title: 'Game Score', value: p => p.gs, show: v => v.toFixed(1), note: '効率・守備・TO も含む総合' },
+    { key: 'gs',  title: 'Game Score', value: p => p.gs, show: v => v.toFixed(1), note: 'Overall, incl. efficiency, defense, TO', noteJa: '効率・守備・TO も含む総合' },
     { key: 'pts', title: 'Points',   value: p => p.pts },
+    // TS%: その日の FGA が TS_MIN_FGA 本以上の選手だけ
+    { key: 'ts',  title: 'TS%', value: p => p.ts, show: v => `${(100 * v).toFixed(1)}%`,
+      filter: p => p.fga >= TS_MIN_FGA && p.ts != null,
+      note: `Min. ${TS_MIN_FGA} FGA`, noteJa: `その日の FGA ${TS_MIN_FGA}本以上の選手` },
+    // Above Average: その日の Game Score − 今季平均の Game Score（今季平均は Daily Leaders を開いたときに取得。下の seasonAvg）
+    { key: 'above', title: 'Above Average', above: true, value: p => p.gsDiff, show: v => `${v > 0 ? '+' : ''}${v.toFixed(1)}`,
+      filter: p => p.gsDiff != null && p.gsDiff > 0,
+      note: 'Game Score − season avg', noteJa: 'その日の Game Score − 今季平均の Game Score' },
     { key: 'reb', title: 'Rebounds', value: p => p.reb },
     { key: 'ast', title: 'Assists',  value: p => p.ast },
     { key: 'tpm', title: '3PM',      value: p => num(p.threeP) },
@@ -662,13 +700,71 @@ const RANKINGS = [
     { key: 'ato', title: 'AST/TO',   value: p => p.ast ? p.ast / Math.max(num(p.tov), 1) : 0,
       show: v => v.toFixed(1), tie: (a, b) => b.ast - a.ast },
     { key: 'pm',  title: '+/-',      value: p => num(p.pm), show: v => fmtPm(v),
-      note: '出場中の得失点差' },
+      note: 'Point diff while on court', noteJa: '出場中の得失点差' },
     // Off Nights: 20分以上出場した選手を PIE の低い順
-    { key: 'off', title: 'Off Nights', off: true, note: `${OFF_NIGHTS_MIN}分以上出場・PIE が低い順`,
+    { key: 'off', title: 'Off Nights', off: true, note: `${OFF_NIGHTS_MIN}+ min · lowest PIE first`, noteJa: `${OFF_NIGHTS_MIN}分以上出場・PIE が低い順`,
       value: p => p.pie, show: v => v.toFixed(1) },
     // ファンタジーポイント（nba-fantasy と同じ配点。計算は assets/stats.js）
-    { key: 'fp',  title: 'Fantasy', value: p => p.fp, show: v => v.toFixed(1), note: 'nba-fantasy と同じ配点' },
+    { key: 'fp',  title: 'Fantasy', value: p => p.fp, show: v => v.toFixed(1), note: 'Same scoring as nba-fantasy', noteJa: 'nba-fantasy と同じ配点' },
 ];
+
+/* ── Above Average の今季平均 ──
+   ESPN の statistics/byathlete（qualified でない全選手・今季のレギュラーシーズン）を1回取得し、
+   選手ごとの1試合平均から Game Score（assets/stats.js の gameScore）を計算する。
+   ・Leaders の API はリバウンドの内訳を返さないので、players/index.html の Game Score と同じく
+     0.7×OREB＋0.3×DREB を REB×0.4 で近似する（OREB を REB の25%として gameScore に渡すと 0.4×REB になる）
+   ・ESPN の平均・出場試合数は、試合の後しばらくでその日の試合を含んだものになる（含む前提で3試合以上を条件にする）
+   ・取得は Daily Leaders のタブを開いたときだけ。キャッシュは api.js（1時間）。players/index.html と同じ形の URL */
+const ABOVE_MIN_GP = 3;
+const ABOVE_MIN_SHARE = 0.5;   // その日に出場した選手のうち、対象（今季平均あり・3試合以上）がこの割合未満なら部門ごと出さない
+const seasonAvg = { status: 'idle', map: null };   // status: idle / loading / ok / error。map: athleteId → { gp, gs }
+
+function loadSeasonAvg() {
+    if (seasonAvg.status === 'loading' || seasonAvg.status === 'ok') return;
+    seasonAvg.status = 'loading';
+    const sort = encodeURIComponent('offensive.avgPoints:desc');
+    NBA.api.leaders(`season=${NBA.SEASON}&seasontype=2&limit=1000&isqualified=false&sort=${sort}`).then(data => {
+        const idx = {};
+        (data.categories || []).forEach(c => { idx[c.name] = {}; (c.names || []).forEach((n, i) => { idx[c.name][n] = i; }); });
+        const map = new Map();
+        (data.athletes || []).forEach(a => {
+            const cats = {};
+            (a.categories || []).forEach(c => { cats[c.name] = c.values || []; });
+            const v = (c, n) => { const x = cats[c]?.[idx[c]?.[n]]; return x == null || x === '' ? NaN : Number(x); };
+            const reb = v('general', 'avgRebounds');
+            const line = {
+                pts: v('offensive', 'avgPoints'), fgm: v('offensive', 'avgFieldGoalsMade'), fga: v('offensive', 'avgFieldGoalsAttempted'),
+                ftm: v('offensive', 'avgFreeThrowsMade'), fta: v('offensive', 'avgFreeThrowsAttempted'),
+                oreb: 0.25 * reb, dreb: 0.75 * reb,
+                stl: v('defensive', 'avgSteals'), ast: v('offensive', 'avgAssists'), blk: v('defensive', 'avgBlocks'),
+                pf: v('general', 'avgFouls'), to: v('offensive', 'avgTurnovers'),
+            };
+            const gs = gameScore(line), gp = v('general', 'gamesPlayed');
+            if (a.athlete?.id && isFinite(gs) && isFinite(gp)) map.set(String(a.athlete.id), { gp, gs });
+        });
+        seasonAvg.map = map;
+        seasonAvg.status = 'ok';
+    }).catch(e => {
+        console.error('season avg:', e);
+        seasonAvg.status = 'error';
+    }).finally(() => { if (topLoaded) renderRankings(); });
+}
+
+// その日の選手に今季平均と差を入れ、部門を出すかどうかを返す
+function applySeasonAvg() {
+    topPlayersAll.forEach(p => { p.gsAvg = null; p.gsDiff = null; });
+    if (seasonAvg.status !== 'ok') return false;
+    const played = topPlayersAll.filter(p => p.min > 0 && p.gs != null);
+    let n = 0;
+    played.forEach(p => {
+        const s = seasonAvg.map.get(String(p.id));
+        if (!s || s.gp < ABOVE_MIN_GP) return;
+        p.gsAvg = s.gs;
+        p.gsDiff = p.gs - s.gs;
+        n++;
+    });
+    return played.length > 0 && n >= played.length * ABOVE_MIN_SHARE;
+}
 
 function rankList(r) {
     const byExp = p => expFilter === 'all' || p.exp === expFilter;
@@ -677,7 +773,7 @@ function rankList(r) {
             .sort((a, b) => a.pie - b.pie).slice(0, 10);
     }
     // その値が 0 の選手は除外（+/- はマイナスもあるので上位10人をそのまま出す）
-    return topPlayersAll.filter(p => r.key === 'pm' ? p.min > 0 : r.value(p) > 0).filter(byExp)
+    return topPlayersAll.filter(r.filter || (p => r.key === 'pm' ? p.min > 0 : r.value(p) > 0)).filter(byExp)
         .sort((a, b) => r.value(b) - r.value(a) || (r.tie ? r.tie(a, b) : 0) || b.total - a.total)
         .slice(0, 10);
 }
@@ -701,10 +797,23 @@ function renderRankings() {
         </div>`;
     // 4〜10位: 1行
     const lineHTML = p => `<div class="rk-line">${p.pts} pts · ${p.reb} reb · ${p.ast} ast · ${split(p.fg)} FG · ${p.min} min</div>`;
-    el.innerHTML = RANKINGS.map(r => {
+    // Above Average: 今季平均の取得中・失敗はカードの中に出す。取得できても対象の選手が少ない日（シーズンの最初の数日）は部門ごと出さない
+    const showAbove = applySeasonAvg();
+    const aboveWait = seasonAvg.status === 'idle' || seasonAvg.status === 'loading';
+    // その日の GmSc と今季平均（1〜3位のチップの先頭）
+    const aboveChips = p => `<span class="tp-chip">GmSc <strong>${p.gs.toFixed(1)}</strong></span>
+            <span class="tp-chip">Season avg <strong>${p.gsAvg.toFixed(1)}</strong></span>`;
+    el.innerHTML = RANKINGS.filter(r => !r.above || showAbove || aboveWait || seasonAvg.status === 'error').map(r => {
+        if (r.above && !showAbove) {
+            const msg = aboveWait ? '<div class="msg">Loading<span class="spinner"></span></div>' : '<div class="msg error">Failed to load season averages</div>';
+            return `<section class="rk-card">
+            <div class="rk-head"><span class="rk-title">${r.title}</span><span class="rk-note" data-ja="${esc(r.noteJa)}">${r.note}</span></div>
+            ${msg}
+        </section>`;
+        }
         const list = rankList(r);
         const show = p => (r.show || String)(r.value(p));
-        const rows = list.map((p, i) => {
+        const rowHTML = (p, i) => {
             if (i < 3) {
                 const photo = p.photo
                     ? `<img class="tp-photo" src="${esc(p.photo)}" alt="" onerror="this.style.display='none'">`
@@ -713,17 +822,29 @@ function renderRankings() {
                     <span class="rk-rank">${i + 1}</span>${photo}
                     <div class="rk-body">${nameHTML(p)}<div class="rk-sub">${esc(p.team)}${p.jersey ? ` #${esc(p.jersey)}` : ''}</div>${statsHTML(p)}</div>
                     <span class="rk-val">${show(p)}</span>
-                    ${chipsHTML(p)}
+                    ${r.above ? chipsHTML(p).replace('<div class="rk-chips">', `<div class="rk-chips">${aboveChips(p)}`) : chipsHTML(p)}
                 </div>`;
             }
             return `<div class="rk-row"><span class="rk-rank">${i + 1}</span><div class="rk-body">${nameHTML(p)}${lineHTML(p)}</div><span class="rk-team">${esc(p.team)}</span><span class="rk-val">${show(p)}</span></div>`;
-        }).join('');
+        };
+        // 1〜3位はいつも見せ、4〜10位は折りたたむ（開閉は描き直しても保つ）
+        const more = list.slice(3);
+        const rows = list.slice(0, 3).map(rowHTML).join('') + (more.length
+            ? `<details class="fold rk-more" data-key="${r.key}"${openFolds.has(r.key) ? ' open' : ''}><summary>4–${3 + more.length}</summary><div class="fold-body">${more.map((p, i) => rowHTML(p, i + 3)).join('')}</div></details>`
+            : '');
         return `<section class="rk-card ${r.off ? 'rk-off' : ''}">
-            <div class="rk-head"><span class="rk-title">${r.title}</span>${r.note ? `<span class="rk-note">${r.note}</span>` : ''}</div>
+            <div class="rk-head"><span class="rk-title">${r.title}</span>${r.note ? `<span class="rk-note"${r.noteJa ? ` data-ja="${esc(r.noteJa)}"` : ''}>${r.note}</span>` : ''}</div>
             ${rows || '<div class="msg">No data</div>'}
         </section>`;
     }).join('');
 }
+
+// toggle は伝わらない（bubble しない）ので capture で受ける
+document.getElementById('rankings').addEventListener('toggle', e => {
+    const d = e.target;
+    if (!d.matches?.('details.rk-more')) return;
+    d.open ? openFolds.add(d.dataset.key) : openFolds.delete(d.dataset.key);
+}, true);
 
 document.querySelectorAll('#exp-filter .conf-btn').forEach(btn => btn.addEventListener('click', () => {
     expFilter = btn.dataset.exp;
@@ -797,6 +918,8 @@ async function extractTopPlayers(events) {
                         pie:    line && gamePie ? 100 * pieNum(line) / gamePie : null,
                         gs:     line ? gameScore(line) : null,
                         fp:     line ? fantasyPoints(line) : null,
+                        fga:    line?.fga ?? 0,
+                        ts:     line && line.fga + 0.44 * line.fta > 0 ? line.pts / (2 * (line.fga + 0.44 * line.fta)) : null,
                     });
                 });
             });
@@ -808,21 +931,25 @@ async function extractTopPlayers(events) {
 
 function setTopPlayers(players) {
     topPlayersAll = players;
+    topLoaded = true;
     renderRankings();
 }
 
-/* ── Injury Report ── */
-async function fetchInjuryPlayers(events) {
-    if (!events?.length) return [];
-    // 怪我人の情報は10分以内のものなら使う（試合中の summary を毎回取り直さない）
-    const summaries = await Promise.all(events.map(e => fetchBoxScore(e.id, { maxAge: 10 * NBA.api.MIN })));
-    const seen = new Set();
-    const players = [];
+/* ── Injury Report ──
+   ESPN の summary の injuries はチームごとの今の怪我人一覧。新しく取得はせず、すでに取っている
+   今日の試合の summary（10分以内）と、昨日の試合の summary（キャッシュ。見どころのラベルに使っているもの）から
+   チーム id → 怪我人 の表を作る。同じチームは今日の summary を優先する。
+   Tomorrow / Today: その日の試合ごとに両チームの怪我人。All teams: チームごと。 */
+const INJ_ORDER = { 'Out': 0, 'Doubtful': 1, 'Questionable': 2, 'Day-To-Day': 3 };
+const injState = { byTeam: new Map(), today: [], tomorrow: [], dates: {}, view: null, picked: false };
 
+function injuriesFromSummaries(summaries, src, byTeam) {
     summaries.forEach(data => {
-        if (!data?.injuries) return;
-        data.injuries.forEach(teamInj => {
-            const teamAbbr = normAbbr(teamInj.team?.abbreviation || '');
+        (data?.injuries || []).forEach(teamInj => {
+            const tid = String(teamInj.team?.id || '');
+            if (!tid || byTeam.has(tid)) return;   // 先に入れたもの（今日の summary）を優先
+            const seen = new Set();
+            const players = [];
             (teamInj.injuries || []).forEach(inj => {
                 const pid = inj.athlete?.id;
                 if (pid && seen.has(pid)) return;
@@ -839,57 +966,128 @@ async function fetchInjuryPlayers(events) {
                     name:   inj.athlete?.displayName || '?',
                     jersey: inj.athlete?.jersey || '',
                     photo:  inj.athlete?.headshot?.href || '',
-                    team:   teamAbbr,
+                    team:   normAbbr(teamInj.team?.abbreviation || ''),
                     status: inj.status || 'Out',
                     reason,
                 });
             });
+            byTeam.set(tid, { abbr: normAbbr(teamInj.team?.abbreviation || ''), src, players });
         });
-    });
-
-    // Sort: Out first, then Doubtful, Questionable, Day-To-Day; within each group by team
-    const order = { 'Out': 0, 'Doubtful': 1, 'Questionable': 2, 'Day-To-Day': 3 };
-    return players.sort((a, b) => {
-        const so = (order[a.status] ?? 9) - (order[b.status] ?? 9);
-        return so !== 0 ? so : a.team.localeCompare(b.team);
+        // 怪我人がいないチームは injuries に出ないことがあるので、試合の両チームを「怪我人なし」として入れておく
+        (data?.header?.competitions?.[0]?.competitors || []).forEach(c => {
+            const tid = String(c.team?.id || '');
+            if (tid && !byTeam.has(tid)) byTeam.set(tid, { abbr: normAbbr(c.team?.abbreviation || ''), src, players: [] });
+        });
     });
 }
 
-function renderInjuryPlayers(players) {
-    const el = document.getElementById('injury-players');
-    if (!el) return;
-    if (!players.length) {
-        el.innerHTML = '<div class="msg">No injury report</div>';
-        return;
-    }
+async function fetchInjuries(todayEvents, yesterdayEvents) {
+    const byTeam = new Map();
+    // 怪我人の情報は10分以内のものなら使う（試合中の summary を毎回取り直さない）
+    const today = await Promise.all((todayEvents || []).map(e => fetchBoxScore(e.id, { maxAge: 10 * NBA.api.MIN })));
+    injuriesFromSummaries(today, 'today', byTeam);
+    // 昨日の終わった試合の summary は見どころのラベルで取っているもの（キャッシュから読む）
+    const done = (yesterdayEvents || []).filter(e => e.status.type.completed || e.status.type.state === 'post');
+    const yesterday = await Promise.all(done.map(e => fetchBoxScore(e.id)));
+    injuriesFromSummaries(yesterday, 'yesterday', byTeam);
+    return byTeam;
+}
 
+// OUT → DOUBT → GTD → D2D。同じ状態の中はチーム（試合ではアウェー → ホーム）の順
+function sortInjuries(players, teamOrder) {
+    const ti = p => { const i = teamOrder ? teamOrder.indexOf(p.team) : -1; return i < 0 ? 99 : i; };
+    return [...players].sort((a, b) =>
+        ((INJ_ORDER[a.status] ?? 9) - (INJ_ORDER[b.status] ?? 9)) || (ti(a) - ti(b)) || a.team.localeCompare(b.team));
+}
+
+function injuryItemHTML(p) {
     const statusCfg = {
         'Out':        { cls: 'ip-out',  label: 'OUT'   },
         'Doubtful':   { cls: 'ip-d',    label: 'DOUBT' },
         'Questionable':{ cls: 'ip-q',   label: 'GTD'   },
         'Day-To-Day': { cls: 'ip-dtd',  label: 'D2D'   },
     };
-
-    el.innerHTML = players.map(p => {
-        const cfg = statusCfg[p.status] || { cls: 'ip-out', label: p.status.toUpperCase() };
-        const photoEl = p.photo
-            ? `<img class="ip-photo" src="${p.photo}" alt="${p.name}" onerror="this.style.display='none'">`
-            : `<div class="ip-photo-placeholder">${p.name.charAt(0)}</div>`;
-        return `
-        <div class="ip-item">
-            ${photoEl}
-            <div class="ip-body">
-                <div class="ip-name-row">
-                    ${p.id ? `<a class="ip-name" href="${NBA.link.player(p.id)}">${p.name}</a>` : `<span class="ip-name">${p.name}</span>`}
-                    ${p.jersey ? `<span class="ip-team">#${p.jersey}</span>` : ''}
-                    <span class="ip-team">${p.team}</span>
-                </div>
-                <div class="ip-reason">${p.reason}</div>
+    const cfg = statusCfg[p.status] || { cls: 'ip-out', label: p.status.toUpperCase() };
+    const photoEl = p.photo
+        ? `<img class="ip-photo" src="${p.photo}" alt="${p.name}" onerror="this.style.display='none'">`
+        : `<div class="ip-photo-placeholder">${p.name.charAt(0)}</div>`;
+    return `
+    <div class="ip-item">
+        ${photoEl}
+        <div class="ip-body">
+            <div class="ip-name-row">
+                ${p.id ? `<a class="ip-name" href="${NBA.link.player(p.id)}">${p.name}</a>` : `<span class="ip-name">${p.name}</span>`}
+                ${p.jersey ? `<span class="ip-team">#${p.jersey}</span>` : ''}
+                <span class="ip-team">${p.team}</span>
             </div>
-            <span class="ip-status ${cfg.cls}">${cfg.label}</span>
-        </div>`;
-    }).join('');
+            <div class="ip-reason">${p.reason}</div>
+        </div>
+        <span class="ip-status ${cfg.cls}">${cfg.label}</span>
+    </div>`;
 }
+
+const gameTimeJst = ev => new Date(ev.date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Tokyo' });
+
+function renderInjuries() {
+    const el = document.getElementById('injury-players');
+    if (!el) return;
+    const { byTeam, view } = injState;
+    document.querySelectorAll('#inj-view .conf-btn').forEach(b => b.classList.toggle('active', b.dataset.view === view));
+    document.getElementById('injury-date').textContent = view === 'all' ? '' : (injState.dates[view] || '');
+
+    let groups = [];       // { head, time, players }
+    const missing = [];    // 怪我人の情報を取れていないチーム（その日の試合のうち）
+    let usedOld = false;   // 昨日の summary の情報を使ったか
+    if (view === 'all') {
+        groups = [...byTeam.values()].filter(t => t.players.length)
+            .sort((a, b) => a.abbr.localeCompare(b.abbr))
+            .map(t => { if (t.src === 'yesterday') usedOld = true; return { head: esc(t.abbr), players: sortInjuries(t.players) }; });
+    } else {
+        const events = [...(injState[view] || [])].sort((a, b) => new Date(a.date) - new Date(b.date));
+        events.forEach(ev => {
+            const comp = ev.competitions?.[0] || {};
+            const away = comp.competitors?.find(c => c.homeAway === 'away') ?? comp.competitors?.[0];
+            const home = comp.competitors?.find(c => c.homeAway === 'home') ?? comp.competitors?.[1];
+            if (!away || !home) return;
+            const abbr = c => normAbbr(c.team?.abbreviation || '') || c.team?.displayName || '';
+            const players = [];
+            [away, home].forEach(c => {
+                const t = byTeam.get(String(c.team?.id));
+                if (!t) { missing.push(abbr(c)); return; }
+                if (t.players.length && t.src === 'yesterday') usedOld = true;
+                players.push(...t.players);
+            });
+            if (!players.length) return;   // 怪我人がいない試合は出さない
+            groups.push({ head: `${esc(abbr(away))} @ ${esc(abbr(home))}`, time: gameTimeJst(ev), players: sortInjuries(players, [abbr(away), abbr(home)]) });
+        });
+    }
+
+    const notes = [];
+    if (usedOld) notes.push(`<div class="inj-note" data-ja="今日試合のないチームは、前日の試合の時点の情報">Teams without a game today show the report from their previous game.</div>`);
+    if (missing.length) notes.push(`<div class="inj-note" data-ja="${esc(`怪我人の情報を読み込めていないチーム: ${missing.join(', ')}`)}">No report loaded for: ${esc(missing.join(', '))}</div>`);
+
+    if (!groups.length) {
+        const empty = view === 'all' ? 'No injury report' : (injState[view] || []).length ? 'No injuries listed' : 'No games';
+        el.innerHTML = `<div class="msg">${empty}</div>${notes.join('')}`;
+        return;
+    }
+    el.innerHTML = groups.map(g => `
+        <div class="inj-group">
+            <div class="inj-group-head"><span>${g.head}</span>${g.time ? `<span class="inj-time">${g.time} JST</span>` : ''}</div>
+            ${g.players.map(injuryItemHTML).join('')}
+        </div>`).join('') + notes.join('');
+}
+
+function setInjuries(byTeam) {
+    injState.byTeam = byTeam;
+    renderInjuries();
+}
+
+document.querySelectorAll('#inj-view .conf-btn').forEach(btn => btn.addEventListener('click', () => {
+    injState.view = btn.dataset.view;
+    injState.picked = true;   // 自分で選んだら、更新しても変えない
+    renderInjuries();
+}));
 
 /* ── Main ── */
 let refreshTimer = null;
@@ -898,6 +1096,11 @@ async function init(force = false) {
     clearTimeout(refreshTimer);
     const btn = document.getElementById('refresh-btn');
     if (btn) { btn.disabled = true; btn.classList.add('spinning'); }
+    // 更新ボタン: Daily Leaders を開いていれば今季平均も読み直す（api.js のキャッシュが1時間以内ならそれを使う）
+    if (force && seasonAvg.status !== 'loading' && document.getElementById('tab-top').classList.contains('active')) {
+        seasonAvg.status = 'idle';
+        loadSeasonAvg();
+    }
 
     const now = new Date();
 
@@ -909,8 +1112,7 @@ async function init(force = false) {
     const etForJstTomorrow  = new Date(Date.UTC(jy, jm - 1, jd,     17, 0, 0));
     const etForJstYesterday = new Date(Date.UTC(jy, jm - 1, jd - 2, 17, 0, 0));
 
-    document.getElementById('last-updated').textContent =
-        'Updated: ' + now.toLocaleTimeString('en-US', { timeZone: 'Asia/Tokyo' });
+    NBA.ui.fetched(now);
 
     await loadStandings();
 
@@ -946,7 +1148,16 @@ async function init(force = false) {
         document.getElementById('tomorrow-date').textContent    = scheduleEvents.length ? fmtJstDate(new Date(scheduleEvents[0].date)) : fmtJstDate(new Date(now.getTime() + 86400000));
         document.getElementById('yesterday-date').textContent   = yesterdayEvents.length ? fmtJstDate(new Date(yesterdayEvents[0].date)) : fmtJstDate(new Date(now.getTime() - 86400000));
         document.getElementById('top-players-date').textContent = fmtJstDate(topPlayersDate);
-        document.getElementById('injury-date').textContent      = todayEvents.length    ? fmtJstDate(new Date(todayEvents[0].date))    : fmtJstDate(now);
+        // 怪我人: 初期表示は、今日の試合がすべて終わっていれば Tomorrow、そうでなければ Today
+        injState.today    = todayEvents;
+        injState.tomorrow = scheduleEvents;
+        injState.dates    = {
+            today:    document.getElementById('today-date').textContent,
+            tomorrow: document.getElementById('tomorrow-date').textContent,
+        };
+        if (!injState.picked) {
+            injState.view = todayEvents.every(e => e.status.type.completed || e.status.type.state === 'post') ? 'tomorrow' : 'today';
+        }
         renderGames(resultsEvents,  'today-games');
         renderGames(scheduleEvents, 'tomorrow-games');
         renderGames(yesterdayEvents, 'yesterday-games');
@@ -957,7 +1168,7 @@ async function init(force = false) {
         };
         extractTopPlayers(topPlayerEvents).then(setTopPlayers).catch(showError('rankings', 'top players:'));
         fillExcitement([...resultsEvents, ...yesterdayEvents]);
-        fetchInjuryPlayers(todayEvents).then(renderInjuryPlayers).catch(showError('injury-players', 'injuries:'));
+        fetchInjuries(todayEvents, yesterdayEvents).then(setInjuries).catch(showError('injury-players', 'injuries:'));
 
     } catch (err) {
         console.error(err);
@@ -973,6 +1184,8 @@ async function init(force = false) {
     if (hasLive) refreshTimer = setTimeout(() => init(), NBA.api.MIN);
 }
 
+// ?tab=top で開いたとき（今季平均の変数を宣言した後で呼ぶ）
+if (NBA.url.get('tab') === 'top') switchTab('top');
 init();
 </script>
 </body>

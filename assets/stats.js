@@ -190,7 +190,17 @@ function gameExcitement(d) {
     const ot = Math.max(...d.plays.map(x => x.period?.number || 1)) - 4;
     const score = 40 * Math.min(1, swing / 12) + 20 * Math.min(1, leadChanges / 12) + (lateClose ? 20 : 0) + (ot > 0 ? 10 : 0)
         + (margin <= 5 ? 10 : margin <= 10 ? 5 : 0);
-    const level = score >= 85 ? ['名勝負', 'best'] : score >= 60 ? ['接戦', 'close'] : score >= 40 ? ['見どころあり', 'some'] : ['一方的', 'flat'];
-    const reasons = [ot > 0 ? `延長${ot > 1 ? ot : ''}` : '', lateClose ? '終盤まで接戦' : '', leadChanges >= 8 ? `リード交代${leadChanges}回` : '', swing >= 8 ? '勝率が大きく揺れた' : ''].filter(Boolean);
-    return { label: level[0], cls: level[1], reasons, margin };
+    // [表示(英), 表示(日), クラス]。判定にはクラス（best/close/some/flat）を使う
+    const level = score >= 85 ? ['Classic', '名勝負', 'best'] : score >= 60 ? ['Close', '接戦', 'close'] : score >= 40 ? ['Worth a look', '見どころあり', 'some'] : ['Blowout', '一方的', 'flat'];
+    // 理由は { en, ja } で持ち、reasons（英語の文字列の配列）は今までの呼び出し方のまま使える
+    const reasonItems = [
+        ot > 0 ? { en: `${ot > 1 ? ot : ''}OT`, ja: `延長${ot > 1 ? ot : ''}` } : null,
+        lateClose ? { en: 'Close late', ja: '終盤まで接戦' } : null,
+        leadChanges >= 8 ? { en: `${leadChanges} lead changes`, ja: `リード交代${leadChanges}回` } : null,
+        swing >= 8 ? { en: 'big swings', ja: '勝率が大きく揺れた' } : null,
+    ].filter(Boolean);
+    return {
+        label: level[0], labelJa: level[1], cls: level[2], margin,
+        reasons: reasonItems.map(r => r.en), reasonsJa: reasonItems.map(r => r.ja), reasonItems,
+    };
 }

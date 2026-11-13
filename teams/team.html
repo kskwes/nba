@@ -12,8 +12,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&display=swap">
-    <link rel="stylesheet" href="../assets/common.css?v=2026111201">
-    <link rel="stylesheet" href="../assets/player-team.css?v=2026111201">
+    <link rel="stylesheet" href="../assets/common.css?v=2026111301">
+    <link rel="stylesheet" href="../assets/player-team.css?v=2026111301">
     <style>
         .main-wrap.single { max-width: 1100px; }
         .t-two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; margin-bottom: 24px; }
@@ -41,6 +41,45 @@
         .t-h2h-g.win { color: var(--pos); } .t-h2h-g.loss { color: var(--neg); }
         .t-h2h-g:hover { background: var(--border); }
         .t-h2h-kind { color: var(--muted); font-size: 11px; font-weight: 600; }
+        /* ヘッダー: プロフィールの右に Next（狭い画面では下） */
+        .t-head { display: flex; gap: 12px; align-items: stretch; }
+        .t-head > .profile-card { flex: 1; min-width: 0; }
+        .t-next { flex: none; width: 280px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; display: flex; flex-direction: column; justify-content: center; gap: 4px; font-size: 12px; }
+        .t-next[hidden] { display: none; }
+        .t-next-k { font-size: 10px; font-weight: 800; letter-spacing: 1px; color: var(--muted); text-transform: uppercase; }
+        .t-next-k2 { margin-top: 6px; }
+        .t-next-game { font-family: var(--font-score); font-size: 20px; font-weight: 600; line-height: 1.2; }
+        .t-next-when { color: var(--muted); }
+        .t-next-inj { display: flex; flex-wrap: wrap; gap: 4px 10px; font-weight: 600; }
+        .t-next-inj .t-inj-status { font-size: 9px; padding: 1px 4px; }
+        @media (max-width: 760px) { .t-head { flex-direction: column; } .t-next { width: auto; } }
+        /* 主な指標とリーグ順位 */
+        .t-ranks { display: grid; grid-template-columns: repeat(var(--n, 6), minmax(0, 1fr)); gap: 8px; margin: -12px 0 0; }
+        .t-ranks[hidden] { display: none; }
+        .t-rank { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; cursor: default; }
+        .t-rank-k { display: block; font-size: 10px; color: var(--muted); font-weight: 700; letter-spacing: .5px; text-transform: uppercase; }
+        .t-rank b { display: block; font-family: var(--font-score); font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.25; }
+        .t-rank .pos { color: var(--pos); } .t-rank .neg { color: var(--neg); }
+        @media (max-width: 760px) { .t-ranks { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+        /* 目次 */
+        #team-section > .secnav { margin: 16px 0 20px; }
+        .secnav a[hidden], .lc-block[hidden] { display: none; }
+        /* Games: 結果と予定の時系列 */
+        .t-tl { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; max-height: 520px; overflow-y: auto; overscroll-behavior: contain; }
+        .t-tl-mo { position: sticky; top: 0; z-index: 1; background: var(--surface); font-family: var(--font-score); font-size: 12px; font-weight: 600; letter-spacing: 1.5px; color: var(--muted); padding: 10px 14px 5px; border-bottom: 1px solid var(--line-soft); }
+        .t-tl-g { display: grid; grid-template-columns: 72px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 8px 14px; border-bottom: 1px solid var(--line-soft); font-size: 13px; font-weight: 600; color: inherit; text-decoration: none; }
+        .t-tl-g:hover { background: rgba(255,255,255,0.04); }
+        .t-tl-g.future .t-tl-opp { color: var(--muted); }
+        .t-tl-date { color: var(--muted); font-size: 12px; white-space: nowrap; }
+        .t-tl-opp { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .t-tl-res { font-family: var(--font-score); font-weight: 600; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+        .t-tl-res.win { color: var(--pos); } .t-tl-res.loss { color: var(--neg); }
+        .t-tl-info { text-align: right; font-size: 12px; color: var(--muted); white-space: nowrap; }
+        .t-tl-info .pos { color: var(--pos); } .t-tl-info .neg { color: var(--neg); }
+        .t-tl-now { position: relative; border-top: 2px solid var(--accent); margin: 14px 0 10px; }
+        .t-tl-now span { position: absolute; top: -10px; left: 14px; background: var(--surface); color: var(--accent); font-size: 11px; font-weight: 800; letter-spacing: 1px; padding: 0 6px; }
+        .t-b2b { font-size: 10px; font-weight: 800; color: var(--warn); border: 1px solid var(--warn); border-radius: 3px; padding: 0 4px; margin-left: 6px; vertical-align: 1px; }
+        @media (max-width: 480px) { .t-tl-g { grid-template-columns: 64px minmax(0, 1fr) auto; gap: 8px; padding: 8px 10px; } }
     </style>
 </head>
 <body class="theme-broadcast">
@@ -65,8 +104,8 @@
         <div class="left-col">
             <div id="team-section">
 
-                <!-- Team Profile -->
-                <div class="lc-block">
+                <!-- Team Profile + 次の試合（狭い画面では下に回る） -->
+                <div class="lc-block t-head">
                     <div class="profile-card static">
                         <img id="t-logo" class="p-photo" src="" alt="" style="border-radius:8px;object-fit:contain;background:rgba(255,255,255,0.08);padding:4px">
                         <div>
@@ -75,12 +114,21 @@
                             <div id="t-links" class="p-links"></div>
                         </div>
                     </div>
+                    <aside class="t-next" id="t-next" hidden></aside>
                 </div>
 
+                <!-- 主な指標とリーグ順位（teams.js の leagueStats。Teams ページと同じ取得） -->
+                <div class="t-ranks" id="t-ranks" hidden></div>
+
+                <!-- ページ内の目次。データがなくて出ないセクションのリンクは hidden にする -->
+                <nav class="secnav" id="t-secnav" aria-label="Sections">
+                    <a href="#season">Season</a><a href="#style">Style</a><a href="#roster">Roster</a><a href="#advanced">Advanced</a><a href="#assist">Assist Map</a><a href="#games">Games</a><a href="#injuries">Injuries</a><a href="#h2h">Head-to-Head</a>
+                </nav>
+
                 <!-- Season Stats -->
-                <div class="lc-block">
+                <div class="lc-block" id="season" data-sec>
                     <div class="section-header">
-                        <h2>Season Stats</h2>
+                        <h2>Season Stats <span id="t-season-src"></span></h2>
                         <span id="t-season-badge" class="badge"></span>
                     </div>
                     <div id="t-stats-big" class="stats-big stats-hero"></div>
@@ -88,71 +136,77 @@
                 </div>
 
                 <!-- Team Style: 戦い方の型・スタイルマップ・攻守の強み・弱み（data/advanced.json） -->
-                <div class="lc-block" id="t-style-block">
-                    <div class="section-header"><h2>Team Style</h2></div>
+                <div class="lc-block" id="style" data-sec>
+                    <div class="section-header"><h2>Team Style <span id="t-style-src"></span></h2></div>
                     <div id="t-style-updated"></div>
                     <div id="t-style"><div class="msg">Loading<span class="spinner"></span></div></div>
                 </div>
 
                 <!-- Roster Stats -->
-                <div class="lc-block">
+                <div class="lc-block" id="roster" data-sec>
                     <div class="section-header">
-                        <h2>Roster Stats</h2>
+                        <h2>Roster Stats <span class="t-src-live"></span></h2>
                         <span id="t-roster-season-badge" class="badge"></span>
                     </div>
                     <div id="t-roster-table-wrap" class="t-roster-wrap"></div>
                 </div>
 
                 <!-- Advanced: このチームの On/Off・ラインナップ・Clutch（data/advanced.json。リーグ全体は Teams の Advanced タブ） -->
-                <div class="lc-block" id="t-advanced">
-                    <div class="section-header"><h2>Advanced</h2><a class="badge plain-link" href="../teams/?tab=advanced">League ›</a></div>
+                <div class="lc-block" id="advanced" data-sec>
+                    <div class="section-header"><h2>Advanced <span id="t-adv-src"></span></h2><a class="badge plain-link" href="../teams/?tab=advanced">League ›</a></div>
                     <div id="t-adv-updated"></div>
-                    <div class="sd-title">Clutch <span class="rt-muted" style="text-transform:none;letter-spacing:0;font-weight:400">第4Q・延長の残り5分、点差5点以内</span></div>
+                    <div class="sd-title">Clutch <span class="rt-muted" style="text-transform:none;letter-spacing:0;font-weight:400">Last 5 min of Q4/OT, score within 5</span></div>
                     <div id="t-adv-clutch" class="t-adv-kpis"></div>
-                    <div class="sd-title" style="margin-top:14px">On / Off <span style="text-transform:none;letter-spacing:0;font-weight:400">100ポゼッションあたり</span></div>
+                    <div class="sd-title" style="margin-top:14px">On / Off <span style="text-transform:none;letter-spacing:0;font-weight:400">Per 100 poss.</span></div>
                     <div id="t-adv-onoff"><div class="msg">Loading<span class="spinner"></span></div></div>
                     <div class="sd-title" style="margin-top:14px">Top Lineups</div>
                     <div id="t-adv-units"><div class="msg">Loading<span class="spinner"></span></div></div>
-                    <p class="adv-note">ポゼッションは play-by-play から実際に数えた回数。出場区間は交代記録から再現しているため、公式の +/- と数点ずれることがあります。集計した時点の数字です。</p>
+                    <p class="adv-note"><span data-ja="ポゼッションは play-by-play から実際に数えた回数。">Possessions are counted from play-by-play.</span><br><span data-ja="出場区間は交代記録から再現しているため、公式の +/- と数点ずれることがあります。">Stints are rebuilt from substitutions, so they can differ from official +/- by a few points.</span><br><span data-ja="集計した時点の数字です。">Numbers are as of the last update.</span></p>
                 </div>
 
                 <!-- Assist Map: 誰が誰にアシストしているか（data/assists.json） -->
-                <div class="lc-block" id="t-assist-block">
-                    <div class="section-header"><h2>Assist Map</h2></div>
+                <div class="lc-block" id="assist" data-sec>
+                    <div class="section-header"><h2>Assist Map <span id="t-assist-src"></span></h2></div>
                     <div id="t-assist-updated"></div>
                     <div id="t-assist"><div class="msg">Loading<span class="spinner"></span></div></div>
                 </div>
 
-                <div class="t-two">
-                    <!-- Schedule -->
-                    <div class="lc-block" id="t-schedule-block">
-                        <div class="section-header">
-                            <h2>Schedule</h2>
-                            <span id="t-schedule-season-badge" class="badge"></span>
-                        </div>
-                        <div id="t-schedule-wrap"><div class="msg">Loading<span class="spinner"></span></div></div>
+                <!-- Games: 結果と予定を1本の時系列に（チームの日程データ。追加の取得なし） -->
+                <div class="lc-block" id="games" data-sec>
+                    <div class="section-header">
+                        <h2>Games <span class="t-src-live"></span></h2>
+                        <span id="t-schedule-season-badge" class="badge"></span>
                     </div>
-
-                    <!-- Injuries -->
-                    <div class="lc-block">
-                        <div class="section-header">
-                            <h2>Injuries</h2>
+                    <div class="t-tl-bar">
+                        <div class="t-h2h-filter" id="t-tl-filter">
+                            <button data-f="all" class="active">All</button>
+                            <button data-f="results">Results</button>
+                            <button data-f="upcoming">Upcoming</button>
                         </div>
-                        <div id="t-injuries"><div class="msg">Loading<span class="spinner"></span></div></div>
                     </div>
+                    <div id="t-schedule-wrap"><div class="msg">Loading<span class="spinner"></span></div></div>
+                    <p class="adv-note"><span data-ja="結果は試合ページへ。予定の試合には相手の NET（100ポゼッションあたりの得失点差。ESPN の推定ポゼッション）と連戦（B2B）の印を付けています。時刻は日本時間。">Results link to the game page. Upcoming games show the opponent's NET (per 100 poss., ESPN estimated possessions) and back-to-backs (B2B). Times are JST.</span></p>
                 </div>
 
-                <!-- 対戦成績: 今季のレギュラーシーズンの相手ごとの成績（Schedule と同じ日程データ） -->
-                <div class="lc-block" id="t-h2h-block">
+                <!-- Injuries -->
+                <div class="lc-block" id="injuries" data-sec>
                     <div class="section-header">
-                        <h2>Head-to-Head</h2>
-                        <span class="badge">相手チーム別</span>
+                        <h2>Injuries <span class="t-src-live"></span></h2>
+                    </div>
+                    <div id="t-injuries"><div class="msg">Loading<span class="spinner"></span></div></div>
+                </div>
+
+                <!-- 対戦成績: 今季のレギュラーシーズンの相手ごとの成績（Games と同じ日程データ） -->
+                <div class="lc-block" id="h2h" data-sec>
+                    <div class="section-header">
+                        <h2>Head-to-Head <span class="t-src-live"></span></h2>
+                        <span class="badge">By opponent</span>
                     </div>
                     <div class="t-h2h-filter" id="t-h2h-filter">
-                        <button data-f="all" class="active">すべて</button>
-                        <button data-f="div">同地区</button>
-                        <button data-f="conf">同カンファレンス（他地区）</button>
-                        <button data-f="other">別カンファレンス</button>
+                        <button data-f="all" class="active">All</button>
+                        <button data-f="div">Division</button>
+                        <button data-f="conf">Conference</button>
+                        <button data-f="other">Other Conf.</button>
                     </div>
                     <div id="t-h2h-wrap"><div class="msg">Loading<span class="spinner"></span></div></div>
                 </div>
@@ -162,12 +216,12 @@
     </div>
 </main>
 
-<script src="../assets/api.js?v=2026111201"></script>
-<script src="../assets/teams.js?v=2026111201"></script>
-<script src="../assets/stats.js?v=2026111201"></script>
-<script src="../assets/ui.js?v=2026111201"></script>
-<script src="../assets/advanced.js?v=2026111201"></script>
-<script src="../assets/assist-map.js?v=2026111201"></script>
+<script src="../assets/api.js?v=2026111301"></script>
+<script src="../assets/teams.js?v=2026111301"></script>
+<script src="../assets/stats.js?v=2026111301"></script>
+<script src="../assets/ui.js?v=2026111301"></script>
+<script src="../assets/advanced.js?v=2026111301"></script>
+<script src="../assets/assist-map.js?v=2026111301"></script>
 <script>
 /* ─── Team Standings (rank / record / streak) ─── */
 let standingsCache = null;
@@ -199,8 +253,8 @@ function streakBadge(streak) {
     const m = streak.match(/^([WL])\s*(\d+)/);
     if (!m) return '';
     const type = m[1], count = parseInt(m[2]);
-    if (type === 'W') return `<span>${count}連勝 🔥</span>`;
-    if (type === 'L') return `<span>${count}連敗 🥶</span>`;
+    if (type === 'W') return `<span>W${count} 🔥</span>`;
+    if (type === 'L') return `<span>L${count} 🥶</span>`;
     return '';
 }
 
@@ -327,6 +381,7 @@ function renderTeamStats(cache, teamId, prevStats, year) {
 
     document.getElementById('t-season-badge').textContent =
         `${year - 1}-${String(year).slice(2)} Regular Season`;
+    document.getElementById('t-season-src').innerHTML = NBA.ui.src.live(`ESPN · ${year - 1}-${String(year).slice(2)}`);
 
     // ── Big 5 ── (core API stat names confirmed)
     const bigStats = [
@@ -384,6 +439,56 @@ function renderTeamStats(cache, teamId, prevStats, year) {
     document.getElementById('t-stats-detail').innerHTML = detGroups.map(([title, tiles, rate]) =>
         `<div class="sd-group" style="--n:${tiles.length}"><div class="sd-title">${title}</div><div class="sd-grid">${tiles.map(d => tile(d, rate)).join('')}</div></div>`
     ).join('');
+}
+
+/* ─── 主な指標とリーグ順位（ヘッダーの下のカードの行） ─── */
+// リーグ全体のチーム成績は teams.js の leagueStats（Teams ページと同じ取得。IndexedDB のキャッシュを共有）
+let leagueP = null;
+const loadLeague = () => leagueP ||= NBA.teams.leagueStats().catch(e => { console.warn('league stats:', e); return null; });
+
+async function loadRanks(teamId) {
+    const el = document.getElementById('t-ranks');
+    const L = await loadLeague();
+    if (!L) return;
+    // 3PA share は leagueStats に無いので、Season Stats と同じ全チームのスタッツ（同じ取得）から FGA に占める 3PA の割合を出す
+    const raw = await fetchAllTeamStats(L.year).catch(() => ({}));
+    const teams = L.teams.map(t => {
+        const m = raw[t.id]?.stats || {};
+        const tpa = m.avgThreePointFieldGoalsAttempted, fga = m.avgFieldGoalsAttempted;
+        return { ...t, tpaShare: tpa != null && fga ? 100 * tpa / fga : null, astTo: t.apg != null && t.tov ? t.apg / t.tov : null };
+    });
+    const me = teams.find(t => t.id === String(teamId));
+    if (!me) return;
+    const f1 = v => v.toFixed(1);
+    const defs = [
+        { k: 'net', label: 'NET', fmt: v => `<span class="${v > 0 ? 'pos' : v < 0 ? 'neg' : ''}">${(v > 0 ? '+' : '') + f1(v)}</span>`, title: 'Net rating: point diff per 100 poss. (ESPN estimated possessions)\n100ポゼッションあたりの得失点差（ESPN の推定ポゼッション）' },
+        { k: 'ortg', label: 'ORtg', fmt: f1, title: 'Points scored per 100 poss.\n100ポゼッションあたりの得点' },
+        { k: 'drtg', label: 'DRtg', fmt: f1, lower: true, title: 'Points allowed per 100 poss. (#1 = fewest)\n100ポゼッションあたりの失点（#1 が最少）' },
+        { k: 'pace', label: 'PACE', fmt: f1, title: 'Possessions per game (#1 = fastest)\n1試合あたりのポゼッション数（#1 が最速）' },
+        { k: 'tpaShare', label: '3PA share', fmt: v => f1(v) + '%', title: 'Share of FGA that are 3PA\nFGA に占める 3PA の割合' },
+        { k: 'astTo', label: 'AST/TO', fmt: v => v.toFixed(2), title: 'Assists per turnover\nターンオーバー1回あたりのアシスト' },
+    ].filter(d => me[d.k] != null);
+    if (!defs.length) return;
+    el.style.setProperty('--n', defs.length);
+    el.innerHTML = defs.map(d => `<div class="t-rank" title="${esc(d.title)}">
+        <span class="t-rank-k">${d.label}</span><b>${d.fmt(me[d.k])}</b>${rankBadge(NBA.teams.leagueRank(teams, d.k, teamId, d.lower))}
+    </div>`).join('');
+    el.hidden = false;
+}
+
+/* ─── 目次: データがなくて出ないセクションは本文と目次の両方から外す ─── */
+function dropSection(id) {
+    const sec = document.getElementById(id);
+    if (sec) sec.hidden = true;
+    const a = document.querySelector(`#t-secnav a[href="#${id}"]`);
+    if (a) a.hidden = true;
+}
+
+// 分析データでのこのチームの試合数（Team Style の gp。なければ選手の最多出場試合数）
+function anaGP(d, abbr) {
+    const gp = d?.teamStyle?.find(x => x.team === abbr)?.gp
+        ?? Math.max(0, ...(d?.players || []).filter(p => p.team === abbr).map(p => p.gp || 0));
+    return gp ? `${gp} GP` : '';
 }
 
 /* ─── Roster Stats ─── */
@@ -483,13 +588,6 @@ function fmt(key, val) {
     return Number.isInteger(n) ? String(n) : n.toFixed(1);
 }
 
-function normDate(isoStr) {
-    if (!isoStr) return '';
-    // Convert to JST (UTC+9) date string YYYY-MM-DD for consistent matching
-    const d = new Date(new Date(isoStr).getTime() + 9 * 3600 * 1000);
-    return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`;
-}
-
 /* ─── Team Full Schedule ─── */
 async function loadTeamScheduleFull(teamId) {
     const wrap = document.getElementById('t-schedule-wrap');
@@ -528,6 +626,7 @@ async function loadTeamScheduleFull(teamId) {
             games.push({
                 eventId: String(ev.id || ''),
                 date: ev.date,
+                timeValid: ev.timeValid !== false && comp.timeValid !== false,
                 opponent: normAbbr(oppComp.team?.abbreviation || '?'),
                 atVs: teamComp.homeAway === 'away' ? '@' : 'vs',
                 scoreStr, result,
@@ -568,71 +667,113 @@ async function loadTeamScheduleFull(teamId) {
 
         // Ascending order (chronological)
         games.sort((a, b) => new Date(a.date) - new Date(b.date));
-        renderTeamSchedule(games, wrap);
+        renderNext(games);
         renderHeadToHead(games);
+        // 相手の NET は Teams ページと同じリーグ全体の成績から（取れなければ NET なしで出す）
+        renderTimeline(games, wrap, await loadLeague());
     } catch(e) {
         wrap.innerHTML = '<div class="msg error">Failed to load schedule</div>';
+        renderNext(null);
         document.getElementById('t-h2h-wrap').innerHTML = '<div class="msg error">Failed to load schedule</div>';
         console.error('team schedule full:', e);
     }
 }
 
-function renderTeamSchedule(games, wrap) {
+/* ─── Games: 結果と予定を1本の時系列に（日程データのみ。追加の取得なし） ─── */
+const TL_MON = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
+const TL_DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const jstDate = iso => new Date(new Date(iso).getTime() + 9 * 3600 * 1000);   // getUTC* で日本時間の日付・曜日を読む
+const jstDay  = iso => { const d = jstDate(iso); return `${TL_DOW[d.getUTCDay()]} ${d.getUTCMonth() + 1}/${d.getUTCDate()}`; };
+const jstTime = g => g.timeValid ? new Date(g.date).toLocaleTimeString('en-US', { timeZone: 'Asia/Tokyo', hour: 'numeric', minute: '2-digit' }) : 'TBD';
+// 連戦は現地（米東部）の日付で数える。日本時間だと日付がずれるため
+const etDayNum = iso => Date.parse(new Date(iso).toLocaleDateString('en-CA', { timeZone: 'America/New_York' })) / 864e5;
+// 終わった・試合中・開始時刻を過ぎた試合は TODAY の線より上
+const tlDone = g => g.completed || g.isLive || g.isPast;
+
+function renderTimeline(games, wrap, league) {
     if (!games.length) {
         wrap.innerHTML = '<div class="msg">No schedule available</div>';
         return;
     }
+    const netBy = {};
+    (league?.teams || []).forEach(t => { if (t.net != null) netBy[t.abbr] = t.net; });
+    games.forEach((g, i) => { g.b2b = i > 0 && etDayNum(g.date) - etDayNum(games[i - 1].date) === 1; });
+    let cut = games.findIndex(g => !tlDone(g));
+    if (cut === -1) cut = games.length;
+    const today = jstDate(new Date().toISOString());
+    const nowLine = `<div class="t-tl-now"><span>TODAY ${today.getUTCMonth() + 1}/${today.getUTCDate()}</span></div>`;
 
-    // Determine scroll target: today's game, or next upcoming game
-    const todayJST = normDate(new Date().toISOString());
-    let targetIdx = games.findIndex(g => normDate(g.date) === todayJST);
-    if (targetIdx === -1) targetIdx = games.findIndex(g => !g.isPast && !g.isLive);
-    if (targetIdx === -1) targetIdx = games.length - 1; // all past: scroll to last
-
-    const rows = games.map((g, i) => {
-        const d = new Date(new Date(g.date).getTime() + 9 * 3600 * 1000);
-        const dateLbl = `${d.getUTCMonth() + 1}/${String(d.getUTCDate()).padStart(2, '0')}`;
-        const oppLbl  = `${g.atVs} ${esc(g.opponent)}`;
-
-        let scoreHtml;
+    const row = g => {
+        const opp = `${g.atVs} ${esc(g.opponent)}`;
+        let right;
         if (g.isLive) {
-            const liveScore = g.scoreStr ? ` ${g.scoreStr}` : '';
-            scoreHtml = `<span class="t-sched-score">
-                <span class="t-sched-live-badge">
-                    <span class="t-sched-live-dot"></span>試合中${esc(liveScore)}
-                </span>
-            </span>`;
+            right = `<span class="t-tl-res"><span class="t-sched-live-badge"><span class="t-sched-live-dot"></span>LIVE${g.scoreStr ? ' ' + esc(g.scoreStr) : ''}</span></span>`;
         } else if (g.completed) {
-            const cls = g.result === 'W' ? 'win' : 'loss';
-            const scorePart = g.scoreStr ? ` ${g.scoreStr}` : '';
-            scoreHtml = `<span class="t-sched-score ${cls}">${g.result}${esc(scorePart)}</span>`;
+            right = `<span class="t-tl-res ${g.result === 'W' ? 'win' : 'loss'}">${g.result} ${esc(g.scoreStr)}</span>`;
+        } else if (g.isPast) {
+            right = '<span class="t-tl-info">-</span>';
         } else {
-            scoreHtml = `<span class="t-sched-score" style="color:var(--muted)">-</span>`;
+            const n = netBy[g.opponent];
+            const net = n == null ? '' : `Opp NET <span class="${n > 0 ? 'neg' : n < 0 ? 'pos' : ''}">${(n > 0 ? '+' : '') + n.toFixed(1)}</span> · `;
+            right = `<span class="t-tl-info">${net}${jstTime(g)}</span>`;
         }
-
-        const rowCls = g.isLive ? 'live' : g.isPast ? 'past' : '';
-        const target = i === targetIdx ? ' data-sched-target' : '';
-        // 各試合は試合ページへ（試合前はプレビュー）
-        return `<a class="t-sched-row ${rowCls}"${target} href="${NBA.link.game(g.eventId)}">
-            <span class="t-sched-date">${dateLbl}</span>
-            <span class="t-sched-opp">${oppLbl}</span>
-            ${scoreHtml}
+        const b2b = !tlDone(g) && g.b2b ? '<span class="t-b2b" title="Back-to-back (played the day before)\n前日も試合（連戦）">B2B</span>' : '';
+        return `<a class="t-tl-g${tlDone(g) ? '' : ' future'}" href="${NBA.link.game(g.eventId)}">
+            <span class="t-tl-date">${jstDay(g.date)}</span>
+            <span class="t-tl-opp">${opp}${b2b}</span>
+            ${right}
         </a>`;
-    }).join('');
+    };
 
-    wrap.innerHTML = `<div class="t-schedule-list">${rows}</div>`;
-
-    // Scroll target row to top of the list
-    const list = wrap.querySelector('.t-schedule-list');
-    const targetEl = wrap.querySelector('[data-sched-target]');
-    if (list && targetEl) {
-        // offsetTop は一覧の外の要素が基準になることがあるので、画面上の位置の差で決める
-        list.scrollTop += targetEl.getBoundingClientRect().top - list.getBoundingClientRect().top;
+    function draw(filter) {
+        const shown = games.map((g, i) => ({ g, i })).filter(({ i }) => filter === 'all' || (filter === 'results' ? i < cut : i >= cut));
+        let html = '', mo = null;
+        shown.forEach(({ g, i }) => {
+            if (i === cut) html += nowLine;
+            const d = jstDate(g.date), m = `${d.getUTCFullYear()}-${d.getUTCMonth()}`;
+            if (m !== mo) { mo = m; html += `<div class="t-tl-mo">${TL_MON[d.getUTCMonth()]}</div>`; }
+            html += row(g);
+        });
+        if (filter === 'results' || (filter === 'all' && cut === games.length)) html += nowLine;
+        if (!shown.length) html += `<div class="msg" style="padding:24px">${filter === 'results' ? 'No games played yet' : 'No games left'}</div>`;
+        wrap.innerHTML = `<div class="t-tl">${html}</div>`;
+        // 開いたときは TODAY の線が枠の上から4割ほどの位置に来るように（ページ全体はスクロールしない）
+        const box = wrap.querySelector('.t-tl'), line = box.querySelector('.t-tl-now');
+        if (line) box.scrollTop += line.getBoundingClientRect().top - box.getBoundingClientRect().top - box.clientHeight * 0.4;
     }
+    draw('all');
+    document.getElementById('t-tl-filter').onclick = e => {
+        const b = e.target.closest('button[data-f]');
+        if (!b) return;
+        document.querySelectorAll('#t-tl-filter button').forEach(x => x.classList.toggle('active', x === b));
+        draw(b.dataset.f);
+    };
+}
+
+/* ─── Next: 次の試合と怪我人（ヘッダーの右の小さなカード） ─── */
+function renderNext(games) {
+    const el = document.getElementById('t-next');
+    let html = '<div class="t-next-k">Next</div>';
+    if (games) {
+        const g = games.find(x => x.isLive) || games.find(x => !tlDone(x));
+        html += g
+            ? `<a class="t-next-game plain-link" href="${NBA.link.game(g.eventId)}">${g.atVs} ${esc(g.opponent)}</a>
+               <div class="t-next-when">${g.isLive ? `<span class="t-sched-live-badge"><span class="t-sched-live-dot"></span>LIVE${g.scoreStr ? ' ' + esc(g.scoreStr) : ''}</span>` : `${jstDay(g.date)} · ${jstTime(g)} JST`}</div>`
+            : '<div class="t-next-when">No upcoming games</div>';
+    } else {
+        html += '<div class="t-next-when">Schedule unavailable</div>';
+    }
+    const hurt = (ROSTER?.athletes || []).filter(a => a.injuries?.length);
+    html += `<div class="t-next-k t-next-k2">Injuries</div><div class="t-next-inj">${hurt.length ? hurt.map(a => {
+        const cfg = INJ_STATUS[a.injuries[0].status] || { cls: 'out', label: String(a.injuries[0].status || 'OUT').toUpperCase() };
+        return `<span><a class="plain-link" href="${NBA.link.player(a.id)}">${esc(a.shortName || a.displayName)}</a> <span class="t-inj-status ${cfg.cls}">${cfg.label}</span></span>`;
+    }).join('') : (ROSTER ? '<span class="t-next-when">None reported</span>' : '<span class="t-next-when">-</span>')}</div>`;
+    el.innerHTML = html;
+    el.hidden = false;
 }
 
 /* ─── Head-to-Head: 相手チームごとの今季の成績（日程データから集計。追加の取得なし） ─── */
-const H2H_KIND = { div: '同地区', conf: '同カンファ', other: '別カンファ' };
+const H2H_KIND = { div: 'Division', conf: 'Conference', other: 'Other Conf.' };
 const H2H_ORDER = { div: 0, conf: 1, other: 2 };
 
 function renderHeadToHead(games) {
@@ -656,14 +797,14 @@ function renderHeadToHead(games) {
     const md = iso => { const d = new Date(new Date(iso).getTime() + 9 * 3600 * 1000); return `${d.getUTCMonth() + 1}/${String(d.getUTCDate()).padStart(2, '0')}`; };
     const cols = [
         { key: 'abbr', label: 'Opp', cls: 'l', get: r => r.abbr, asc: true },
-        { key: 'kind', label: '区分', cls: 'l', get: r => H2H_ORDER[r.kind], asc: true },
-        { key: 'pct', label: 'W-L', get: r => r.pct, title: '今季の対戦成績' },
-        { key: 'pts', label: 'PTS', get: r => r.pts, title: '対戦での平均得点' },
-        { key: 'opp', label: 'OPP', get: r => r.opp, asc: true, title: '対戦での平均失点' },
-        { key: 'diff', label: 'DIFF', get: r => r.diff, title: '平均得失点差' },
+        { key: 'kind', label: 'Type', cls: 'l', get: r => H2H_ORDER[r.kind], asc: true },
+        { key: 'pct', label: 'W-L', get: r => r.pct, title: 'Season record vs. this team\n今季の対戦成績' },
+        { key: 'pts', label: 'PTS', get: r => r.pts, title: 'Avg pts scored vs. this team\n対戦での平均得点' },
+        { key: 'opp', label: 'OPP', get: r => r.opp, asc: true, title: 'Avg pts allowed vs. this team\n対戦での平均失点' },
+        { key: 'diff', label: 'DIFF', get: r => r.diff, title: 'Avg point diff\n平均得失点差' },
         { key: 'games', label: 'Results', cls: 'l', sort: false, get: () => 0 },
-        { key: 'left', label: '残り', get: r => r.left, title: '今季の残りの対戦数' },
-        { key: 'next', label: 'Next', get: r => r.next ? -new Date(r.next.date) : null, title: '次の対戦日' },
+        { key: 'left', label: 'Left', get: r => r.left, title: 'Games left this season\n今季の残りの対戦数' },
+        { key: 'next', label: 'Next', get: r => r.next ? -new Date(r.next.date) : null, title: 'Next meeting\n次の対戦日' },
     ];
     wrap.innerHTML = '<div class="adv-scroll"><table class="adv-table"><thead></thead><tbody></tbody></table></div>';
     let filter = 'all';
@@ -692,6 +833,7 @@ function renderHeadToHead(games) {
    チームページ: teams/team.html?team=<略称（BOS など）>
    ═══════════════════════════════════════════════ */
 const TEAM = NBA.teams.byAbbr(NBA.url.get('team'));
+let ROSTER = null;   // ロスター（怪我人の表示と Next のカードで使う）
 
 // 怪我人（ロスターの injuries。状態だけで部位は返らない）
 const INJ_STATUS = {
@@ -719,17 +861,21 @@ async function loadTeamAdvanced(abbr) {
     const A = NBA.advanced;
     try {
         const d = await A.load();
-        document.getElementById('t-adv-updated').innerHTML = A.updatedHTML(d);
+        const onoff = A.onOffRows(d).filter(r => r.team === abbr);
+        const units = A.unitRows(d).filter(r => r.team === abbr);
         const c = A.clutchRows(d).find(r => r.team === abbr);
+        if (!onoff.length && !units.length && !c) { dropSection('advanced'); return; }
+        document.getElementById('t-adv-src').innerHTML = NBA.ui.src.ana(d, anaGP(d, abbr));
+        document.getElementById('t-adv-updated').innerHTML = A.updatedHTML(d);
         const kpi = (label, v, cls = '') => `<div class="t-adv-kpi"><span>${label}</span><b class="${cls}">${v}</b></div>`;
         document.getElementById('t-adv-clutch').innerHTML = c?.games
-            ? kpi('接戦の試合', c.games) + kpi('接戦の勝敗', `${c.w}-${c.l}`) + kpi('得点-失点', `${c.pf}-${c.pa}`) + kpi('Clutch NET', A.sgn(c.net), A.cls(c.net))
-            : '<div class="rt-muted" style="font-size:12px">残り5分で5点差以内になった試合はまだありません</div>';
-        A.renderOnOff(document.getElementById('t-adv-onoff'), A.onOffRows(d).filter(r => r.team === abbr), { showTeam: false });
-        A.renderUnits(document.getElementById('t-adv-units'), A.unitRows(d).filter(r => r.team === abbr).sort((x, y) => y.sec - x.sec).slice(0, 8), { showTeam: false });
+            ? kpi('Clutch Games', c.games) + kpi('Clutch W-L', `${c.w}-${c.l}`) + kpi('PTS-OPP', `${c.pf}-${c.pa}`) + kpi('Clutch NET', A.sgn(c.net), A.cls(c.net))
+            : '<div class="rt-muted" style="font-size:12px"><span data-ja="残り5分で5点差以内になった試合はまだありません">No games within 5 pts in the last 5 min yet.</span></div>';
+        A.renderOnOff(document.getElementById('t-adv-onoff'), onoff, { showTeam: false });
+        A.renderUnits(document.getElementById('t-adv-units'), units.sort((x, y) => y.sec - x.sec).slice(0, 8), { showTeam: false });
     } catch (e) {
         console.error('advanced:', e);
-        document.getElementById('t-advanced').querySelectorAll('#t-adv-onoff, #t-adv-units').forEach(el => { el.innerHTML = '<div class="msg error">分析データを読み込めませんでした</div>'; });
+        document.getElementById('advanced').querySelectorAll('#t-adv-onoff, #t-adv-units').forEach(el => { el.innerHTML = '<div class="msg error">Failed to load analytics data</div>'; });
     }
 }
 
@@ -739,11 +885,13 @@ async function loadTeamStyle(abbr) {
     try {
         const d = await NBA.advanced.load();
         const html = NBA.advanced.teamStyleHTML(d, abbr);
-        document.getElementById('t-style-updated').innerHTML = html ? NBA.advanced.updatedHTML(d) : '';
-        el.innerHTML = html || '<div class="msg">まだ集計した試合がありません</div>';
+        if (!html) { dropSection('style'); return; }
+        document.getElementById('t-style-src').innerHTML = NBA.ui.src.ana(d, anaGP(d, abbr));
+        document.getElementById('t-style-updated').innerHTML = NBA.advanced.updatedHTML(d);
+        el.innerHTML = html;
     } catch (e) {
         console.error('advanced:', e);
-        el.innerHTML = '<div class="msg error">分析データを読み込めませんでした</div>';
+        el.innerHTML = '<div class="msg error">Failed to load analytics data</div>';
     }
 }
 
@@ -752,11 +900,16 @@ async function loadAssistMap(abbr) {
     const el = document.getElementById('t-assist');
     try {
         const d = await NBA.assistMap.load();
+        if (!d.teams?.[abbr]) { dropSection('assist'); return; }
+        // GP は advanced.json から。assists.json と集計の期間が同じときだけ添える
+        const adv = await NBA.advanced.load().catch(() => null);
+        const gp = adv && adv.from === d.from && adv.to === d.to ? anaGP(adv, abbr) : '';
+        document.getElementById('t-assist-src').innerHTML = NBA.ui.src.ana(d, gp);
         document.getElementById('t-assist-updated').innerHTML = NBA.advanced.updatedHTML(d);
         NBA.assistMap.mount(el, d, abbr);
     } catch (e) {
         console.error('assists:', e);
-        el.innerHTML = '<div class="msg error">アシストのデータを読み込めませんでした</div>';
+        el.innerHTML = '<div class="msg error">Failed to load assist data</div>';
     }
 }
 
@@ -765,7 +918,10 @@ async function init() {
         document.getElementById('team-section').innerHTML = '<div class="msg error">Team not found</div>';
         return;
     }
+    NBA.ui.secnav(document.getElementById('t-secnav'));
+    document.querySelectorAll('.t-src-live').forEach(el => { el.outerHTML = NBA.ui.src.live(); });
     const rosterData = await NBA.api.roster(TEAM.id).catch(() => null);
+    ROSTER = rosterData;
     const t = rosterData?.team || {};
     const name = t.displayName || TEAM.abbr;
     document.title = `${name} — NBA Daily`;
@@ -781,6 +937,7 @@ async function init() {
 
     await Promise.all([
         loadTeamStats(TEAM.id),
+        loadRanks(TEAM.id),
         loadTeamRosterStats(TEAM.id, rosterData),
         loadTeamScheduleFull(TEAM.id),
         loadTeamStandingsInfo(TEAM.id, TEAM.abbr),
@@ -791,8 +948,7 @@ async function init() {
 }
 
 init();
-document.getElementById('last-updated').textContent =
-    new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' });
+NBA.ui.fetched();
 </script>
 </body>
 </html>

@@ -12,7 +12,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&display=swap">
-    <link rel="stylesheet" href="../assets/common.css?v=2026111201">
+    <link rel="stylesheet" href="../assets/common.css?v=2026111301">
     <style>
         .dr-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
         .dr-title { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
@@ -53,6 +53,7 @@
         .dr-cur a { color: var(--text); font-weight: 800; text-decoration: none; }
         .dr-clock { color: var(--live); font-weight: 800; }
         .dr-na { color: var(--muted); font-weight: 500; }
+        .dr-gs { color: var(--accent); }
         .dr-note { font-size: 11px; color: var(--muted); margin-top: 8px; line-height: 1.7; }
         .mock-banner { background: rgba(245,183,0,.14); color: var(--accent); font-size: 12px; font-weight: 700; text-align: center; padding: 6px 12px; border-radius: 6px; margin-bottom: 12px; }
         .mock-banner a { color: inherit; }
@@ -78,6 +79,7 @@
 <div class="main-wrap">
     <div class="tabs-nav">
         <a class="tab-btn" href="./">Standings</a>
+        <a class="tab-btn" href="trends.html">Trends</a>
         <a class="tab-btn" href="playoffs.html">Playoffs</a>
         <a class="tab-btn" href="playoffs.html?tab=playin">Play-In</a>
         <span class="tab-btn active">Draft</span>
@@ -85,21 +87,22 @@
 
     <div id="mock"></div>
     <div class="dr-head">
-        <div class="dr-title"><h2 id="dr-name">NBA Draft</h2><span class="dr-badge" id="dr-status"></span></div>
-        <div class="dr-title"><span class="dr-updated" id="dr-updated"></span><button class="dr-refresh" id="dr-refresh" hidden>↻ 更新</button></div>
+        <div class="dr-title"><h2 id="dr-name">NBA Draft</h2><span class="dr-badge" id="dr-status"></span><span id="dr-src"></span></div>
+        <div class="dr-title"><span class="dr-updated" id="dr-updated"></span><button class="dr-refresh" id="dr-refresh" hidden>↻ Refresh</button></div>
     </div>
     <div class="dr-sub" id="dr-sub"></div>
     <div class="dr-controls">
-        <div class="dr-seg" id="dr-round"><button data-r="0" class="active">すべて</button><button data-r="1">1巡目</button><button data-r="2">2巡目</button></div>
-        <select id="dr-team"><option value="">全チーム</option></select>
+        <div class="dr-seg" id="dr-round"><button data-r="0" class="active">All</button><button data-r="1">Round 1</button><button data-r="2">Round 2</button></div>
+        <select id="dr-team"><option value="">All teams</option></select>
     </div>
     <div class="dr-scroll" id="dr-wrap"><div class="msg">Loading<span class="spinner"></span></div></div>
     <p class="dr-note" id="dr-note"></p>
 </div>
 
-<script src="../assets/api.js?v=2026111201"></script>
-<script src="../assets/teams.js?v=2026111201"></script>
-<script src="../assets/ui.js?v=2026111201"></script>
+<script src="../assets/api.js?v=2026111301"></script>
+<script src="../assets/teams.js?v=2026111301"></script>
+<script src="../assets/ui.js?v=2026111301"></script>
+<script src="../assets/stats.js?v=2026111301"></script>
 <script>
 /* ═══════════════════════════════════════════════
    ドラフト結果: standings/draft.html
@@ -158,6 +161,8 @@ async function loadDraft(y, fresh) {
 }
 
 let draft = null, current = new Map(), round = 0, teamFilter = '';
+// 今季の成績: ESPN の選手 ID → { gp, min, pts, reb, ast, ts, gs }。取れなかったら null（列を出さない）
+let stats = null, statsYear = null;
 
 // 今の所属: 30チームのロスター（チームページなどと同じデータ。1日保存）から、NBA の選手 ID → チーム
 async function loadCurrent() {
@@ -165,6 +170,32 @@ async function loadCurrent() {
     const lists = await mapLimit(NBA.teams.list, 6, t => NBA.api.roster(t.id));
     lists.forEach((d, i) => (d?.athletes || []).forEach(a => out.set(String(a.id), NBA.teams.list[i].abbr)));
     current = out;
+}
+
+// 指名された選手の成績（ドラフトの翌シーズン = そのドラフトの年 + 1 の ESPN の年）。
+// statistics/byathlete を isqualified=false・limit=1000 で1回取ると、出場した全選手が1ページで返る（qualified=false は無視され、6試合以上の選手だけになる）。
+// 引数の並びは players/index.html の Leaders と同じ形（qualified だけ違うので同じ URL にはならない）
+async function loadStats(year) {
+    const out = new Map();
+    const d = await NBA.api.leaders(`season=${year}&seasontype=2&limit=1000&isqualified=false&sort=${encodeURIComponent('offensive.avgPoints:desc')}`);
+    const idx = {};
+    (d.categories || []).forEach(c => { idx[c.name] = {}; (c.names || []).forEach((n, i) => { idx[c.name][n] = i; }); });
+    (d.athletes || []).forEach(a => {
+        const v = (c, n) => { const i = idx[c]?.[n]; return i == null ? 0 : Number(a.categories?.find(x => x.name === c)?.values?.[i]) || 0; };
+        const gp = v('general', 'gamesPlayed');
+        if (!gp) return;
+        const reb = v('general', 'avgRebounds');
+        const l = {
+            pts: v('offensive', 'avgPoints'), fgm: v('offensive', 'avgFieldGoalsMade'), fga: v('offensive', 'avgFieldGoalsAttempted'),
+            ftm: v('offensive', 'avgFreeThrowsMade'), fta: v('offensive', 'avgFreeThrowsAttempted'),
+            // OREB/DREB の内訳は返らないので、players/index.html の Game Score と同じく 0.7×OREB＋0.3×DREB ≒ 0.4×REB になるように分ける
+            oreb: reb / 4, dreb: reb * 3 / 4,
+            ast: v('offensive', 'avgAssists'), stl: v('defensive', 'avgSteals'), blk: v('defensive', 'avgBlocks'),
+            to: v('offensive', 'avgTurnovers'), pf: v('general', 'avgFouls'),
+        };
+        out.set(String(a.athlete?.id), { gp, min: v('general', 'avgMinutes'), pts: l.pts, reb, ast: l.ast, ts: calcTS(l), gs: gameScore(l) });
+    });
+    stats = out; statsYear = year;
 }
 
 async function chooseDraft(fresh) {
@@ -187,18 +218,32 @@ function render() {
     const rows = draft.picks.map(p => {
         const a = p.athlete, nbaId = a?.nbaId;
         return { p, a, team: NBA.teams.byId(p.teamId)?.abbr || '', via: p.tradeNote || '', nbaId,
-            cur: a && nbaId ? current.get(String(nbaId)) || '' : null };
+            cur: a && nbaId ? current.get(String(nbaId)) || '' : null,
+            st: nbaId && stats ? stats.get(String(nbaId)) || null : null };
     }).filter(r => (!round || r.p.round === round) && (!teamFilter || r.team === teamFilter || r.cur === teamFilter));
     const withCur = draft.status?.state !== 'in' && current.size > 0;   // ドラフト中はロスターがまだ変わらないので出さない
+    const withStats = draft.status?.state !== 'in' && !!stats;            // ドラフト中は成績の列も出さない
+    // 成績の列（成績がない選手 = 未出場・Unsigned は "-"。並び替えでは常に下）
+    const f1 = x => x.toFixed(1);
+    const statCols = [
+        { key: 'gp',  label: 'GP',   fmt: x => String(x), title: 'Games played\n出場試合数' },
+        { key: 'min', label: 'MIN',  fmt: f1, title: 'Minutes per game\n1試合平均の出場時間' },
+        { key: 'pts', label: 'PTS',  fmt: f1 },
+        { key: 'reb', label: 'REB',  fmt: f1 },
+        { key: 'ast', label: 'AST',  fmt: f1 },
+        { key: 'ts',  label: 'TS%',  fmt: f1, title: 'True shooting %: PTS / (2 × (FGA + 0.44 × FTA))\n真のシュート効率（FT も含めた得点効率）' },
+        { key: 'gs',  label: 'GmSc', fmt: f1, title: 'Game Score from per-game averages (REB split estimated)\n1試合平均の成績から計算した Game Score（REB の内訳は近似）' },
+    ].map(c => ({ ...c, get: r => r.st?.[c.key] ?? null }));
 
     const cols = [
         { key: 'no', label: '#', cls: 'dr-no', get: r => r.p.overall, asc: true },
         { key: 'team', label: 'Team', cls: 'l', get: r => r.team, asc: true },
         { key: 'name', label: 'Player', cls: 'l', get: r => r.a?.displayName || '', asc: true },
-        ...(withCur ? [{ key: 'cur', label: '現在', cls: 'l', get: r => r.cur ?? '', asc: true, title: '今どのチームのロスターにいるか' }] : []),
+        ...(withCur ? [{ key: 'cur', label: 'Now', cls: 'l', get: r => r.cur ?? '', asc: true, title: 'Team whose roster he is on now\n今どのチームのロスターにいるか' }] : []),
+        ...(withStats ? statCols : []),
     ];
     const player = r => {
-        if (!r.a) return r.p.status === 'ON_THE_CLOCK' ? '<span class="dr-clock">指名中…</span>' : '<span class="dr-wait">指名待ち</span>';
+        if (!r.a) return r.p.status === 'ON_THE_CLOCK' ? '<span class="dr-clock">On the clock…</span>' : '<span class="dr-wait">Pending</span>';
         const meta = [r.a.pos, r.a.displayHeight, r.a.school].filter(Boolean).join(' · ');
         // 写真: NBA の写真、なければ大学時代の写真
         const img = r.nbaId ? `<img src="https://a.espncdn.com/i/headshots/nba/players/full/${r.nbaId}.png" alt="" loading="lazy"
@@ -219,11 +264,12 @@ function render() {
                 <td class="dr-no">${r.p.overall}<small>R${r.p.round}-${r.p.pick}</small></td>
                 <td class="l dr-team"><a href="${NBA.link.team(r.team)}">${esc(r.team)}</a>${r.via ? `<small>${esc(r.via)}</small>` : ''}</td>
                 <td class="l dr-player-td">${player(r)}</td>
-                ${withCur ? `<td class="l dr-cur">${r.cur ? `<a href="${NBA.link.team(r.cur)}">${esc(r.cur)}</a>` : r.a ? '<span class="dr-na">所属なし</span>' : ''}</td>` : ''}
+                ${withCur ? `<td class="l dr-cur">${r.cur ? `<a href="${NBA.link.team(r.cur)}">${esc(r.cur)}</a>` : r.a ? '<span class="dr-na">Unsigned</span>' : ''}</td>` : ''}
+                ${withStats ? statCols.map(c => { const v = c.get(r); return `<td class="${c.key === 'gs' ? 'dr-gs' : ''}">${v == null ? '<span class="dr-na">-</span>' : c.fmt(v)}</td>`; }).join('') : ''}
             </tr>`;
         },
     });
-    if (!rows.length) wrap.innerHTML = '<div class="msg">該当する指名がありません</div>';
+    if (!rows.length) wrap.innerHTML = '<div class="msg">No picks</div>';
 }
 
 function renderHead() {
@@ -231,35 +277,50 @@ function renderHead() {
     const live = st.state === 'in';
     document.getElementById('dr-name').textContent = draft.shortDisplayName || `${draft.year} NBA Draft`;
     const badge = document.getElementById('dr-status');
-    badge.textContent = live ? `LIVE · ${st.round || ''}巡目` : st.state === 'post' ? 'FINAL' : '開始前';
+    badge.textContent = live ? `LIVE · Round ${st.round || ''}` : st.state === 'post' ? 'FINAL' : 'UPCOMING';
     badge.className = `dr-badge ${live ? 'live' : ''}`;
+    // 成績を出しているときだけ、ESPN のバッジ（成績のシーズン）
+    document.getElementById('dr-src').innerHTML = !live && stats ? NBA.ui.src.live(`ESPN · ${statsYear - 1}-${String(statsYear).slice(2)}`) : '';
     document.getElementById('dr-refresh').hidden = !live;
     const made = draft.picks.filter(p => p.athlete).length;
-    document.getElementById('dr-sub').textContent = live
-        ? `ドラフト中: ${made} / ${draft.picks.length} 人を指名済み。「更新」で最新の指名を取り込みます`
-        : `${draft.year} 年のドラフトで指名された ${draft.picks.length} 人`;
-    document.getElementById('dr-updated').textContent = `更新 ${new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}`;
-    document.getElementById('dr-note').textContent = live
-        ? 'via はトレードで手に入れた指名権。ドラフト中は「現在」の列を出しません（ロスターがまだ変わらないため）'
-        : '「現在」は今そのチームのロスターにいるか（どのロスターにもいない選手は「所属なし」）。via はトレードで手に入れた指名権、Traded to はドラフト当日のトレード。列の見出しを押すと並び替え。チームの絞り込みは、指名したチームと今のチームのどちらでも当てはまれば出します';
+    document.getElementById('dr-sub').innerHTML = live
+        ? `<span data-ja="ドラフト中: ${made} / ${draft.picks.length} 人を指名済み">Draft in progress: ${made} of ${draft.picks.length} picks made.</span> <span data-ja="「Refresh」で最新の指名を取り込む">Hit Refresh for the latest picks.</span>`
+        : `${draft.picks.length} players drafted in ${draft.year}`;
+    document.getElementById('dr-updated').textContent = `Updated ${new Date().toLocaleTimeString('en-US', { timeZone: 'Asia/Tokyo', hour: 'numeric', minute: '2-digit' })}`;
+    document.getElementById('dr-note').innerHTML = live
+        ? '<span data-ja="via はトレードで手に入れた指名権">via = pick acquired by trade.</span><br><span data-ja="ドラフト中は Now の列を出さない（ロスターがまだ変わらないため）">Now column hidden during the draft (rosters not updated yet).</span>'
+        : '<span data-ja="Now は今どのチームのロスターにいるか（どのロスターにもいない選手は Unsigned）">Now = team whose roster he is on today (not on any roster = "Unsigned").</span><br>'
+        + '<span data-ja="via はトレードで手に入れた指名権、Traded to はドラフト当日のトレード">via = pick acquired by trade. Traded to = draft-night trade.</span><br>'
+        + (stats ? `<span data-ja="成績は ESPN の ${statsYear - 1}-${String(statsYear).slice(2)} レギュラーシーズンの1試合平均（GP は出場試合数）。まだ出場していない選手・Unsigned は -">Stats: ESPN ${statsYear - 1}-${String(statsYear).slice(2)} regular season, per game (GP = games played). No games yet or unsigned = "-".</span><br>`
+            + '<span data-ja="GmSc は1試合平均の成績から計算した Game Score（REB の内訳は近似。Players の Leaders と同じ）">GmSc = Game Score from per-game averages (REB split estimated, same as Players › Leaders).</span><br>' : '')
+        + '<span data-ja="列の見出しを押すと並び替え">Click a column header to sort.</span><br>'
+        + '<span data-ja="チームの絞り込みは、指名したチームと今のチームのどちらかに当てはまれば出す">Team filter matches either the drafting team or the current team.</span>';
     const sel = document.getElementById('dr-team');
     const teams = [...new Set(draft.picks.map(p => NBA.teams.byId(p.teamId)?.abbr))].filter(Boolean).sort();
-    sel.innerHTML = `<option value="">全チーム</option>${teams.map(t => `<option ${t === teamFilter ? 'selected' : ''}>${t}</option>`).join('')}`;
+    sel.innerHTML = `<option value="">All teams</option>${teams.map(t => `<option ${t === teamFilter ? 'selected' : ''}>${t}</option>`).join('')}`;
 }
 
 async function init(fresh = false) {
     try {
         draft = await chooseDraft(fresh);
-        if (draft.status?.state !== 'in') await loadCurrent().catch(e => console.warn('rosters:', e));
+        stats = null;
+        if (draft.status?.state !== 'in') {
+            // 成績はドラフトの翌シーズン（今季より先なら、まだ始まっていないので取らない）
+            const sy = draft.year + 1;
+            await Promise.all([
+                loadCurrent().catch(e => console.warn('rosters:', e)),
+                sy <= NBA.SEASON ? loadStats(sy).catch(e => console.warn('stats:', e)) : null,
+            ]);
+        }
         renderHead();
         render();
     } catch (e) {
         console.error(e);
-        document.getElementById('dr-wrap').innerHTML = '<div class="msg error">ドラフトのデータを取得できませんでした</div>';
+        document.getElementById('dr-wrap').innerHTML = '<div class="msg error">Failed to load draft data</div>';
     }
 }
 
-if (SIM === 'live') document.getElementById('mock').innerHTML = '<div class="mock-banner">確認用: ドラフト当日の表示を再現しています（2026 のデータで 24位から先を未指名に）。<a href="draft.html">ふだんの表示に戻す</a></div>';
+if (SIM === 'live') document.getElementById('mock').innerHTML = '<div class="mock-banner"><span data-ja="確認用: ドラフト当日の表示を再現（2026 のデータで 24位から先を未指名に）">Test mode: simulating draft night (2026 data, picks 25+ left open).</span> <a href="draft.html">Back to normal view</a></div>';
 
 document.getElementById('dr-round').addEventListener('click', e => {
     const b = e.target.closest('[data-r]');
@@ -271,13 +332,13 @@ document.getElementById('dr-round').addEventListener('click', e => {
 document.getElementById('dr-team').addEventListener('change', e => { teamFilter = e.target.value; render(); });
 document.getElementById('dr-refresh').addEventListener('click', async e => {
     const b = e.currentTarget;
-    b.disabled = true; b.textContent = '更新中…';
+    b.disabled = true; b.textContent = 'Refreshing…';
     await init(true);
-    b.disabled = false; b.textContent = '↻ 更新';
+    b.disabled = false; b.textContent = '↻ Refresh';
 });
 
 init();
-document.getElementById('last-updated').textContent = new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' });
+NBA.ui.fetched();
 </script>
 </body>
 </html>

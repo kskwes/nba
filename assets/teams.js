@@ -75,9 +75,6 @@ const FALLBACK_IMG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/sv
                 // ポゼッションは ESPN の推定値（1試合平均）。得点・失点は standings の1試合平均
                 const poss = m.avgEstimatedPossessions ?? null;
                 const rating = v => v != null && poss ? 100 * v / poss : null;
-                // ピタゴラス勝率（指数14）: 得点と失点から計算した「本来この程度勝てているはず」の勝率
-                const pyth = r.pf && r.opp ? r.pf ** 14 / (r.pf ** 14 + r.opp ** 14) : null;
-                const gp = (r.w ?? 0) + (r.l ?? 0);
                 return {
                     ...t, ...r, name: r.name || t.abbr, logo: r.logo || t.logo,
                     gp: m.gamesPlayed ?? null,
@@ -87,8 +84,16 @@ const FALLBACK_IMG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/sv
                     ts: m.trueShootingPct,
                     pace: poss, ortg: rating(r.pf), drtg: rating(r.opp),
                     net: rating(r.pf) != null && rating(r.opp) != null ? rating(r.pf) - rating(r.opp) : null,
-                    pyW: pyth != null ? pyth * gp : null,
-                    luck: pyth != null ? (r.w ?? 0) - pyth * gp : null,
+                    // 2026-11 追加（Teams の表の Basic / Efficiency）。どれも同じ statistics の中の値（1試合平均・%）
+                    // fouls は standings の pf（1試合の得点）と名前がぶつかるため fouls にする
+                    oreb: m.avgOffensiveRebounds, dreb: m.avgDefensiveRebounds, astTo: m.assistTurnoverRatio,
+                    fouls: m.avgFouls,
+                    fgm: m.avgFieldGoalsMade, fga: m.avgFieldGoalsAttempted,
+                    tpm: m.avgThreePointFieldGoalsMade, tpa: m.avgThreePointFieldGoalsAttempted,
+                    ftm: m.avgFreeThrowsMade, fta: m.avgFreeThrowsAttempted,
+                    efg: m.effectiveFGPct,
+                    // turnoverRatio = TO ÷ (FGA + 0.44 × FTA + TO) × 100（チームの TO 込み）。offReboundRate = OREB ÷ (OREB + 相手 DREB) × 100
+                    tovPct: m.turnoverRatio, orbPct: m.offReboundRate,
                 };
             });
             return { year, teams };

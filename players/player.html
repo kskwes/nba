@@ -12,12 +12,31 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&display=swap">
-    <link rel="stylesheet" href="../assets/common.css?v=2026111201">
-    <link rel="stylesheet" href="../assets/player-team.css?v=2026111201">
+    <link rel="stylesheet" href="../assets/common.css?v=2026111301">
+    <link rel="stylesheet" href="../assets/player-team.css?v=2026111301">
     <style>
         .main-wrap.single { max-width: 1100px; }
-        #p-profile-block[hidden] { display: none; }
+        #profile[hidden] { display: none; }
         @media (max-width: 600px) { .profile-card { align-items: flex-start; } }
+        /* ページ内の目次（プロフィールのカードの下）。Profile は分析データにある選手だけ出す */
+        #player-section > .secnav { margin: -8px 0 20px; }
+        .secnav a[hidden] { display: none; }
+        /* Game Log / Splits / Career の表（.trend-table を使い回す） */
+        .gl-tools { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+        .gl-note { font-size: 11px; color: var(--muted); margin-top: 8px; }
+        #chart-wrap .trend-table-wrap { max-height: 480px; overflow: auto; }
+        #chart-wrap .trend-table tbody tr[data-href] { cursor: pointer; }
+        /* 日付の列は横スクロールしても固定 */
+        #chart-wrap .trend-table th:first-child,
+        #chart-wrap .trend-table td:first-child { position: sticky; left: 0; z-index: 1; background: var(--surface); box-shadow: 1px 0 0 var(--border); }
+        #chart-wrap .trend-table th:first-child { z-index: 3; background: var(--surface2); }
+        #chart-wrap .trend-table th { z-index: 2; }
+        #chart-wrap .trend-table tr.dnp td:first-child { opacity: 1; color: var(--muted); }
+        .trend-table.compact { min-width: 560px; }
+        .trend-table tr.sep > td { border-top: 1px solid var(--border); }
+        .trend-table tr.cur > td { background: rgba(245,183,0,.08); }
+        .trend-table tr.cur > td:first-child { color: var(--accent); }
+        .trend-table tr.total > td { font-weight: 800; }
     </style>
 </head>
 <body class="theme-broadcast">
@@ -41,13 +60,6 @@
     <div class="main-wrap single">
         <div class="left-col">
 
-            <div class="lc-search">
-                <div class="search-wrap">
-                    <input type="text" id="q" placeholder="Search player (e.g. LeBron James)">
-                    <ul id="suggestions" class="suggestions"></ul>
-                </div>
-            </div>
-
             <div id="player-section">
 
                 <!-- Profile + Bio -->
@@ -63,10 +75,14 @@
                     </div>
                 </div>
 
+                <nav class="secnav" id="secnav" aria-label="Sections">
+                    <a href="#season">Season</a><a href="#profile" hidden>Profile</a><a href="#splits">Splits</a><a href="#log">Game Log</a><a href="#career">Career</a>
+                </nav>
+
                 <!-- Season stats -->
-                <div class="lc-block">
+                <div class="lc-block" id="season" data-sec>
                     <div class="section-header">
-                        <h2>Season Stats</h2>
+                        <h2>Season Stats <span id="season-src"></span></h2>
                         <span id="season-badge" class="badge"></span>
                     </div>
                     <div id="stats-big" class="stats-big stats-hero"></div>
@@ -74,21 +90,42 @@
                 </div>
 
                 <!-- Player Profile: 効率と役割・シュートの傾向・Game Score の安定度・On/Off（data/advanced.json） -->
-                <div class="lc-block" id="p-profile-block" hidden>
-                    <div class="section-header"><h2>Player Profile</h2></div>
+                <div class="lc-block" id="profile" data-sec hidden>
+                    <div class="section-header"><h2>Player Profile <span id="p-profile-src"></span></h2></div>
                     <div id="p-profile-updated"></div>
                     <div id="p-profile"></div>
                 </div>
 
-                <!-- Recent Stats -->
-                <div class="lc-block">
+                <!-- Splits: gamelog から自前で集計（ESPN の splits API は使わない） -->
+                <div class="lc-block" id="splits" data-sec>
                     <div class="section-header">
-                        <h2>Recent Stats</h2>
+                        <h2>Splits <span id="splits-src"></span></h2>
+                        <span id="splits-badge" class="badge"></span>
+                    </div>
+                    <div id="splits-wrap"></div>
+                </div>
+
+                <!-- Game Log（Last 10 / All） -->
+                <div class="lc-block" id="log" data-sec>
+                    <div class="section-header">
+                        <h2>Game Log <span id="recent-src"></span></h2>
                         <span id="recent-season-badge" class="badge"></span>
+                    </div>
+                    <div class="gl-tools">
+                        <div class="am-seg" id="gl-range">
+                            <button type="button" class="active" data-range="10">Last 10</button><button type="button" data-range="all">All</button>
+                        </div>
                     </div>
                     <div id="chart-wrap">
                         <div class="msg">Select a player to view stats</div>
                     </div>
+                    <div class="gl-note"><span data-ja="行を押すとその試合のページへ。横にスクロールしても日付の列は固定。USG% と PIE は直近10試合だけ">Click a row to open the game. The date column stays fixed when scrolling sideways. USG% and PIE are shown for the last 10 games only.</span></div>
+                </div>
+
+                <!-- Career: athleteStats のシーズン別平均（averages） -->
+                <div class="lc-block" id="career" data-sec>
+                    <div class="section-header"><h2>Career <span id="career-src"></span></h2></div>
+                    <div id="career-wrap"></div>
                 </div>
 
             </div><!-- /player-section -->
@@ -96,51 +133,14 @@
     </div>
 </main>
 
-<script src="../assets/api.js?v=2026111201"></script>
-<script src="../assets/teams.js?v=2026111201"></script>
-<script src="../assets/stats.js?v=2026111201"></script>
-<script src="../assets/ui.js?v=2026111201"></script>
-<script src="../assets/player-index.js?v=2026111201"></script>
-<script src="../assets/advanced.js?v=2026111201"></script>
+<script src="../assets/api.js?v=2026111301"></script>
+<script src="../assets/teams.js?v=2026111301"></script>
+<script src="../assets/stats.js?v=2026111301"></script>
+<script src="../assets/ui.js?v=2026111301"></script>
+<script src="../assets/player-index.js?v=2026111301"></script>
+<script src="../assets/advanced.js?v=2026111301"></script>
 <script>
-/* ─── Season stats（計算は assets/stats.js） ─── */
-// シーズン平均（"7.3-16.0" 形式を含む）から計算用の値を作る
-function seasonLine(S) {
-    const pair = v => String(v || '0-0').split('-').map(x => parseFloat(x) || 0);
-    const [fgm, fga] = pair(S.FG), [tpm] = pair(S['3PT']), [, fta] = pair(S.FT);
-    return { pts: parseFloat(S.PTS) || 0, fgm, fga, tpm, fta, to: parseFloat(S.TO) || 0, min: parseFloat(S.MIN) || 0 };
-}
-
-function addSeasonAdv(S, teamAvg) {
-    const l = seasonLine(S);
-    S['TS%']  = calcTS(l);
-    S['eFG%'] = calcEFG(l);
-    S['USG%'] = calcUSG(l, teamAvg);
-}
-
-// 1チーム・1シーズン分の統計（statName → value）。取れなければ null
-const teamStatsMapCache = new Map();
-function fetchTeamStatsMap(teamId, year) {
-    const key = `${teamId}-${year}`;
-    if (!teamStatsMapCache.has(key)) {
-        teamStatsMapCache.set(key, NBA.api.teamStats(teamId, year)
-            .then(d => {
-                const m = {};
-                (d.splits?.categories || []).forEach(c => (c.stats || []).forEach(x => { m[x.name] = x.value; }));
-                return m;
-            })
-            .catch(() => { teamStatsMapCache.delete(key); return null; }));
-    }
-    return teamStatsMapCache.get(key);
-}
-
-// チームの1試合平均（USG% 用）。チームの出場時間は API が返さないため 240 分固定
-async function fetchTeamSeasonAvg(teamId, year) {
-    const m = await fetchTeamStatsMap(teamId, year);
-    if (!m?.avgFieldGoalsAttempted) return null;
-    return { fga: m.avgFieldGoalsAttempted, fta: m.avgFreeThrowsAttempted || 0, to: m.avgTurnovers || 0, min: 240 };
-}
-
+/* ─── Season stats ─── */
 // 昨季比の表示（▲/▼ と色で増減の向きを示す）
 const shortSeason = year => `${String(year - 1).slice(2)}-${String(year).slice(2)}`;
 function deltaHtml(cur, old, prevLabel) {
@@ -151,36 +151,21 @@ function deltaHtml(cur, old, prevLabel) {
     return `<div class="stat-delta">${txt} vs ${esc(prevLabel)}</div>`;
 }
 
-function parsePlayerSeasonStats(data) {
-    const categories = data.categories || [];
-    const avgCat = categories.find(c => c.name === 'averages') || categories[0];
-    if (!avgCat) return null;
-    const labels = avgCat.labels || [];
-    let entry = null, maxYear = 0;
-    for (const s of (avgCat.statistics || [])) {
-        if ((s.season?.year || 0) > maxYear) { maxYear = s.season.year; entry = s; }
-    }
-    if (!entry) return null;
-    const S = { _seasonName: entry.season?.displayName || '', _seasonYear: entry.season?.year };
-    labels.forEach((l, i) => { S[l] = entry.stats?.[i]; });
-    return S;
-}
-
 /* ─── Stats ─── */
-async function loadStats(id, teamId) {
+async function loadStats(id) {
     try {
         const data = await NBA.api.athleteStats(id);
-        const year = parsePlayerSeasonStats(data)?._seasonYear;
-        const teamAvg = year && teamId ? await fetchTeamSeasonAvg(teamId, year) : null;
-        renderStats(data, teamAvg);
+        renderStats(data);
+        renderCareer(data);
     } catch(e) {
         document.getElementById('stats-big').innerHTML =
             '<div class="msg error" style="grid-column:1/-1">Failed to load stats</div>';
+        document.getElementById('career-wrap').innerHTML = '<div class="msg error">Failed to load career stats</div>';
         console.error('stats:', e);
     }
 }
 
-function renderStats(data, teamAvg) {
+function renderStats(data) {
     // API structure: data.categories[] with name="averages"
     // Each category.statistics[] has per-season entries with season.year and stats[]
     const categories = data.categories || [];
@@ -216,7 +201,6 @@ function renderStats(data, teamAvg) {
     // Build stat map  (labels: GP GS MIN FG FG% 3PT 3P% FT FT% OR DR REB AST BLK STL PF TO PTS)
     const S = {};
     labels.forEach((l, i) => { S[l] = entry.stats?.[i]; });
-    addSeasonAdv(S, teamAvg);
 
     const bigDefs = [
         { key: 'PTS', label: 'Points\nPPG' },
@@ -239,13 +223,11 @@ function renderStats(data, teamAvg) {
         </div>`;
     }).join('');
 
-    // 詳細: テーマ別ミニタイル（rate は 0〜100% のバー付き、sub は成功数-試投数）
+    // 詳細: テーマ別ミニタイル（rate は 0〜100% のバー付き、sub は成功数-試投数）。
+    // TS% / eFG% / USG% は Player Profile（分析データ）側だけに出す（期間の違う値が2つ並ばないように）
     const detGroups = [
-        ['Shooting', [
-            { key: 'FG%', sub: 'FG', rate: true }, { key: '3P%', sub: '3PT', rate: true }, { key: 'FT%', sub: 'FT', rate: true },
-            { key: 'TS%', rate: true }, { key: 'eFG%', rate: true },
-        ]],
-        ['Role', [{ key: 'GP' }, { key: 'MIN' }, { key: 'USG%' }]],
+        ['Shooting', [{ key: 'FG%', sub: 'FG', rate: true }, { key: '3P%', sub: '3PT', rate: true }, { key: 'FT%', sub: 'FT', rate: true }]],
+        ['Role', [{ key: 'GP' }, { key: 'MIN' }]],
         ['Ball Security', [{ key: 'TO' }, { key: 'PF' }]],
     ];
     const tile = t => {
@@ -263,12 +245,42 @@ function renderStats(data, teamAvg) {
     ).join('');
 }
 
+/* ─── Career（athleteStats の averages: シーズン別の行と totals＝通算平均） ─── */
+function renderCareer(data) {
+    const wrap = document.getElementById('career-wrap');
+    const avgCat = (data.categories || []).find(c => c.name === 'averages');
+    const rows = (avgCat?.statistics || []).filter(s => s.season?.year);
+    if (!avgCat || !rows.length) { wrap.innerHTML = '<div class="msg">No career stats found</div>'; return; }
+    const labels = avgCat.labels || [];
+    const cols = ['GP', 'MIN', 'PTS', 'REB', 'AST', 'STL', 'BLK', 'FG%', '3P%', 'FT%'];
+    // 平均は 35 → 35.0 のように小数1桁にそろえる（GP は整数）
+    const cv = (k, v) => { const n = parseFloat(v); return k === 'GP' || ['FG%', '3P%', 'FT%'].includes(k) || isNaN(n) ? fmt(k, v) : n.toFixed(1); };
+    const cells = stats => cols.map(k => `<td>${cv(k, stats?.[labels.indexOf(k)])}</td>`).join('');
+    const maxYear = Math.max(...rows.map(s => s.season.year));
+    // チームは data.teams（slug がキー）から略称を引く。シーズン途中の移籍はチームごとの行になる
+    const teamOf = s => {
+        const t = data.teams?.[s.teamSlug] || Object.values(data.teams || {}).find(x => String(x.id) === String(s.teamId));
+        const ab = t?.abbreviation ? normAbbr(t.abbreviation) : '';
+        return ab ? `<a href="${NBA.link.team(ab)}">${esc(ab)}</a>` : '-';
+    };
+    // 新しいシーズンが上（同じシーズンは元の並び）
+    const sorted = rows.map((s, i) => [s, i]).sort((a, b) => b[0].season.year - a[0].season.year || a[1] - b[1]).map(x => x[0]);
+    const body = sorted.map(s => `<tr class="${s.season.year === maxYear ? 'cur' : ''}">
+        <td class="left-col">${esc(s.season.displayName || String(s.season.year))}</td>
+        <td class="left-col">${teamOf(s)}</td>${cells(s.stats)}</tr>`).join('');
+    const total = avgCat.totals?.length
+        ? `<tr class="sep total"><td class="left-col">Career</td><td class="left-col"></td>${cells(avgCat.totals)}</tr>` : '';
+    wrap.innerHTML = `<div class="trend-table-wrap"><table class="trend-table compact"><thead><tr>
+        <th class="left-col">Season</th><th class="left-col">Team</th>${cols.map(c => `<th>${c}</th>`).join('')}
+    </tr></thead><tbody>${body}${total}</tbody></table></div>`;
+}
+
 function fmt(key, val) {
     if (val == null || val === '') return '-';
     // FG / 3PT / FT come as "made-attempted" strings e.g. "8.1-16.2"
     if (['FG', '3PT', 'FT'].includes(key)) return val || '-';
     // Percentages are already 0-100 (e.g. 49.9), not 0-1
-    if (['FG%', '3P%', 'FT%', 'TS%', 'eFG%', 'USG%'].includes(key)) {
+    if (['FG%', '3P%', 'FT%'].includes(key)) {
         const n = parseFloat(val);
         return isNaN(n) ? '-' : n.toFixed(1) + '%';
     }
@@ -286,12 +298,13 @@ async function loadGamelog(id, teamId) {
         ]);
         currentGames = parseGamelog(gamelogData, teamGames);
         // parseGamelog は seasonTypes[0]（最新のシーズン区分）だけを使う
-        const glSeason = gamelogData.seasonTypes?.[0]?.displayName || '';
-        document.getElementById('recent-season-badge').textContent = glSeason && currentGames.length ? `${glSeason} · Last 10` : '';
+        glSeason = gamelogData.seasonTypes?.[0]?.displayName || '';
         renderTrendTable();
         loadGameAdv(id, currentGames);
+        renderSplits(gamelogData, teamGames);
     } catch(e) {
         chartWrap.innerHTML = '<div class="msg error">Failed to load game log</div>';
+        document.getElementById('splits-wrap').innerHTML = '<div class="msg error">Failed to load splits</div>';
         console.error('gamelog:', e);
     }
 }
@@ -429,6 +442,92 @@ async function loadGameAdv(athleteId, games) {
     if (seq === gameAdvSeq && games === currentGames) renderTrendTable();
 }
 
+/* ─── Splits（gamelog から自前で集計） ─── */
+// 現地日付の代わりに米国東部時間の日付を使う（NBA の試合は東部時間でも現地と同じ日付になる）
+const ET_FMT = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' });
+const etDate = iso => iso ? ET_FMT.format(new Date(iso)) : '';  // "YYYY-MM-DD"
+const dayNum = ymd => { const [y, m, d] = ymd.split('-').map(Number); return Date.UTC(y, m - 1, d) / 86400000; };
+
+// 選手が出た試合（seasonTypes[0] の全試合）
+function splitGames(data) {
+    const labels = data.labels || [];
+    const eventsMap = data.events || {};
+    const out = [];
+    if (!labels.includes('PTS')) return out;
+    for (const cat of (data.seasonTypes?.[0]?.categories || [])) {
+        for (const ce of (cat.events || [])) {
+            const ev = eventsMap[String(ce.eventId)] || {};
+            if (parseInt(ev.homeTeamId) > 30 || parseInt(ev.awayTeamId) > 30) continue;
+            if (!ev.gameDate) continue;
+            out.push({
+                date: etDate(ev.gameDate), home: ev.atVs !== '@', result: ev.gameResult || '',
+                oppId: ev.opponent?.id != null ? String(ev.opponent.id) : '',
+                s: parseGameStatMap(labels, ce.stats),
+            });
+        }
+    }
+    return out.sort((a, b) => a.date.localeCompare(b.date));
+}
+
+// 合計から平均・割合を出す（平均の平均にしない）
+function splitRow(name, games) {
+    const t = { PTS: 0, REB: 0, AST: 0, TO: 0, FGM: 0, FGA: 0, '3PM': 0, '3PA': 0, FTM: 0, FTA: 0 };
+    games.forEach(g => { for (const k in t) t[k] += g.s[k] || 0; });
+    const n = games.length;
+    const avg = k => n ? (t[k] / n).toFixed(1) : '-';
+    const pct = (m, a) => t[a] ? (t[m] / t[a] * 100).toFixed(1) + '%' : '-';
+    return { name, n, cells: [avg('PTS'), avg('REB'), avg('AST'), pct('FGM', 'FGA'), pct('3PM', '3PA'), pct('FTM', 'FTA'), avg('TO')] };
+}
+
+async function renderSplits(data, teamGames) {
+    const wrap = document.getElementById('splits-wrap');
+    const games = splitGames(data);
+    if (!games.length) { wrap.innerHTML = '<div class="msg">No game data available</div>'; return; }
+    document.getElementById('splits-badge').textContent = data.seasonTypes?.[0]?.displayName || '';
+
+    // 休養日数: 前の試合（チームの日程＋選手の試合の日付）からの日数の差。1 = 連戦の2試合目、3以上 = 中2日以上
+    const allDays = [...new Set([...teamGames.map(g => etDate(g.gameDate)), ...games.map(g => g.date)])].filter(Boolean).sort();
+    games.forEach(g => {
+        const i = allDays.indexOf(g.date);
+        g.gap = i > 0 ? dayNum(g.date) - dayNum(allDays[i - 1]) : null;
+    });
+
+    // 相手の今の勝率（standings。キャッシュ共有）
+    const pct = {};
+    try {
+        const st = await NBA.api.standings();
+        (st?.children || []).forEach(c => (c.standings?.entries || []).forEach(e => {
+            const v = n => Number(e.stats?.find(x => x.name === n)?.value);
+            const w = v('wins'), l = v('losses');
+            if (w + l > 0) pct[String(e.team.id)] = w / (w + l);
+        }));
+    } catch (e) { console.warn('standings:', e); }
+    const hasPct = Object.keys(pct).length > 0;
+
+    const months = [...new Set(games.map(g => g.date.slice(0, 7)))];
+    const monthName = ym => new Date(ym + '-15T12:00:00Z').toLocaleString('en-US', { month: 'long', timeZone: 'UTC' });
+    // [行, 区切り線をこの行の上に引くか]
+    const rows = [
+        [splitRow('Overall', games), false],
+        [splitRow('Home', games.filter(g => g.home)), true],
+        [splitRow('Away', games.filter(g => !g.home)), false],
+        [splitRow('Wins', games.filter(g => g.result === 'W')), true],
+        [splitRow('Losses', games.filter(g => g.result === 'L')), false],
+        ...months.map((m, i) => [splitRow(monthName(m), games.filter(g => g.date.startsWith(m))), i === 0]),
+        [splitRow('2nd of back-to-back', games.filter(g => g.gap === 1)), true],
+        [splitRow('2+ days rest', games.filter(g => g.gap != null && g.gap >= 3)), false],
+    ];
+    if (hasPct) rows.push([splitRow('vs .500+ teams', games.filter(g => pct[g.oppId] != null && pct[g.oppId] >= 0.5)), true]);
+
+    const cols = ['GP', 'PTS', 'REB', 'AST', 'FG%', '3P%', 'FT%', 'TO'];
+    const body = rows.map(([r, sep]) => `<tr class="${[r.n < 3 ? 'low' : '', sep ? 'sep' : ''].join(' ').trim()}">
+        <td class="left-col">${esc(r.name)}</td><td>${r.n}</td>${r.cells.map(c => `<td>${c}</td>`).join('')}</tr>`).join('');
+    wrap.innerHTML = `<div class="trend-table-wrap"><table class="trend-table compact"><thead><tr>
+        <th class="left-col">Split</th>${cols.map(c => `<th>${c}</th>`).join('')}
+    </tr></thead><tbody>${body}</tbody></table></div>
+    <div class="gl-note"><span data-ja="3試合未満の行は薄く表示。連戦・休養は試合の日付（米国東部時間）の差、.500+ は相手の今の勝率で判定">Rows under 3 games are dimmed. Back-to-back and rest use game dates (US Eastern); .500+ uses the opponent's current record.</span>${hasPct ? '' : ' <span data-ja="順位表を取得できなかったため vs .500+ は出していません">Standings could not be loaded, so vs .500+ is omitted.</span>'}</div>`;
+}
+
 /* ─── Trend Table ─── */
 
 function jstDate(isoStr) {
@@ -445,7 +544,10 @@ function fmtGameVal(key, val) {
 }
 
 function renderTrendTable() {
-    const games = currentGames.slice(-10).reverse(); // newest first, last 10 games
+    // newest first（Last 10 は直近10試合、All は今季の全試合。DNP の行も含む）
+    const games = (glRange === 'all' ? currentGames.slice() : currentGames.slice(-10)).reverse();
+    document.getElementById('recent-season-badge').textContent =
+        glSeason && currentGames.length ? `${glSeason} · ${glRange === 'all' ? `All ${currentGames.length}` : 'Last 10'}` : '';
 
     if (!games.length) {
         chartWrap.innerHTML = '<div class="msg">No game data available</div>';
@@ -501,7 +603,7 @@ function renderTrendTable() {
             : statCols.map(c => `<td>${fmtGameVal(c.key, g.stats?.[c.key])}</td>`).join('')
               + advVals(g).map(v => `<td>${v}</td>`).join('');
         const gameLink = txt => g.eventId ? `<a href="${NBA.link.game(g.eventId)}">${txt}</a>` : txt;
-        return `<tr class="${dnp ? 'dnp' : ''}">
+        return `<tr class="${dnp ? 'dnp' : ''}"${g.eventId ? ` data-href="${NBA.link.game(g.eventId)}"` : ''}>
             <td class="left-col">${gameLink(esc(dateLbl))}</td>
             <td class="left-col">${gameLink(oppLbl)}</td>
             <td class="${resCls}">${resTxt}</td>
@@ -517,9 +619,25 @@ function renderTrendTable() {
    ═══════════════════════════════════════════════ */
 const PLAYER_ID = NBA.url.get('id');
 let currentGames = [];
+let glSeason = '';
+let glRange = '10';  // '10' | 'all'
 const chartWrap = document.getElementById('chart-wrap');
 
-NBA.playerSearch(document.getElementById('q'), document.getElementById('suggestions'));
+// Game Log: Last 10 / All の切り替えと、行を押したら試合ページへ
+document.getElementById('gl-range').addEventListener('click', e => {
+    const b = e.target.closest('button[data-range]');
+    if (!b || b.dataset.range === glRange) return;
+    glRange = b.dataset.range;
+    document.querySelectorAll('#gl-range button').forEach(x => x.classList.toggle('active', x === b));
+    if (currentGames.length) renderTrendTable();
+});
+chartWrap.addEventListener('click', e => {
+    if (e.target.closest('a')) return;
+    const tr = e.target.closest('tr[data-href]');
+    if (tr) location.href = tr.dataset.href;
+});
+
+NBA.ui.secnav(document.getElementById('secnav'));
 
 // "30/12/1984" のような ESPN の表記は日付の順がまちまちなので、ロスターの ISO 形式を優先する
 function fmtDob(iso, display) {
@@ -533,7 +651,7 @@ function fmtDob(iso, display) {
 function bioHTML(a, ix) {
     const dob = fmtDob(ix?.dob, a.displayDOB);
     const items = [
-        ['Age', a.age != null ? `${a.age}${dob ? `（${dob}）` : ''}` : dob],
+        ['Age', a.age != null ? `${a.age}${dob ? ` (${dob})` : ''}` : dob],
         ['Draft', a.displayDraft || ''],
         ['Experience', a.displayExperience || ''],
         ['Height / Weight', [a.displayHeight, a.displayWeight].filter(Boolean).join(' · ')],
@@ -585,27 +703,36 @@ async function loadPlayerProfile(id) {
         const d = await NBA.advanced.load();
         const html = NBA.advanced.profileHTML(d, id);
         if (!html) return;
+        const gp = (d.profiles || []).find(x => x.id === String(id))?.gp;
+        document.getElementById('p-profile-src').outerHTML = NBA.ui.src.ana(d, gp != null ? `${gp} GP` : '');
         document.getElementById('p-profile-updated').innerHTML = NBA.advanced.updatedHTML(d);
         document.getElementById('p-profile').innerHTML = html;
-        document.getElementById('p-profile-block').hidden = false;
+        document.getElementById('profile').hidden = false;
+        document.querySelector('#secnav a[href="#profile"]').hidden = false;
     } catch (e) { console.error('advanced:', e); }
 }
 
 async function init() {
     if (!PLAYER_ID) {
-        document.getElementById('player-section').innerHTML = '<div class="msg">選手を検索してください</div>';
+        document.getElementById('player-section').innerHTML =
+            '<div class="msg"><span data-ja="ページ上部の検索欄（/ キー）で選手を探してください">Use the search box in the header (press /) to find a player.</span></div>';
         return;
     }
+    document.getElementById('season-src').outerHTML = NBA.ui.src.live();
+    document.getElementById('recent-src').outerHTML = NBA.ui.src.live();
+    document.getElementById('splits-src').outerHTML = NBA.ui.src.live();
+    document.getElementById('career-src').outerHTML = NBA.ui.src.live('ESPN');
+    document.getElementById('splits-wrap').innerHTML = '<div class="msg">Loading<span class="spinner"></span></div>';
+    document.getElementById('career-wrap').innerHTML = '<div class="msg">Loading<span class="spinner"></span></div>';
     document.getElementById('stats-big').innerHTML = '<div class="msg" style="grid-column:1/-1">Loading<span class="spinner"></span></div>';
     chartWrap.innerHTML = '<div class="msg">Loading<span class="spinner"></span></div>';
     const p = await loadProfile();
     if (!p) return;
-    await Promise.all([loadStats(PLAYER_ID, p.teamId), loadGamelog(PLAYER_ID, p.teamId), loadPlayerProfile(PLAYER_ID)]);
+    await Promise.all([loadStats(PLAYER_ID), loadGamelog(PLAYER_ID, p.teamId), loadPlayerProfile(PLAYER_ID)]);
 }
 
 init();
-document.getElementById('last-updated').textContent =
-    new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' });
+NBA.ui.fetched();
 </script>
 </body>
 </html>

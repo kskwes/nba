@@ -11,13 +11,13 @@ function toShotZone(x) {
     if (/Free Throw/.test(t)) return 'FT';
     if (c && c.x >= 0 && c.y >= -3 && c.y < 47) {
         const dx = c.x - 25, dy = Math.max(0, c.y);
-        if (x.pointsAttempted === 3 || /three point/.test(x.text || '')) return Math.abs(dx) >= 21 && dy <= 9 ? 'コーナー3' : '3P';
-        if (Math.hypot(dx, dy) <= 4) return 'リング下';
-        if (Math.abs(dx) <= 8 && dy <= 13.75) return 'ペイント';
-        return 'ミドル';
+        if (x.pointsAttempted === 3 || /three point/.test(x.text || '')) return Math.abs(dx) >= 21 && dy <= 9 ? 'Corner 3' : '3P';
+        if (Math.hypot(dx, dy) <= 4) return 'Restricted Area';
+        if (Math.abs(dx) <= 8 && dy <= 13.75) return 'Paint (non-RA)';
+        return 'Mid-range';
     }
     if (/three point/.test(x.text || '')) return '3P';
-    if (/Layup|Dunk|Tip/i.test(t)) return 'リング下';
+    if (/Layup|Dunk|Tip/i.test(t)) return 'Restricted Area';
     return '2P';
 }
 
@@ -54,12 +54,12 @@ function analyzeTimeouts(plays, sideOf) {
         const prev = plays.slice(0, i).reverse().find(p => !isNoise(p));
         const diff = score[side] - score[opp];
         let why;
-        if (per >= 4 && clock <= 120 && Math.abs(diff) <= 5) why = { key: 'late', label: '終盤の作戦' };
-        else if (streak >= TO_RUN) why = { key: 'run', label: `相手の ${streak}-0 ラン` };
-        else if (before[opp] - before[side] >= TO_RUN) why = { key: 'run', label: `直前2分 ${before[side]}-${before[opp]}` };
-        else if (prev && sideOf(prev.team?.id) === side && /Turnover/.test(prev.type?.text || '')) why = { key: 'to', label: 'ターンオーバーの後' };
-        else if (prev && prev.scoringPlay && sideOf(prev.team?.id) === opp) why = { key: 'score', label: '失点の後' };
-        else why = { key: 'other', label: 'その他' };
+        if (per >= 4 && clock <= 120 && Math.abs(diff) <= 5) why = { key: 'late', label: 'Late-game' };
+        else if (streak >= TO_RUN) why = { key: 'run', label: `Opp. ${streak}-0 run` };
+        else if (before[opp] - before[side] >= TO_RUN) why = { key: 'run', label: `Prev 2 min ${before[side]}-${before[opp]}` };
+        else if (prev && sideOf(prev.team?.id) === side && /Turnover/.test(prev.type?.text || '')) why = { key: 'to', label: 'After own turnover' };
+        else if (prev && prev.scoringPlay && sideOf(prev.team?.id) === opp) why = { key: 'score', label: 'After opp. score' };
+        else why = { key: 'other', label: 'Other' };
 
         // 直後の攻撃: タイムアウトの後に始まる最初のポゼッション。
         // フリースローの途中・直前（ファウルの後）に取ったときは、フリースローの後の攻撃を見る
@@ -81,11 +81,11 @@ function analyzeTimeouts(plays, sideOf) {
             const tov = seq.find(p => /Turnover/.test(p.type?.text || '') && mine(p));
             const oreb = seq.some(p => /Offensive Rebound/.test(p.type?.text || '') && mine(p));
             let result;
-            if (made) result = { key: 'fg', label: `${made.scoreValue}P 成功` };
-            else if (pts) result = { key: 'ft', label: 'FT で得点' };
-            else if (tov) result = { key: 'tov', label: 'ターンオーバー' };
-            else if (fgs.length || seq.some(p => isFt(p) && mine(p))) result = { key: 'miss', label: '得点なし' };
-            else result = { key: 'none', label: 'シュートなし' };
+            if (made) result = { key: 'fg', label: `${made.scoreValue}P made` };
+            else if (pts) result = { key: 'ft', label: 'Scored on FTs' };
+            else if (tov) result = { key: 'tov', label: 'Turnover' };
+            else if (fgs.length || seq.some(p => isFt(p) && mine(p))) result = { key: 'miss', label: 'No score' };
+            else result = { key: 'none', label: 'No shot' };
             ato = {
                 off, pts, result, viaFt, oreb,
                 zone: key ? toShotZone(key) : null,

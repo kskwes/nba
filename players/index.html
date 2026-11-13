@@ -12,8 +12,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&display=swap">
-    <link rel="stylesheet" href="../assets/common.css?v=2026111201">
-    <link rel="stylesheet" href="../assets/player-team.css?v=2026111201">
+    <link rel="stylesheet" href="../assets/common.css?v=2026111301">
+    <link rel="stylesheet" href="../assets/player-team.css?v=2026111301">
     <style>
         /* タブの位置を Games などほかのページとそろえる */
         .main-wrap.players-page { display: block; max-width: 1360px; padding-top: 0; }
@@ -21,6 +21,26 @@
         .sl-head-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 14px; margin-bottom: 14px; }
         .sl-head-row .sl-exp { margin-top: 0; }
         .sl-note { font-size: 11px; color: var(--muted); }
+        /* Leaders のグループ見出し（Counting / Percentages / Advanced）と出どころのバッジ */
+        .sl-grp { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 22px 0 10px; font-family: var(--font-score); font-size: 14px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-dim); }
+        .sl-grp-first { margin-top: 4px; }
+        /* Players: 全選手の表（絞り込み・列のセット・選手名の列を横スクロールで固定） */
+        .pl-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; margin-bottom: 12px; }
+        .pl-f { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--muted); font-weight: 700; }
+        .pl-f .sl-exp { margin-top: 0; gap: 4px; }
+        .pl-f select { background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 7px; font: inherit; font-size: 12px; font-weight: 600; padding: 4px 8px; }
+        .pl-count { margin-left: auto; font-size: 11.5px; color: var(--muted); font-weight: 700; }
+        .pl-scroll { max-height: 72vh; }
+        .pl-table th.pl-name, .pl-table td.pl-name { position: sticky; left: 0; z-index: 1; background: var(--surface); box-shadow: 1px 0 0 var(--border); }
+        .pl-table thead th.pl-name { z-index: 3; background: var(--surface2); }
+        .pl-table tbody tr:hover td.pl-name { background: var(--surface2); }
+        /* 薄くする行でも固定の列は不透明のまま（下を流れる列が透けないように） */
+        .pl-table tr.low > td.pl-name { opacity: 1; }
+        .pl-table tr.low > td.pl-name > * { opacity: .4; }
+        .pl-table th.g1, .pl-table td.g1 { border-left: 1px solid var(--border); }
+        .pl-ph { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; vertical-align: middle; margin-right: 6px; background: var(--surface2); }
+        .pl-sub { font-size: 10.5px; color: var(--muted); margin-left: 5px; }
+        .pl-note { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: 11px; color: var(--muted); line-height: 1.6; margin-top: 8px; }
     </style>
 </head>
 <body class="theme-broadcast">
@@ -43,27 +63,46 @@
 <main>
     <div class="main-wrap players-page">
 
-        <!-- タブ: Players（検索・Rookies）/ Leaders（シーズンのランキング） -->
+        <!-- タブ: Players（全選手の表）/ Leaders（シーズンのランキング） -->
         <div class="tabs-nav">
             <button class="tab-btn active" data-tab="players">Players</button>
             <button class="tab-btn" data-tab="leaders">Leaders</button>
         </div>
 
+        <!-- Players: 条件で絞って並べる全選手の表（検索はヘッダーの全体検索、ルーキー一覧は Exp の Rookie で代わり） -->
         <div class="tab-panel active" id="tab-players">
-            <div class="lc-search" id="player-search-wrap">
-                <div class="search-wrap">
-                    <input type="text" id="q" placeholder="Search player (e.g. LeBron James)">
-                    <ul id="suggestions" class="suggestions"></ul>
+            <div class="pl-filters">
+                <div class="pl-f"><span class="pl-lbl">View</span>
+                    <span class="sl-exp" id="pl-view">
+                        <button class="sl-exp-btn" data-v="basic">Basic</button>
+                        <button class="sl-exp-btn" data-v="eff">Efficiency</button>
+                        <button class="sl-exp-btn" data-v="role">Role &amp; Impact</button>
+                    </span>
                 </div>
-            </div>
-
-            <div id="rookie-list" class="lc-block">
-                <div class="section-header">
-                    <h2>Rookies</h2>
-                    <span id="rookie-count" class="badge"></span>
+                <label class="pl-f"><span class="pl-lbl">Team</span> <select id="pl-team"><option value="">All teams</option></select></label>
+                <div class="pl-f"><span class="pl-lbl">Pos</span>
+                    <span class="sl-exp" id="pl-pos">
+                        <button class="sl-exp-btn" data-v="">All</button>
+                        <button class="sl-exp-btn" data-v="G">G</button>
+                        <button class="sl-exp-btn" data-v="F">F</button>
+                        <button class="sl-exp-btn" data-v="C">C</button>
+                    </span>
                 </div>
-                <div id="rookie-list-body" class="rl-grid"><div class="msg">Loading<span class="spinner"></span></div></div>
+                <div class="pl-f"><span class="pl-lbl">Exp</span>
+                    <span class="sl-exp" id="pl-exp">
+                        <button class="sl-exp-btn" data-v="">All</button>
+                        <button class="sl-exp-btn" data-v="rookie">Rookie</button>
+                        <button class="sl-exp-btn" data-v="sophomore">Sophomore</button>
+                        <button class="sl-exp-btn" data-v="veteran">Veteran</button>
+                    </span>
+                </div>
+                <label class="pl-f" title="Total minutes ≥ team games played × 20&#10;出場時間の合計が「チームの試合数 × 20分」以上"><span class="pl-lbl">Min.</span>
+                    <select id="pl-min"><option value="0">None</option><option value="20">20 MIN × team GP</option></select>
+                </label>
+                <span class="pl-count" id="pl-count"></span>
             </div>
+            <div id="pl-table"><div class="msg">Loading<span class="spinner"></span></div></div>
+            <div class="pl-note" id="pl-note"></div>
         </div>
 
         <div class="tab-panel" id="tab-leaders">
@@ -78,102 +117,89 @@
                     <button class="sl-exp-btn" data-exp="sophomore">Sophomore</button>
                     <button class="sl-exp-btn" data-exp="veteran">Veteran</button>
                 </div>
-                <div class="sl-note" id="sl-note">1試合平均・規定出場数を満たした選手</div>
+                <div class="sl-note" id="sl-note"><span data-ja="1試合平均・規定出場数を満たした選手">Per game · Qualified players only</span></div>
             </div>
+            <div class="sl-grp sl-grp-first">Counting <span class="sl-live-src"></span></div>
             <div class="rk-grid" id="sl-grid"></div>
+            <div class="sl-grp">Percentages <span class="sl-live-src"></span></div>
+            <div class="rk-grid" id="sl-grid-pct"></div>
+            <div class="sl-grp">Advanced <span id="sl-adv-src"></span></div>
+            <div class="rk-grid" id="sl-grid-adv"></div>
         </div>
 
     </div><!-- /main-wrap -->
 </main>
 
-<script src="../assets/api.js?v=2026111201"></script>
-<script src="../assets/teams.js?v=2026111201"></script>
-<script src="../assets/stats.js?v=2026111201"></script>
-<script src="../assets/ui.js?v=2026111201"></script>
-<script src="../assets/player-index.js?v=2026111201"></script>
+<script src="../assets/api.js?v=2026111301"></script>
+<script src="../assets/teams.js?v=2026111301"></script>
+<script src="../assets/stats.js?v=2026111301"></script>
+<script src="../assets/ui.js?v=2026111301"></script>
+<script src="../assets/player-index.js?v=2026111301"></script>
 <script>
 let playerIndex = [];   // 背番号・経験年数を引くため
 let teamIndex   = [];
 const indexReady = NBA.playerIndex().then(ix => { playerIndex = ix.players; teamIndex = ix.teams; });
 
-/* ─── タブ（?tab=leaders で Leaders を開く。Leaders は開いたときに読み込む） ─── */
+/* ─── タブ（?tab=leaders で Leaders を開く。どちらも開いたときに読み込む） ─── */
 function switchTab(tab) {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === `tab-${tab}`));
     NBA.url.set({ tab: tab === 'leaders' ? 'leaders' : null });
-    if (tab === 'leaders') loadLeaders();
+    if (tab === 'leaders') loadLeaders(); else loadPlayers();
 }
 document.querySelectorAll('.tab-btn').forEach(btn => btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
 
-/* ─── Search ─── */
-NBA.playerSearch(document.getElementById('q'), document.getElementById('suggestions'), {
-    onClear: () => { rookieListEl.hidden = false; },
-});
-
-/* ─── Rookie List（今季の新人をチームごとに表示） ─── */
-const rookieListEl = document.getElementById('rookie-list');
-const rookieBodyEl = document.getElementById('rookie-list-body');
-
-function renderRookieList() {
-    // 新人は expYears が 0 または 1 で返るため両方 Rookie 扱い（slExpClass と同じ基準）
-    const rookies = playerIndex.filter(p => p.expYears != null && p.expYears <= 1);
-    if (!rookies.length) {
-        rookieBodyEl.innerHTML = '<div class="msg">No rookie data available</div>';
-        return;
-    }
-    document.getElementById('rookie-count').textContent = `${rookies.length} players`;
-    rookieBodyEl.innerHTML = teamIndex.map(t => {
-        const players = rookies.filter(p => p.teamId === t.id);
-        if (!players.length) return '';
-        return `<div class="rl-team">
-            <div class="rl-team-head">
-                <img class="tl-logo" src="${esc(t.logo || FALLBACK_IMG)}" alt="" onerror="this.src='${FALLBACK_IMG}'">
-                <div class="sd-title">${esc(t.displayName)}</div>
-            </div>
-            <div class="tl-teams">${players.map(p => `
-                <a class="tl-team" href="${NBA.link.player(p.id)}">
-                    <img class="rl-photo" src="${esc(p.headshot || FALLBACK_IMG)}" alt="" onerror="this.src='${FALLBACK_IMG}'">
-                    <div class="t-roster-name-row">
-                        <span class="rl-name">${esc(p.displayName)}</span>
-                        ${p.jersey ? `<span class="t-roster-pos">#${esc(p.jersey)}</span>` : ''}
-                        ${p.position ? `<span class="t-roster-pos">${esc(p.position)}</span>` : ''}
-                    </div>
-                </a>`).join('')}
-            </div>
-        </div>`;
-    }).join('');
-}
-
-indexReady.then(renderRookieList);
-
-/* ─── Stats Leaders（全カテゴリーをカードで並べる） ─── */
+/* ─── Stats Leaders（全カテゴリーをカードで並べる。Counting / Percentages は ESPN、Advanced は advanced.json） ─── */
 const SL_YEAR = NBA.SEASON;
 const SL_TYPE = 2;  // Regular Season
+const SL_EXP_LIMIT  = 200;  // 上位200人を取って、こちらで絞り込む・計算する
+const SL_EXP_MIN_GP = 20;   // 経験年数の絞り込み時は20試合以上出場した選手のみ（ESPN の部門）
+const SORT_PTS = 'offensive.avgPoints:desc';
+const SORT_AST = 'offensive.avgAssists:desc';
 
-// カテゴリー。calc があるもの（Game Score・Fantasy）は PTS の上位100人からシーズン平均で計算して並べ直す
+// 割合の部門の下限: 成功数の合計が「チームの試合数 × per」以上（NBA 公式の基準を82試合で割ったもの）
+const pctMin = (per, nba, lbl, made) => ({
+    per, made,
+    note: `Min. ${per.toFixed(1)} ${lbl} × team GP (NBA: ${nba} ${lbl})`,
+    noteJa: `${lbl.replace('M', '')} 成功数が「チームの試合数 × ${per.toFixed(1)}」以上（NBA 公式は${nba === 300 ? '82試合で' : ''}${nba}本）`,
+});
+
+// カテゴリー。
+//   pool: 取得する並び順（limit=200）。pool があるものは200人からこちらで選ぶ（同じ並び順の部門は1回の取得を共有する）
+//   calc: こちらで計算して並べ直す / ok: 対象の条件 / extra: 名前の下の行に足すもの
 const SL_TABS = [
-    { key: 'GS',  title: 'Game Score', note: 'シーズン平均・REB の内訳は近似', sort: 'offensive.avgPoints:desc', calc: a => gsOf(a) },
-    { key: 'PTS', title: 'Points',   sort: 'offensive.avgPoints:desc',   catName: 'offensive', statName: 'avgPoints' },
-    { key: 'REB', title: 'Rebounds', sort: 'general.avgRebounds:desc',   catName: 'general',   statName: 'avgRebounds' },
-    { key: 'AST', title: 'Assists',  sort: 'offensive.avgAssists:desc',  catName: 'offensive', statName: 'avgAssists' },
-    { key: 'STL', title: 'Steals',   sort: 'defensive.avgSteals:desc',   catName: 'defensive', statName: 'avgSteals' },
-    { key: 'BLK', title: 'Blocks',   sort: 'defensive.avgBlocks:desc',   catName: 'defensive', statName: 'avgBlocks' },
-    { key: '3P%', title: '3P%',      sort: 'offensive.threePointFieldGoalPct:desc', catName: 'offensive', statName: 'threePointFieldGoalPct', isPct: true,
-      madeStatName: 'avgThreePointFieldGoalsMade', attStatName: 'avgThreePointFieldGoalsAttempted', madeLbl: '3P' },
-    { key: 'FT%', title: 'FT%',      sort: 'offensive.freeThrowPct:desc', catName: 'offensive', statName: 'freeThrowPct', isPct: true,
-      madeStatName: 'avgFreeThrowsMade', attStatName: 'avgFreeThrowsAttempted', madeLbl: 'FT' },
-    { key: 'FTA', title: 'FTA',      sort: 'offensive.avgFreeThrowsAttempted:desc', catName: 'offensive', statName: 'avgFreeThrowsAttempted' },
-    { key: 'TO',  title: 'Turnovers', sort: 'offensive.avgTurnovers:desc', catName: 'offensive', statName: 'avgTurnovers', note: '多い順' },
-    { key: 'DD2', title: 'Double-Doubles', sort: 'general.doubleDouble:desc', catName: 'general', statName: 'doubleDouble', isInt: true, note: '合計' },
-    { key: 'TD3', title: 'Triple-Doubles', sort: 'general.tripleDouble:desc', catName: 'general', statName: 'tripleDouble', isInt: true, note: '合計' },
-    { key: 'FP',  title: 'Fantasy', note: 'シーズン平均・nba-fantasy と同じ配点', sort: 'offensive.avgPoints:desc', calc: a => fpOf(a) },
+    { key: 'GS',  grp: 'count', title: 'Game Score', note: 'Season avg · REB split estimated', noteJa: 'シーズン平均・REB の内訳は近似', pool: SORT_PTS, calc: a => gsOf(a) },
+    { key: 'PTS', grp: 'count', title: 'Points',   pool: SORT_PTS,                            catName: 'offensive', statName: 'avgPoints' },
+    { key: 'REB', grp: 'count', title: 'Rebounds', sort: 'general.avgRebounds:desc',   catName: 'general',   statName: 'avgRebounds' },
+    { key: 'AST', grp: 'count', title: 'Assists',  pool: SORT_AST,                            catName: 'offensive', statName: 'avgAssists' },
+    { key: 'STL', grp: 'count', title: 'Steals',   sort: 'defensive.avgSteals:desc',   catName: 'defensive', statName: 'avgSteals' },
+    { key: 'BLK', grp: 'count', title: 'Blocks',   sort: 'defensive.avgBlocks:desc',   catName: 'defensive', statName: 'avgBlocks' },
+    { key: 'FTA', grp: 'count', title: 'FTA',      sort: 'offensive.avgFreeThrowsAttempted:desc', catName: 'offensive', statName: 'avgFreeThrowsAttempted' },
+    { key: 'TO',  grp: 'count', title: 'Turnovers', sort: 'offensive.avgTurnovers:desc', catName: 'offensive', statName: 'avgTurnovers', note: 'Most first' },
+    { key: 'DD2', grp: 'count', title: 'Double-Doubles', sort: 'general.doubleDouble:desc', catName: 'general', statName: 'doubleDouble', isInt: true, note: 'Total' },
+    { key: 'TD3', grp: 'count', title: 'Triple-Doubles', sort: 'general.tripleDouble:desc', catName: 'general', statName: 'tripleDouble', isInt: true, note: 'Total' },
+    { key: 'FP',  grp: 'count', title: 'Fantasy', note: 'Season avg · Same scoring as nba-fantasy', noteJa: 'シーズン平均・nba-fantasy と同じ配点', pool: SORT_PTS, calc: a => fpOf(a) },
+    { key: 'ASTTO', grp: 'count', title: 'AST/TO', note: 'Min. 3.0 AST per game', noteJa: '1試合平均 3.0 アシスト以上', pool: SORT_AST, isRatio: true,
+      calc: a => slv(a, 'offensive', 'avgAssists') / slv(a, 'offensive', 'avgTurnovers'),
+      ok: a => slv(a, 'offensive', 'avgAssists') >= 3 && slv(a, 'offensive', 'avgTurnovers') > 0,
+      extra: a => `<b>${f1(slv(a, 'offensive', 'avgTurnovers'))}</b> to` },
+    { key: 'FG%', grp: 'pct', title: 'FG%', pool: 'offensive.fieldGoalPct:desc', catName: 'offensive', statName: 'fieldGoalPct', isPct: true,
+      madeStatName: 'avgFieldGoalsMade', attStatName: 'avgFieldGoalsAttempted', madeLbl: 'FG', min: pctMin(3.7, 300, 'FGM', ['fieldGoalsMade', 'avgFieldGoalsMade']) },
+    { key: '3P%', grp: 'pct', title: '3P%', pool: 'offensive.threePointFieldGoalPct:desc', catName: 'offensive', statName: 'threePointFieldGoalPct', isPct: true,
+      madeStatName: 'avgThreePointFieldGoalsMade', attStatName: 'avgThreePointFieldGoalsAttempted', madeLbl: '3P', min: pctMin(1.0, 82, '3PM', ['threePointFieldGoalsMade', 'avgThreePointFieldGoalsMade']) },
+    { key: 'FT%', grp: 'pct', title: 'FT%', pool: 'offensive.freeThrowPct:desc', catName: 'offensive', statName: 'freeThrowPct', isPct: true,
+      madeStatName: 'avgFreeThrowsMade', attStatName: 'avgFreeThrowsAttempted', madeLbl: 'FT', min: pctMin(1.5, 125, 'FTM', ['freeThrowsMade', 'avgFreeThrowsMade']) },
+    // TS% = PTS / (2 × (FGA + 0.44 × FTA))。得点の上位200人（規定出場を満たした選手）から、1試合平均 FGA 10本以上
+    { key: 'TS%', grp: 'pct', title: 'TS%', note: 'Min. 10 FGA per game', noteJa: '1試合平均 FGA 10本以上', pool: SORT_PTS, isPct: true,
+      calc: a => 100 * slv(a, 'offensive', 'avgPoints') / (2 * (slv(a, 'offensive', 'avgFieldGoalsAttempted') + 0.44 * slv(a, 'offensive', 'avgFreeThrowsAttempted'))),
+      ok: a => slv(a, 'offensive', 'avgFieldGoalsAttempted') >= 10,
+      extra: a => `<b>${f1(slv(a, 'offensive', 'avgFieldGoalsAttempted'))}</b> fga · <b>${f1(slv(a, 'offensive', 'avgFreeThrowsAttempted'))}</b> fta` },
 ];
+const slTabId = k => k.replace('%', 'p');
 
 const slCache    = {};      // `${key}|${exp}` → athletes[]
-const slRawCache = {};      // key → 絞り込み用の上位200人（Rookie〜Veteran で共有）
+const slPools    = {};      // `${sort}|${limit}` → 取得した athletes[]（Rookie〜Veteran で共有）
 let slExp        = 'all';   // 経験年数の絞り込み
-const SL_EXP_LIMIT  = 200;
-const SL_EXP_MIN_GP = 20;   // 絞り込み時は20試合以上出場した選手のみ
 let slCatMap = null;        // category name → { statName → index }
 let slYear   = SL_YEAR;     // 今季のランキングがまだない（プレシーズンなど）ときは前のシーズン
 
@@ -191,12 +217,13 @@ function getSlVal(athlete, catName, statName) {
     if (idx == null) return null;
     return (athlete.categories || []).find(c => c.name === catName)?.values?.[idx] ?? null;
 }
+const slv = (a, c, n) => getSlVal(a, c, n) ?? 0;
 
 // Game Score のシーズン平均（式は assets/stats.js の gameScore と同じ）。
 // Leaders の API はリバウンドの内訳（OREB/DREB）を返さないので、0.7×OREB＋0.3×DREB を
 // リーグ平均の内訳（OREB が約23%）から REB×0.4 で近似する
 function gsOf(a) {
-    const v = (c, n) => getSlVal(a, c, n) ?? 0;
+    const v = (c, n) => slv(a, c, n);
     return v('offensive', 'avgPoints') + 0.4 * v('offensive', 'avgFieldGoalsMade') - 0.7 * v('offensive', 'avgFieldGoalsAttempted')
         - 0.4 * (v('offensive', 'avgFreeThrowsAttempted') - v('offensive', 'avgFreeThrowsMade'))
         + 0.4 * v('general', 'avgRebounds') + v('defensive', 'avgSteals') + 0.7 * v('offensive', 'avgAssists')
@@ -205,55 +232,94 @@ function gsOf(a) {
 
 // ファンタジーポイントのシーズン平均（配点は assets/stats.js の FANTASY_SCORING）
 function fpOf(a) {
-    const v = (c, n) => getSlVal(a, c, n) ?? 0;
+    const v = (c, n) => slv(a, c, n);
     return fantasyPoints({ pts: v('offensive', 'avgPoints'), oreb: v('general', 'avgRebounds'), dreb: 0,
         ast: v('offensive', 'avgAssists'), stl: v('defensive', 'avgSteals'), blk: v('defensive', 'avgBlocks'), to: v('offensive', 'avgTurnovers') });
 }
 
-async function fetchSlLeaders(tab, limit = tab.calc ? 100 : 10) {
-    const load = year => NBA.api.leaders(`season=${year}&seasontype=${SL_TYPE}&limit=${limit}&qualified=true&sort=${encodeURIComponent(tab.sort)}`);
-    let data = await load(slYear);
-    if (!data.athletes?.length && slYear === SL_YEAR) {
-        slYear = SL_YEAR - 1;
-        data = await load(slYear);
-    }
-    if (!slCatMap && data.categories) slCatMap = buildSlCatMap(data.categories);
-    const rs = data.requestedSeason;
-    if (rs?.displayName) document.getElementById('sl-season-badge').textContent = `${rs.displayName} ${rs.type?.name || 'Regular Season'}`;
-    let athletes = data.athletes || [];
-    if (tab.calc) athletes = athletes.map(a => ({ ...a, _v: tab.calc(a) })).sort((a, b) => b._v - a._v);
-    // 回数を数えるカテゴリー（DD2 / TD3）は0回の選手を出さない
-    if (tab.isInt) athletes = athletes.filter(a => (getSlVal(a, tab.catName, tab.statName) ?? 0) > 0);
-    return limit === SL_EXP_LIMIT ? athletes : athletes.slice(0, 10);
+// ESPN のランキング（規定出場を満たした選手のみ）。取得は api.js が1時間キャッシュする
+function fetchSlPool(sort, limit) {
+    const k = `${sort}|${limit}`;
+    return slPools[k] ||= (async () => {
+        const load = year => NBA.api.leaders(`season=${year}&seasontype=${SL_TYPE}&limit=${limit}&qualified=true&sort=${encodeURIComponent(sort)}`);
+        let data = await load(slYear);
+        if (!data.athletes?.length && slYear === SL_YEAR) {
+            slYear = SL_YEAR - 1;
+            data = await load(slYear);
+        }
+        if (!slCatMap && data.categories) slCatMap = buildSlCatMap(data.categories);
+        const rs = data.requestedSeason;
+        if (rs?.displayName) document.getElementById('sl-season-badge').textContent = `${rs.displayName} ${rs.type?.name || 'Regular Season'}`;
+        slLiveSrc();
+        return data.athletes || [];
+    })().catch(e => { delete slPools[k]; throw e; });
 }
 
-// ロスターの経験年数（今季時点）を、表示中のシーズン時点に戻して判定する
-function slExpClass(athleteId) {
+// ESPN のバッジ（前のシーズンを表示しているときはその年）
+const slLiveSrc = () => document.querySelectorAll('.sl-live-src').forEach(el => {
+    el.innerHTML = NBA.ui.src.live(`ESPN · ${slYear - 1}-${String(slYear).slice(2)}`);
+});
+slLiveSrc();
+
+// チームの試合数: 取得済みの選手（得点の上位200人＋その部門の200人）のうち、同じチームの選手の出場試合数の最大値。
+// チームが分からないときはリーグ全体の最大値（standings を追加で取らないための近似）
+function slTeamGames(...lists) {
+    const map = {}; let max = 0;
+    lists.flat().forEach(a => {
+        const t = normAbbr(a.athlete?.teamShortName || ''), gp = slv(a, 'general', 'gamesPlayed');
+        if (t) map[t] = Math.max(map[t] || 0, gp);
+        max = Math.max(max, gp);
+    });
+    return a => map[normAbbr(a.athlete?.teamShortName || '')] || max;
+}
+
+// 成功数の合計（合計の値がなければ 1試合平均 × 出場試合数）
+function slMadeTotal(a, [totalName, avgName]) {
+    const t = getSlVal(a, 'offensive', totalName);
+    return t != null ? t : slv(a, 'offensive', avgName) * slv(a, 'general', 'gamesPlayed');
+}
+
+// ロスターの経験年数（今季時点）を、表示中のシーズン時点に戻して判定する（shift = 今季から何シーズン前か）
+function slExpClass(athleteId, shift = SL_YEAR - slYear) {
     const p = playerIndex.find(x => x.id === String(athleteId));
     if (p?.expYears == null) return null;
-    const years = p.expYears - (SL_YEAR - slYear);
+    const years = p.expYears - shift;
     return years <= 1 ? 'rookie' : years === 2 ? 'sophomore' : 'veteran';
 }
 
-async function fetchSlLeadersByExp(tab, exp) {
-    if (!slRawCache[tab.key]) slRawCache[tab.key] = fetchSlLeaders(tab, SL_EXP_LIMIT);
-    const raw = await slRawCache[tab.key];
-    await indexReady;
-    return raw
-        .filter(a => (getSlVal(a, 'general', 'gamesPlayed') ?? 0) >= SL_EXP_MIN_GP)
-        .filter(a => slExpClass(a.athlete?.id) === exp)
-        .slice(0, 10);
+async function fetchSlLeaders(tab, exp) {
+    const sort = tab.pool || tab.sort;
+    const limit = tab.pool || exp !== 'all' ? SL_EXP_LIMIT : 10;
+    let athletes = await fetchSlPool(sort, limit);
+    if (tab.calc) athletes = athletes.map(a => ({ ...a, _v: tab.calc(a) })).filter(a => isFinite(a._v)).sort((a, b) => b._v - a._v);
+    // 回数を数えるカテゴリー（DD2 / TD3）は0回の選手を出さない
+    if (tab.isInt) athletes = athletes.filter(a => (getSlVal(a, tab.catName, tab.statName) ?? 0) > 0);
+    if (tab.ok) athletes = athletes.filter(tab.ok);
+    if (tab.min) {
+        const gamesOf = slTeamGames(await fetchSlPool(SORT_PTS, SL_EXP_LIMIT), athletes);
+        athletes = athletes.filter(a => slMadeTotal(a, tab.min.made) >= tab.min.per * gamesOf(a));
+    }
+    if (exp !== 'all') {
+        await indexReady;
+        athletes = athletes.filter(a => slv(a, 'general', 'gamesPlayed') >= SL_EXP_MIN_GP && slExpClass(a.athlete?.id) === exp);
+    }
+    return athletes.slice(0, 10);
 }
 
 /* ── カード ── */
 const f1 = v => v == null || isNaN(v) ? '-' : v.toFixed(1);
+const sgn1 = v => v == null || isNaN(v) ? '-' : (v > 0 ? '+' : '') + v.toFixed(1);
 function slMainVal(a, tab) {
     const v = tab.calc ? a._v : getSlVal(a, tab.catName, tab.statName);
     if (v == null || isNaN(v)) return '-';
     if (tab.isInt) return String(Math.round(v));
     if (tab.isPct) return v.toFixed(1) + '%';
+    if (tab.isRatio) return v.toFixed(2);
     return v.toFixed(1);
 }
+
+const slEmpty = () => slExp === 'all' ? '<div class="msg">No data</div>'
+    : `<div class="msg" data-ja="${SL_EXP_MIN_GP}試合以上出場した選手がまだいません">No players with ${SL_EXP_MIN_GP}+ GP yet</div>`;
 
 function slCardHTML(tab, athletes) {
     const S = (a, c, n) => getSlVal(a, c, n);
@@ -275,7 +341,7 @@ function slCardHTML(tab, athletes) {
             return `<div class="rk-top">
                 <span class="rk-rank">${i + 1}</span>${photo}
                 <div class="rk-body">${nameHTML}<div class="rk-sub">${esc(team)}${jersey ? ` #${esc(jersey)}` : ''}${gp != null ? ` · ${Math.round(gp)} GP` : ''}</div>
-                    <div class="rk-line"><b>${pts}</b> pts · <b>${reb}</b> reb · <b>${ast}</b> ast${tab.madeStatName ? ` · ${madeAtt(a)}` : ''}</div></div>
+                    <div class="rk-line"><b>${pts}</b> pts · <b>${reb}</b> reb · <b>${ast}</b> ast${tab.madeStatName ? ` · ${madeAtt(a)}` : ''}${tab.extra ? ` · ${tab.extra(a)}` : ''}</div></div>
                 <span class="rk-val">${slMainVal(a, tab)}</span>
                 <div class="rk-chips">
                     <span class="tp-chip"><strong>${pct('fieldGoalPct')}</strong> FG</span>
@@ -289,39 +355,123 @@ function slCardHTML(tab, athletes) {
                 </div>
             </div>`;
         }
-        const line = `${pts} pts · ${reb} reb · ${ast} ast · ${tab.madeStatName ? madeAtt(a) : `${f1(S(a, 'general', 'avgMinutes'))} min`}`;
+        const tail = tab.extra ? tab.extra(a).replace(/<\/?b>/g, '') : tab.madeStatName ? madeAtt(a) : `${f1(S(a, 'general', 'avgMinutes'))} min`;
+        const line = `${pts} pts · ${reb} reb · ${ast} ast · ${tail}`;
         return `<div class="rk-row"><span class="rk-rank">${i + 1}</span><div class="rk-body">${nameHTML}<div class="rk-line">${line}</div></div><span class="rk-team">${esc(team)}</span><span class="rk-val">${slMainVal(a, tab)}</span></div>`;
     }).join('');
-    if (rows) return rows;
-    return slExp === 'all' ? '<div class="msg">No data</div>'
-        : `<div class="msg">${SL_EXP_MIN_GP}試合以上出場した選手がまだいません</div>`;
+    return rows || slEmpty();
+}
+
+/* ── Advanced（data/advanced.json の profiles / players）──
+   USG% / AST% / REB%: 出場時間が「所属チームの試合数 × 20分」以上（advanced.js の Player Profile の順位と同じ基準。試合数は teamStyle の gp）
+   On − Off: On と Off がどちらも150分以上。100ポゼッションあたりの Net の差（advanced.js の onOffRows と同じ計算） */
+const ADV_MIN_PER_GAME = 20, ADV_ONOFF_MIN = 150;
+const ADV_Q20 = { note: `MIN ≥ ${ADV_MIN_PER_GAME} × team GP`, noteJa: `出場時間が「チームの試合数 × ${ADV_MIN_PER_GAME}分」以上` };
+const ADV_TABS = [
+    { key: 'USG', title: 'USG%', ...ADV_Q20, src: 'prof', get: p => p.usg },
+    { key: 'ASTP', title: 'AST%', ...ADV_Q20, src: 'prof', get: p => p.ast },
+    { key: 'REBP', title: 'REB%', ...ADV_Q20, src: 'prof', get: p => p.reb },
+    { key: 'ONOFF', title: 'On − Off', note: `Min. ${ADV_ONOFF_MIN} MIN on and off · Per 100 poss.`, noteJa: `On と Off がどちらも${ADV_ONOFF_MIN}分以上・100ポゼッションあたり`, src: 'onoff', get: o => o.diff },
+];
+let advPromise = null;
+const advRowsCache = new WeakMap();
+
+function advRows(d) {
+    const rating = (pts, poss) => poss > 0 ? 100 * pts / poss : null;
+    const games = Object.fromEntries((d.teamStyle || []).map(t => [t.team, t.gp]));
+    const profById = Object.fromEntries((d.profiles || []).map(p => [p.id, p]));
+    const prof = (d.profiles || []).filter(p => p.min >= (games[p.team] || 0) * ADV_MIN_PER_GAME);
+    const all = (d.players || []).map(p => {
+        const onNet = p.offPoss > 0 && p.defPoss > 0 ? rating(p.pf, p.offPoss) - rating(p.pa, p.defPoss) : null;
+        const offO = rating(p.tPF - p.pf, p.tOff - p.offPoss), offD = rating(p.tPA - p.pa, p.tDef - p.defPoss);
+        const offNet = offO != null && offD != null ? offO - offD : null;
+        return { ...p, onMin: p.sec / 60, offMin: (p.tSec - p.sec) / 60, onNet, offNet,
+            diff: onNet != null && offNet != null ? onNet - offNet : null };
+    });
+    const onoff = all.filter(o => o.diff != null && o.onMin >= ADV_ONOFF_MIN && o.offMin >= ADV_ONOFF_MIN);
+    return { prof, onoff, profById, ooById: Object.fromEntries(all.map(o => [o.id, o])) };
+}
+
+async function advLeaders(tab, exp) {
+    const d = await (advPromise ||= NBA.data.advanced().catch(e => { advPromise = null; throw e; }));
+    const R = advRowsCache.get(d) || advRowsCache.set(d, advRows(d)).get(d);   // 共有のデータには書き込まない
+    await indexReady;
+    // 分析データは今季の分なので、経験年数はずらさずに判定する
+    return (tab.src === 'prof' ? R.prof : R.onoff)
+        .filter(x => tab.get(x) != null && (exp === 'all' || slExpClass(x.id, 0) === exp))
+        .map(x => ({ x, v: tab.get(x), p: R.profById[x.id], o: R.ooById[x.id] }))
+        .sort((a, b) => b.v - a.v).slice(0, 10);
+}
+
+function advCardHTML(tab, list) {
+    const pctv = v => v == null ? '-' : v.toFixed(1) + '%';
+    const val = v => tab.src === 'onoff' ? sgn1(v) : pctv(v);
+    const rows = list.map(({ x, v, p, o }, i) => {
+        const ix = playerIndex.find(y => y.id === String(x.id));
+        const name = ix?.displayName || x.name;   // advanced.json の名前は「L. James」の形なので、ロスターの名前を優先
+        const nameHTML = `<a class="rk-name" href="${NBA.link.player(x.id)}">${esc(name)}</a>`;
+        const mpg = p && p.gp ? p.min / p.gp : x.gp ? x.sec / 60 / x.gp : null;
+        const detail = tab.src === 'onoff'
+            ? `On <b>${sgn1(o.onNet)}</b> · Off <b>${sgn1(o.offNet)}</b> · ${Math.round(o.onMin)} / ${Math.round(o.offMin)} min`
+            : `<b>${f1(mpg)}</b> min · TS <b>${f1(p.ts)}%</b> · <b>${p.min}</b> total min`;
+        if (i < 3) {
+            const photo = ix?.headshot
+                ? `<img class="tp-photo" src="${esc(ix.headshot)}" alt="" onerror="this.style.display='none'">`
+                : `<div class="tp-photo-placeholder">${esc(name.charAt(0))}</div>`;
+            return `<div class="rk-top">
+                <span class="rk-rank">${i + 1}</span>${photo}
+                <div class="rk-body">${nameHTML}<div class="rk-sub">${esc(x.team)}${ix?.jersey ? ` #${esc(ix.jersey)}` : ''}${x.gp != null ? ` · ${x.gp} GP` : ''}</div>
+                    <div class="rk-line">${detail}</div></div>
+                <span class="rk-val">${val(v)}</span>
+                <div class="rk-chips">
+                    <span class="tp-chip"><strong>${pctv(p?.ts)}</strong> TS</span>
+                    <span class="tp-chip"><strong>${pctv(p?.efg)}</strong> eFG</span>
+                    <span class="tp-chip"><strong>${pctv(p?.usg)}</strong> USG</span>
+                    <span class="tp-chip">MIN <strong>${f1(mpg)}</strong></span>
+                    <span class="tp-chip"><strong>${pctv(p?.ast)}</strong> AST</span>
+                    <span class="tp-chip"><strong>${pctv(p?.tov)}</strong> TOV</span>
+                    <span class="tp-chip"><strong>${pctv(p?.reb)}</strong> REB</span>
+                    <span class="tp-chip">+/- <strong>${o ? `${o.boxPm > 0 ? '+' : ''}${o.boxPm}` : '-'}</strong></span>
+                </div>
+            </div>`;
+        }
+        return `<div class="rk-row"><span class="rk-rank">${i + 1}</span><div class="rk-body">${nameHTML}<div class="rk-line">${detail.replace(/<\/?b>/g, '')}</div></div><span class="rk-team">${esc(x.team)}</span><span class="rk-val">${val(v)}</span></div>`;
+    }).join('');
+    return rows || `<div class="msg" data-ja="条件を満たす選手がいません">No qualified players</div>`;
 }
 
 let slSeq = 0;
 function loadLeaders() {
     const seq = ++slSeq, exp = slExp;
-    document.getElementById('sl-note').textContent = exp === 'all'
-        ? '1試合平均・規定出場数を満たした選手' : `1試合平均・${SL_EXP_MIN_GP}試合以上出場した選手のみ`;
-    const grid = document.getElementById('sl-grid');
-    grid.innerHTML = SL_TABS.map(t => `<section class="rk-card" id="sl-card-${t.key.replace('%', 'p')}">
-        <div class="rk-head"><span class="rk-title">${t.title}</span>${t.note ? `<span class="rk-note">${t.note}</span>` : ''}</div>
+    document.getElementById('sl-note').innerHTML = exp === 'all'
+        ? '<span data-ja="1試合平均・規定出場数を満たした選手">Per game · Qualified players only</span>'
+        : `<span data-ja="1試合平均・${SL_EXP_MIN_GP}試合以上出場した選手のみ（Advanced は各カードの条件）">Per game · ${SL_EXP_MIN_GP}+ GP only (Advanced: card rules)</span>`;
+    const card = t => `<section class="rk-card" id="sl-card-${slTabId(t.key)}">
+        <div class="rk-head"><span class="rk-title">${t.title}</span>${t.note || t.min ? `<span class="rk-note"${(t.min || t).noteJa ? ` data-ja="${(t.min || t).noteJa}"` : ''}>${(t.min || t).note}</span>` : ''}</div>
         <div class="rk-list"><div class="msg">Loading<span class="spinner"></span></div></div>
-    </section>`).join('');
-    // カテゴリーごとに届いた順に埋める（取得は api.js が1時間キャッシュする）
-    SL_TABS.forEach(async tab => {
+    </section>`;
+    document.getElementById('sl-grid').innerHTML = SL_TABS.filter(t => t.grp === 'count').map(card).join('');
+    document.getElementById('sl-grid-pct').innerHTML = SL_TABS.filter(t => t.grp === 'pct').map(card).join('');
+    document.getElementById('sl-grid-adv').innerHTML = ADV_TABS.map(card).join('');
+    const fill = async (tab, load, html) => {
         const key = `${tab.key}|${exp}`;
-        const el = grid.querySelector(`#sl-card-${tab.key.replace('%', 'p')} .rk-list`);
+        const el = document.querySelector(`#sl-card-${slTabId(tab.key)} .rk-list`);
         try {
-            if (!slCache[key]) slCache[key] = exp === 'all' ? fetchSlLeaders(tab) : fetchSlLeadersByExp(tab, exp);
-            const athletes = await slCache[key];
-            await indexReady;  // 背番号を playerIndex から引くため
-            if (seq === slSeq) el.innerHTML = slCardHTML(tab, athletes);
+            if (!slCache[key]) slCache[key] = load(tab, exp);
+            const list = await slCache[key];
+            await indexReady;  // 背番号・顔写真を playerIndex から引くため
+            if (seq === slSeq) el.innerHTML = html(tab, list);
         } catch (e) {
             delete slCache[key];
             if (seq === slSeq) el.innerHTML = '<div class="msg error">Failed to load</div>';
             console.error('leaders:', e);
         }
-    });
+    };
+    // カテゴリーごとに届いた順に埋める
+    SL_TABS.forEach(tab => fill(tab, fetchSlLeaders, slCardHTML));
+    ADV_TABS.forEach(tab => fill(tab, advLeaders, advCardHTML));
+    (advPromise ||= NBA.data.advanced().catch(e => { advPromise = null; throw e; }))
+        .then(d => { document.getElementById('sl-adv-src').innerHTML = NBA.ui.src.ana(d); }).catch(() => {});
 }
 
 document.querySelectorAll('#sl-exp .sl-exp-btn').forEach(btn => btn.addEventListener('click', () => {
@@ -330,10 +480,233 @@ document.querySelectorAll('#sl-exp .sl-exp-btn').forEach(btn => btn.addEventList
     loadLeaders();
 }));
 
-if (NBA.url.get('tab') === 'leaders') switchTab('leaders');
+/* ─── Players: 全選手の表 ───
+   ESPN の statistics/byathlete を規定外の選手も含めて（isqualified=false）1回で全員取る。
+   ※ qualified=false は効かず規定を満たした選手だけが返るため、isqualified=false を使う
+   ESPN で出せない列（USG% / TOV% / GmSc / AST% / REB% / On−Off）は分析データ（advanced.json）を ESPN の選手 ID で結び付ける */
+const PL_LIMIT = 1000;      // 1ページで全員（2026-11 時点で約460人）。超えたときは続きのページを取る
+const PL_MAX_PAGES = 3;
+const PL_ONOFF_MIN = ADV_ONOFF_MIN;   // Role & Impact: On か Off がこの分数未満の行は薄く
+const PL_VIEWS = ['basic', 'eff', 'role'];
+const PL_EXPS = ['rookie', 'sophomore', 'veteran'];
 
-document.getElementById('last-updated').textContent =
-    new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' });
+// 状態は URL に保つ（?view= ?team= ?pos= ?exp= ?min=0 ?sort= ?asc=1。Leaders の ?tab= と両立）
+const plState = (() => {
+    const g = k => NBA.url.get(k) || '';
+    return {
+        view: PL_VIEWS.includes(g('view')) ? g('view') : 'basic',
+        team: g('team').toUpperCase(),
+        pos: ['G', 'F', 'C'].includes(g('pos')) ? g('pos') : '',
+        exp: PL_EXPS.includes(g('exp')) ? g('exp') : '',
+        min: g('min') === '0' ? '0' : '20',
+        sort: g('sort') || null,
+        asc: g('asc') === '1',
+    };
+})();
+function plSaveUrl() {
+    const s = plState;
+    NBA.url.set({ view: s.view === 'basic' ? null : s.view, team: s.team || null, pos: s.pos || null, exp: s.exp || null,
+        min: s.min === '0' ? '0' : null, sort: s.sort, asc: s.sort && s.asc ? '1' : null });
+}
+
+let plAthletesP = null;
+function fetchPlAthletes() {
+    return plAthletesP ||= (async () => {
+        const q = (year, page) => `season=${year}&seasontype=${SL_TYPE}&limit=${PL_LIMIT}&isqualified=false&sort=${encodeURIComponent(SORT_PTS)}${page > 1 ? `&page=${page}` : ''}`;
+        let data = await NBA.api.leaders(q(slYear, 1));
+        if (!data.athletes?.length && slYear === SL_YEAR) {
+            slYear = SL_YEAR - 1;   // 今季の成績がまだないときは前のシーズン（Leaders と同じ）
+            data = await NBA.api.leaders(q(slYear, 1));
+        }
+        if (!slCatMap && data.categories) slCatMap = buildSlCatMap(data.categories);
+        slLiveSrc();
+        const list = [...(data.athletes || [])];
+        const pages = Math.min(data.pagination?.pages || 1, PL_MAX_PAGES);
+        for (let p = 2; p <= pages; p++) list.push(...((await NBA.api.leaders(q(slYear, p))).athletes || []));
+        const seen = new Set();
+        return list.filter(a => a.athlete?.id && !seen.has(a.athlete.id) && seen.add(a.athlete.id));
+    })().catch(e => { plAthletesP = null; throw e; });
+}
+
+// ロスターの位置（PG / SF など）は G / F / C にまとめる
+const plPos = p => ({ PG: 'G', SG: 'G', SF: 'F', PF: 'F' })[p] || p;
+const plMean = xs => xs?.length ? xs.reduce((s, x) => s + x, 0) / xs.length : null;
+const plDiv = (a, b) => b > 0 ? a / b : null;
+
+function plBuildRows(athletes, adv) {
+    const R = adv ? (advRowsCache.get(adv) || advRowsCache.set(adv, advRows(adv)).get(adv)) : null;
+    const teamGP = {};
+    athletes.forEach(a => {
+        const t = normAbbr(a.athlete?.teamShortName || '');
+        teamGP[t] = Math.max(teamGP[t] || 0, slv(a, 'general', 'gamesPlayed'));
+    });
+    return athletes.map(a => {
+        const ath = a.athlete, id = String(ath.id), v = (c, n) => getSlVal(a, c, n);
+        const ix = playerIndex.find(x => x.id === id);
+        const team = normAbbr(ath.teamShortName || '') || ix?.teamAbbr || '';
+        const gp = v('general', 'gamesPlayed') || 0, min = v('general', 'avgMinutes');
+        const pts = v('offensive', 'avgPoints'), ast = v('offensive', 'avgAssists'), to = v('offensive', 'avgTurnovers');
+        const fgm = v('offensive', 'avgFieldGoalsMade'), fga = v('offensive', 'avgFieldGoalsAttempted');
+        const tpm = v('offensive', 'avgThreePointFieldGoalsMade'), fta = v('offensive', 'avgFreeThrowsAttempted');
+        const p = R?.profById[id], o = R?.ooById[id];
+        return {
+            id, name: ath.displayName || ix?.displayName || '—', headshot: ath.headshot?.href || ix?.headshot || '',
+            pos: plPos(ath.position?.abbreviation || ix?.position || ''), team, exp: slExpClass(id),
+            gp, min, totMin: v('general', 'minutes') ?? (min || 0) * gp, teamGP: teamGP[team] || gp,
+            pts, reb: v('general', 'avgRebounds'), ast, to, astto: to > 0 ? ast / to : null,
+            stl: v('defensive', 'avgSteals'), blk: v('defensive', 'avgBlocks'), pf: v('general', 'avgFouls'),
+            fgm, fga, fgp: v('offensive', 'fieldGoalPct'), tpm, tpa: v('offensive', 'avgThreePointFieldGoalsAttempted'), tpp: v('offensive', 'threePointFieldGoalPct'),
+            ftm: v('offensive', 'avgFreeThrowsMade'), fta, ftp: v('offensive', 'freeThrowPct'),
+            // ESPN の数字から計算する列
+            ts: plDiv(100 * pts, 2 * (fga + 0.44 * fta)), efg: plDiv(100 * (fgm + 0.5 * tpm), fga), p36: plDiv(36 * pts, min),
+            // 分析データの列
+            usg: p?.usg ?? null, tovp: p?.tov ?? null, astp: p?.ast ?? null, rebp: p?.reb ?? null, gs: plMean(p?.gs),
+            // +/-: advanced.json の boxPm は合計なので、分析データの出場試合数で割って1試合平均に
+            pm: o?.boxPm != null && o.gp > 0 ? o.boxPm / o.gp : null,
+            onoff: o?.diff ?? null, onMin: o?.onMin ?? null, offMin: o?.offMin ?? null,
+        };
+    });
+}
+
+/* ── 列のセット ── */
+const plN = d => v => v == null || !isFinite(v) ? '-' : v.toFixed(d);
+const plF0 = plN(0), plF1 = plN(1), plF2 = plN(2);
+const plCls = v => v == null ? '' : v > 0 ? 'pos' : v < 0 ? 'neg' : '';
+const plCol = (key, label, fmt = plF1, extra = {}) => ({ key, label, get: r => r[key], fmt: r => fmt(r[key]), ...extra });
+const PL_BASE = [
+    { key: 'name', label: 'Player', cls: 'l pl-name', asc: true, get: r => r.name,
+      fmt: r => `<img class="pl-ph" src="${esc(r.headshot || FALLBACK_IMG)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'"><a class="plain-link" href="${NBA.link.player(r.id)}"><b>${esc(r.name)}</b></a><span class="pl-sub">${esc(r.pos)}${r.exp === 'rookie' ? ' · R' : ''}</span>` },
+    { key: 'team', label: 'Team', cls: 'l', asc: true, get: r => r.team,
+      fmt: r => r.team ? `<a class="plain-link" href="${NBA.link.team(r.team)}"><b>${esc(r.team)}</b></a>` : '-' },
+    plCol('gp', 'GP', plF0),
+    plCol('min', 'MIN', plF1, { title: 'Minutes per game\n1試合平均の出場時間' }),
+];
+const PL_COLS = {
+    basic: [
+        plCol('pts', 'PTS', plF1, { cls: 'g1 adv-key' }),
+        plCol('reb', 'REB', plF1, { cls: 'g1' }),
+        plCol('ast', 'AST', plF1, { cls: 'g1' }), plCol('to', 'TO', plF1, { asc: true }), plCol('astto', 'AST/TO', plF2),
+        plCol('stl', 'STL', plF1, { cls: 'g1' }), plCol('blk', 'BLK'), plCol('pf', 'PF', plF1, { asc: true }),
+        plCol('fgm', 'FGM', plF1, { cls: 'g1' }), plCol('fga', 'FGA'), plCol('fgp', 'FG%'),
+        plCol('tpm', '3PM', plF1, { cls: 'g1' }), plCol('tpa', '3PA'), plCol('tpp', '3P%'),
+        plCol('ftm', 'FTM', plF1, { cls: 'g1' }), plCol('fta', 'FTA'), plCol('ftp', 'FT%'),
+        // +/- だけは分析データ（ESPN の byathlete にないため）。title は分析データの期間を入れる
+        { ...plCol('pm', '+/-', sgn1, { cls: 'g1' }), tdCls: r => plCls(r.pm),
+          get title() { const d = plAdv?.to ? `${+plAdv.to.slice(4, 6)}/${+plAdv.to.slice(6, 8)}` : '?'; return `Box score +/- per game. From analytics data (thru ${d})\n1試合平均のボックススコアの +/-。分析データ（〜${d}）の値`; } },
+    ],
+    eff: [
+        plCol('ts', 'TS%', plF1, { cls: 'g1 adv-key', title: 'PTS / (2 × (FGA + 0.44 × FTA)) · ESPN' }),
+        plCol('efg', 'eFG%', plF1, { title: '(FGM + 0.5 × 3PM) / FGA · ESPN' }),
+        plCol('usg', 'USG%', plF1, { title: 'Share of team plays used while on court · Analytics\n出場中にチームの攻撃を使った割合（分析データ）' }),
+        plCol('tovp', 'TOV%', plF1, { asc: true, title: 'Turnovers per 100 plays · Analytics\n100プレーあたりのターンオーバー（分析データ）' }),
+        plCol('astto', 'AST/TO', plF2, { title: 'AST / TO · ESPN' }),
+        plCol('gs', 'GmSc', plF1, { title: 'Average Game Score · Analytics\nGame Score の平均（分析データ）' }),
+        plCol('p36', 'PTS/36', plF1, { title: 'Points per 36 minutes · ESPN\n36分あたりの得点（ESPN）' }),
+    ],
+    role: [
+        plCol('usg', 'USG%', plF1, { cls: 'g1', title: 'Share of team plays used while on court\n出場中にチームの攻撃を使った割合' }),
+        plCol('astp', 'AST%', plF1, { title: 'Share of teammate FGM he assisted while on court\n出場中の味方の FG 成功のうちアシストした割合' }),
+        plCol('rebp', 'REB%', plF1, { title: 'Share of available rebounds he grabbed while on court\n出場中に取れたリバウンドのうち取った割合' }),
+        { ...plCol('onoff', 'On − Off', sgn1, { cls: 'adv-key', title: 'On NET − Off NET per 100 poss.\n100ポゼッションあたりの On NET − Off NET' }), tdCls: r => plCls(r.onoff) },
+        plCol('onMin', 'On MIN', plF0, { title: 'Minutes on court\nコートにいた時間' }),
+        plCol('offMin', 'Off MIN', plF0, { title: 'Team minutes with him on the bench — how reliable On/Off is\nベンチにいた間のチームの試合時間（On/Off の信頼度の目安）' }),
+    ],
+};
+const PL_DEFAULT_SORT = { basic: 'pts', eff: 'ts', role: 'onoff' };
+
+let plAll = null, plAdv = null, plSeq = 0;
+
+function plFilter() {
+    const s = plState;
+    return plAll.filter(r => (!s.team || r.team === s.team) && (!s.pos || r.pos === s.pos)
+        && (!s.exp || r.exp === s.exp) && (s.min === '0' || r.totMin >= r.teamGP * +s.min));
+}
+
+function plDrawNote() {
+    const live = NBA.ui.src.live(`ESPN · ${slYear - 1}-${String(slYear).slice(2)}`);
+    const ana = plAdv ? NBA.ui.src.ana(plAdv) : '<span class="src ana stale">Analytics · unavailable</span>';
+    document.getElementById('pl-note').innerHTML = {
+        basic: `${live} <span>Per game</span> ${ana} <span>+/-: analytics</span>`,
+        eff: `${live} <span>TS% · eFG% · AST/TO · PTS/36</span> ${ana} <span>USG% · TOV% · GmSc</span>
+            <span data-ja="分析データにない選手は「-」。GmSc は分析データの試合の平均">Players missing from the analytics data show "-". GmSc is the average over analytics games.</span>`,
+        role: `${ana} <span>USG% · AST% · REB% · On − Off · On / Off MIN</span>
+            <span data-ja="On か Off が${PL_ONOFF_MIN}分未満の行（分析データにない選手を含む）は薄く表示。On − Off は100ポゼッションあたり">Rows under ${PL_ONOFF_MIN} min on or off (or missing from the analytics data) are dimmed. On − Off is per 100 poss.</span>`,
+    }[plState.view];
+}
+
+function plDraw() {
+    const s = plState, wrap = document.getElementById('pl-table');
+    const rows = plFilter();
+    document.getElementById('pl-count').textContent = `${rows.length} players`;
+    plDrawNote();
+    if (!rows.length) { wrap.innerHTML = '<div class="msg" data-ja="条件に合う選手がいません">No players match these filters.</div>'; return; }
+    const cols = [...PL_BASE, ...PL_COLS[s.view]];
+    const key = cols.some(c => c.key === s.sort) ? s.sort : PL_DEFAULT_SORT[s.view];
+    const isLow = r => s.view === 'role' && !(r.onMin >= PL_ONOFF_MIN && r.offMin >= PL_ONOFF_MIN);
+    wrap.innerHTML = '<div class="adv-scroll pl-scroll"><table class="adv-table pl-table"><thead></thead><tbody></tbody></table></div>';
+    NBA.ui.sortable(wrap.querySelector('.adv-scroll'), {
+        rows, cols, initial: { key, asc: key === s.sort ? s.asc : !!cols.find(c => c.key === key).asc },
+        render: r => `<tr${isLow(r) ? ' class="low"' : ''}>${cols.map(c => `<td class="${c.cls || ''} ${c.tdCls ? c.tdCls(r) : ''}">${c.fmt(r)}</td>`).join('')}</tr>`,
+        onSort: (k, asc) => { s.sort = k; s.asc = asc; plSaveUrl(); },
+    });
+}
+
+function plFillTeams() {
+    const sel = document.getElementById('pl-team');
+    const names = Object.fromEntries(teamIndex.map(t => [t.abbreviation, t.displayName]));
+    const abbrs = [...new Set(plAll.map(r => r.team).filter(Boolean))]
+        .sort((a, b) => (names[a] || a).localeCompare(names[b] || b));
+    sel.innerHTML = '<option value="">All teams</option>' + abbrs.map(a => `<option value="${esc(a)}">${esc(names[a] || a)}</option>`).join('');
+    if (!abbrs.includes(plState.team)) plState.team = '';
+    sel.value = plState.team;
+}
+
+function loadPlayers() {
+    if (plAll) { plDraw(); return; }
+    const seq = ++plSeq;
+    Promise.all([
+        fetchPlAthletes(),
+        (advPromise ||= NBA.data.advanced().catch(e => { advPromise = null; throw e; })).catch(e => { console.error('advanced:', e); return null; }),
+        indexReady.catch(() => {}),
+    ]).then(([athletes, adv]) => {
+        if (seq !== plSeq) return;
+        plAdv = adv;
+        plAll = plBuildRows(athletes, adv);
+        plFillTeams();
+        plDraw();
+        NBA.ui.fetched();
+    }).catch(e => {
+        console.error('players:', e);
+        if (seq === plSeq) document.getElementById('pl-table').innerHTML = '<div class="msg error">Failed to load</div>';
+    });
+}
+
+/* ── 絞り込みの操作 ── */
+function plSyncButtons() {
+    [['pl-view', 'view'], ['pl-pos', 'pos'], ['pl-exp', 'exp']].forEach(([id, k]) =>
+        document.querySelectorAll(`#${id} .sl-exp-btn`).forEach(b => b.classList.toggle('active', b.dataset.v === plState[k])));
+    document.getElementById('pl-min').value = plState.min;
+}
+[['pl-view', 'view'], ['pl-pos', 'pos'], ['pl-exp', 'exp']].forEach(([id, k]) =>
+    document.querySelectorAll(`#${id} .sl-exp-btn`).forEach(b => b.addEventListener('click', () => {
+        if (plState[k] === b.dataset.v) return;
+        plState[k] = b.dataset.v;
+        if (k === 'view') plState.sort = null;   // 列のセットを変えたら、そのセットの既定の並び順に戻す
+        plSyncButtons(); plSaveUrl();
+        if (plAll) plDraw();
+    })));
+document.getElementById('pl-team').addEventListener('change', e => { plState.team = e.target.value; plSaveUrl(); if (plAll) plDraw(); });
+document.getElementById('pl-min').addEventListener('change', e => { plState.min = e.target.value; plSaveUrl(); if (plAll) plDraw(); });
+plSyncButtons();
+if (plState.team) {   // 一覧を読み込む前でも選んだチームを出しておく
+    const sel = document.getElementById('pl-team');
+    sel.insertAdjacentHTML('beforeend', `<option value="${esc(plState.team)}">${esc(plState.team)}</option>`);
+    sel.value = plState.team;
+}
+
+if (NBA.url.get('tab') === 'leaders') switchTab('leaders'); else loadPlayers();
+
+NBA.ui.fetched();
 </script>
 </body>
 </html>
