@@ -783,8 +783,9 @@ a.t-sched-row:hover { background: rgba(255,255,255,0.04); }
 .ap-hc-row .v { font-family: var(--font-score); font-weight: 600; font-size: 16px; text-align: right; }
 .ap-hc-row .r { font-size: 10.5px; color: var(--muted); }
 .adv-table tr.adv-me td { background: rgba(245,183,0,.08); }
-.adv-hc { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 16px; align-items: start; }
-@media (max-width: 860px) { .adv-hc { grid-template-columns: minmax(0, 1fr); } }
+/* 散布図の下に表を全幅で置く（タイムアウト直後の列を足して列が増えたため） */
+.adv-hc { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
+.adv-hc #adv-hc-map { max-width: 620px; }
 
 /* ─── 2026-11 段階2: advanced.js の部品 ─── */
 /* Team Style のマップと「How to read」パネル（狭い画面ではパネルを下に） */

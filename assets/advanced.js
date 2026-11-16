@@ -88,8 +88,8 @@ window.NBA = window.NBA || {};
             onMin: { key: 'min', label: 'On MIN', get: r => r.min, title: 'Minutes on court\nコートにいた時間' },
             offMin: { key: 'offMin', label: 'Off MIN', get: r => r.offMin, title: 'Team minutes with him on the bench\nベンチにいた間のチームの試合時間' },
             boxPm: { key: 'boxPm', label: '+/-', get: r => r.boxPm, title: 'Sum of box score +/-\n公式のボックススコアの +/- の合計' },
-            onO: { key: 'onO', label: 'On ORtg', get: r => r.onO, title: 'Team pts per 100 poss. with him on court\n出場中にチームが100ポゼッションで取った得点' },
-            onD: { key: 'onD', label: 'On DRtg', get: r => r.onD, asc: true, title: 'Opp. pts per 100 poss. with him on court\n出場中に相手が100ポゼッションで取った得点' },
+            onO: { key: 'onO', label: 'OffRtg', get: r => r.onO, title: 'Offensive rating (same as NBA.com OffRtg): team pts per 100 poss. with him on court\nオフェンスレーティング（NBA.com の OffRtg と同じ）: 出場中にチームが100ポゼッションで取った得点' },
+            onD: { key: 'onD', label: 'DefRtg', get: r => r.onD, asc: true, title: 'Defensive rating (same as NBA.com DefRtg): opp. pts per 100 poss. with him on court. Lower is better\nディフェンスレーティング（NBA.com の DefRtg と同じ）: 出場中に相手が100ポゼッションで取った得点。低いほど良い' },
             onNet: { key: 'onNet', label: 'On NET', get: r => r.onNet, title: 'Net per 100 poss. with him on court\n出場中の100ポゼッションあたりの得失点差' },
             offNet: { key: 'offNet', label: 'Off NET', get: r => r.offNet, title: 'Net while he is on bench\nベンチにいる間の Net' },
             diff: { key: 'diff', label: 'On − Off', get: r => r.diff, title: 'On NET − Off NET. Higher = team is better with him\nOn NET − Off NET。大きいほど、その選手がいるとチームが良くなる' },
@@ -97,19 +97,18 @@ window.NBA = window.NBA || {};
         const cols = [
             { key: 'name', label: 'Player', cls: 'l', get: r => r.name, asc: true },
             ...(showTeam ? [{ key: 'team', label: 'Team', cls: 'l', get: r => r.team, asc: true }] : []),
-            ...(compact ? [C.gp, C.onMin, C.offMin, C.onNet, C.offNet, C.diff]
+            ...(compact ? [C.gp, C.onMin, C.offMin, C.onO, C.onD, C.onNet, C.offNet, C.diff]
                 : [C.gp, C.onMin, C.offMin, C.boxPm, C.onO, C.onD, C.onNet, C.offNet, C.diff]),
         ];
         const td = {
             gp: r => `<td>${r.gp}</td>`, onMin: r => `<td>${mmss(r.sec)}</td>`, offMin: r => `<td>${mmss(r.offMin * 60)}</td>`,
             boxPm: r => `<td class="${cls(r.boxPm)}">${r.boxPm > 0 ? '+' : ''}${r.boxPm}</td>`,
             onO: r => `<td>${f1(r.onO)}</td>`, onD: r => `<td>${f1(r.onD)}</td>`,
-            // 絞った表では On の ORtg / DRtg を title に残す
-            onNet: r => `<td class="${cls(r.onNet)}"${compact ? ` title="On ORtg ${f1(r.onO)} · On DRtg ${f1(r.onD)}"` : ''}>${sgn(r.onNet)}</td>`,
+            onNet: r => `<td class="${cls(r.onNet)}">${sgn(r.onNet)}</td>`,
             offNet: r => `<td class="${cls(r.offNet)}">${sgn(r.offNet)}</td>`,
             diff: r => `<td class="adv-key ${cls(r.diff)}">${sgn(r.diff)}</td>`,
         };
-        const keys = compact ? ['gp', 'onMin', 'offMin', 'onNet', 'offNet', 'diff'] : ['gp', 'onMin', 'offMin', 'boxPm', 'onO', 'onD', 'onNet', 'offNet', 'diff'];
+        const keys = compact ? ['gp', 'onMin', 'offMin', 'onO', 'onD', 'onNet', 'offNet', 'diff'] : ['gp', 'onMin', 'offMin', 'boxPm', 'onO', 'onD', 'onNet', 'offNet', 'diff'];
         NBA.ui.sortable(shell(wrap), {
             rows, cols, initial: { key: 'diff', asc: false },
             render: r => `<tr class="${isLow(r) ? 'low' : ''}"><td class="l">${person(r.id, r.name)}</td>${showTeam ? `<td class="l">${team(r.team)}</td>` : ''}${keys.map(k => td[k](r)).join('')}</tr>`,
@@ -501,7 +500,12 @@ window.NBA = window.NBA || {};
 
     // ハーフコート／速攻の表（Teams の Advanced タブ）。me のチームの行を目立たせる
     function renderHalfCourt(wrap, T, me) {
-        const rows = T.filter(x => x.hc?.ortg != null).map(x => ({ team: x.team, ...x.hc, net: x.hc.ortg - x.hc.drtg }));
+        // atoVs: タイムアウト直後の1回あたりの得点 − リーグ平均（全チームの ATO の得点の合計 ÷ 回数）
+        const atoAll = T.reduce((a, x) => x.hc?.atoN ? [a[0] + x.hc.atoN, a[1] + x.hc.atoPpp * x.hc.atoN] : a, [0, 0]);
+        const lgAto = atoAll[0] ? atoAll[1] / atoAll[0] : null;
+        const rows = T.filter(x => x.hc?.ortg != null).map(x => ({ team: x.team, ...x.hc, net: x.hc.ortg - x.hc.drtg,
+            atoVs: x.hc.atoPpp != null && lgAto != null ? x.hc.atoPpp - lgAto : null }));
+        const hasAto = rows.some(r => r.atoN);
         const hl = hlTeam(me);
         if (!rows.length) { wrap.innerHTML = '<div class="msg">No data</div>'; return; }
         const cols = [
@@ -513,11 +517,27 @@ window.NBA = window.NBA || {};
             { key: 'trOrtg', label: 'TR ORtg', get: r => r.trOrtg, title: 'Pts per 100 transition plays\n速攻100回の得点' },
             { key: 'trFreqD', label: 'Opp TR%', get: r => r.trFreqD, asc: true, title: 'Transition share of opp. plays\n相手の攻撃のうち速攻の割合' },
             { key: 'trDrtg', label: 'TR DRtg', get: r => r.trDrtg, asc: true, title: 'Opp. pts per 100 transition plays\n相手の速攻100回の失点' },
+            ...(hasAto ? [
+                { key: 'atoN', label: 'ATO', get: r => r.atoN, title: 'Possessions right after own timeouts\n自チームのタイムアウト直後の攻撃の回数' },
+                { key: 'atoPpp', label: 'ATO PPP', get: r => r.atoPpp, title: 'Points per possession right after own timeouts\nタイムアウト直後の攻撃1回あたりの得点' },
+                { key: 'atoVs', label: 'vs Lg', get: r => r.atoVs, title: `ATO PPP − league avg ATO PPP (${lgAto?.toFixed(2)}). Plus = better than the league out of timeouts\nATO PPP − リーグ平均の ATO PPP（${lgAto?.toFixed(2)}）。プラスはリーグ平均よりタイムアウト明けに点を取れている` },
+                { key: 'atoScored', label: 'ATO Scored%', get: r => r.atoScored, title: 'Share of ATO possessions that scored\nタイムアウト直後の攻撃で得点した割合' },
+                { key: 'atoDPpp', label: 'Opp ATO PPP', get: r => r.atoDPpp, asc: true, title: 'Opp. points per possession right after their timeouts. Lower is better\n相手のタイムアウト直後の攻撃1回あたりの失点。低いほど良い' },
+            ] : []),
         ];
+        const ATO_LOW = 30;   // これより少ない回数の ATO の列は薄く表示
+        const ppp = v => v == null ? '-' : v.toFixed(2);
+        const atoTd = r => {
+            if (!hasAto) return '';
+            const dim = r.atoN < ATO_LOW ? ' style="opacity:.4"' : '';
+            return `<td${dim}>${r.atoN ?? '-'}</td><td${dim}>${ppp(r.atoPpp)}</td>
+                <td class="adv-key ${cls(r.atoVs)}"${dim}>${r.atoVs == null ? '-' : (r.atoVs > 0 ? '+' : '') + r.atoVs.toFixed(2)}</td>
+                <td${dim}>${f1(r.atoScored)}</td><td${r.atoDN < ATO_LOW ? ' style="opacity:.4"' : ''}>${ppp(r.atoDPpp)}</td>`;
+        };
         NBA.ui.sortable(shell(wrap), {
             rows, cols, initial: { key: 'net', asc: false },
             render: r => `<tr class="${hl?.(r.team) ? 'adv-me' : ''}"><td class="l">${team(r.team)}</td><td>${f1(r.ortg)}</td><td>${f1(r.drtg)}</td>
-                <td class="adv-key ${cls(r.net)}">${sgn(r.net)}</td><td>${f1(r.trFreq)}</td><td>${f1(r.trOrtg)}</td><td>${f1(r.trFreqD)}</td><td>${f1(r.trDrtg)}</td></tr>`,
+                <td class="adv-key ${cls(r.net)}">${sgn(r.net)}</td><td>${f1(r.trFreq)}</td><td>${f1(r.trOrtg)}</td><td>${f1(r.trFreqD)}</td><td>${f1(r.trDrtg)}</td>${atoTd(r)}</tr>`,
         });
     }
 
