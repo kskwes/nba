@@ -13,7 +13,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&display=swap">
     <link rel="stylesheet" href="../assets/common.css?v=2026111301">
-    <link rel="stylesheet" href="../assets/player-team.css?v=2026111301">
+    <link rel="stylesheet" href="../assets/player-team.css?v=2026111601">
     <style>
         /* タブの位置をほかのページとそろえる */
         .main-wrap.single { max-width: 1300px; display: block; padding-top: 0; }
@@ -47,6 +47,8 @@
         .adv-body .secnav { margin: 0 0 14px; }
         .adv-body .lc-block { scroll-margin-top: 110px; }
         .adv-body .adv-scroll { max-width: 760px; }
+        /* Half-court & Transition はタイムアウト直後の列があるので本文の幅いっぱいまで */
+        .adv-body #adv-hc .adv-scroll { max-width: none; }
         .adv-body #adv-units .adv-scroll { max-width: none; }
         .adv-body .adv-controls input[type=checkbox] { accent-color: var(--accent); margin: 0; }
         .league-table .lt-team { display: inline-flex; align-items: center; gap: 8px; color: inherit; text-decoration: none; font-weight: 700; }
@@ -160,7 +162,7 @@
 
             <div class="lc-block" id="sec-hc" data-sec>
                 <div class="section-header"><h2>Half-Court &amp; Transition</h2></div>
-                <p class="adv-desc"><span data-ja="攻撃・守備を、セットした攻撃（ハーフコート）と速攻に分けた100回あたりの得点・失点。">Pts scored / allowed per 100 plays, split into half-court and transition.</span><br><span data-ja="散布図は右上ほどハーフコートの攻守が両方強い。">Upper right on the chart = good half-court offense and defense.</span><br><span data-ja="速攻は、攻撃の始まり（守備リバウンド・相手の TO・相手の得点）から6秒以内にシュート・FT・TO があったもの。">Transition = shot, FT or TO within 6 sec of the start of a possession (def. rebound, opp. TO, opp. score).</span><br><span data-ja="ガベージタイム（第4Q以降で25点差以上）は除く。">Excludes garbage time (Q4 or later, 25+ pt margin).</span></p>
+                <p class="adv-desc"><span data-ja="攻撃・守備を、セットした攻撃（ハーフコート）と速攻に分けた100回あたりの得点・失点。">Pts scored / allowed per 100 plays, split into half-court and transition.</span><br><span data-ja="散布図は右上ほどハーフコートの攻守が両方強い。">Upper right on the chart = good half-court offense and defense.</span><br><span data-ja="速攻は、攻撃の始まり（守備リバウンド・相手の TO・相手の得点）から6秒以内にシュート・FT・TO があったもの。">Transition = shot, FT or TO within 6 sec of the start of a possession (def. rebound, opp. TO, opp. score).</span><br><span data-ja="ガベージタイム（第4Q以降で25点差以上）は除く。">Excludes garbage time (Q4 or later, 25+ pt margin).</span><br><span data-ja="ATO は自チームのタイムアウト直後の攻撃（試合ページの Flow の Timeouts と同じ数え方）。vs Lg はリーグ平均の ATO PPP との差で、プラスならリーグ平均よりタイムアウト明けに点を取れている。30回未満は薄く表示。">ATO = possession right after own timeout (same as the game page's Flow › Timeouts). vs Lg = ATO PPP minus the league avg ATO PPP; plus = better than average out of timeouts. Under 30 ATO is dimmed.</span></p>
                 <div class="adv-hc"><div id="adv-hc-map" class="ap-umap-card"></div><div id="adv-hc"><div class="msg">Loading<span class="spinner"></span></div></div></div>
             </div>
 
@@ -186,7 +188,7 @@
 <script src="../assets/api.js?v=2026111301"></script>
 <script src="../assets/teams.js?v=2026111301"></script>
 <script src="../assets/ui.js?v=2026111301"></script>
-<script src="../assets/advanced.js?v=2026111301"></script>
+<script src="../assets/advanced.js?v=2026111601"></script>
 <script>
 /* ═══════════════════════════════════════════════
    Teams タブ: リーグ全体のスタッツ表（Basic / Efficiency）
