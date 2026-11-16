@@ -20,7 +20,8 @@ window.NBA = window.NBA || {};
     const f1 = v => v == null || isNaN(v) ? '-' : v.toFixed(1);
     const sgn = v => v == null || isNaN(v) ? '-' : (v > 0 ? '+' : '') + v.toFixed(1);
     const cls = v => v > 0 ? 'pos' : v < 0 ? 'neg' : '';
-    const mmss = sec => `${Math.floor(sec / 60)}:${String(Math.round(sec % 60)).padStart(2, '0')}`;
+    // 先に秒で四捨五入してから分と秒に分ける（251:60 のような表示を防ぐ）
+    const mmss = sec => { const t = Math.round(sec); return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`; };
     const ymd = s => s ? `${+s.slice(4, 6)}/${+s.slice(6, 8)}` : '-';
 
     // 「集計: 10/28 9:42 時点（10/20〜10/26 の52試合）」。STALE_DAYS より古ければ注意の色と一言
@@ -110,7 +111,8 @@ window.NBA = window.NBA || {};
         };
         const keys = compact ? ['gp', 'onMin', 'offMin', 'onO', 'onD', 'onNet', 'offNet', 'diff'] : ['gp', 'onMin', 'offMin', 'boxPm', 'onO', 'onD', 'onNet', 'offNet', 'diff'];
         NBA.ui.sortable(shell(wrap), {
-            rows, cols, initial: { key: 'diff', asc: false },
+            // 下限に届かない選手（LOW）は、どの列で並べても基準を満たした選手の下にまとめる
+            rows, cols, initial: { key: 'diff', asc: false }, group: r => isLow(r) ? 1 : 0,
             render: r => `<tr class="${isLow(r) ? 'low' : ''}"><td class="l">${person(r.id, r.name)}</td>${showTeam ? `<td class="l">${team(r.team)}</td>` : ''}${keys.map(k => td[k](r)).join('')}</tr>`,
         });
     }

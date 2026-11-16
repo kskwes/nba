@@ -38,12 +38,14 @@ window.NBA = window.NBA || {};
        cols: [{ key, label, get: row => 値, asc: 小さい順が良いか, cls, title: 見出しの説明 }]
        render(row, cols) は <tr> の HTML を返す */
     NBA.ui = NBA.ui || {};
-    NBA.ui.sortable = function (wrap, { rows, cols, render, head, initial, onSort }) {
+    // group(row) を渡すと、その値の小さい順に先にまとめてから列で並べる（例: サンプルが少ない行を下にまとめる）
+    NBA.ui.sortable = function (wrap, { rows, cols, render, head, initial, onSort, group }) {
         let sortKey = initial?.key ?? null, asc = initial?.asc ?? false;
         const val = (r, c) => { const v = c.get(r); return v == null || (typeof v === 'number' && isNaN(v)) ? null : v; };
         function draw() {
             const col = cols.find(c => c.key === sortKey);
             const sorted = col ? [...rows].sort((a, b) => {
+                if (group) { const g = group(a) - group(b); if (g) return g; }
                 const x = val(a, col), y = val(b, col);
                 if (x == null && y == null) return 0;
                 if (x == null) return 1;           // 値なしは常に下

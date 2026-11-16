@@ -137,10 +137,10 @@
 
             <div class="lc-block" id="sec-onoff" data-sec>
                 <div class="section-header"><h2>On / Off</h2></div>
-                <p class="adv-desc"><span data-ja="選手がコートにいる時間（On）といない時間（Off）で、チームの得失点が100ポゼッションあたりどう変わるか。">Team point diff per 100 poss. with the player on vs. off the court.</span><br><span data-ja="On − Off が大きいほど、その選手がいるとチームが良くなっています。">Higher <b>On − Off</b> = the team is better with him.</span><br><span data-ja="On と Off のどちらかが最低出場時間に届かない選手は、出さない（チェックを入れると薄く表示）。">Players under the minimum on or off are hidden (dimmed when shown).</span></p>
+                <p class="adv-desc"><span data-ja="選手がコートにいる時間（On）といない時間（Off）で、チームの得失点が100ポゼッションあたりどう変わるか。">Team point diff per 100 poss. with the player on vs. off the court.</span><br><span data-ja="On − Off が大きいほど、その選手がいるとチームが良くなっています。">Higher <b>On − Off</b> = the team is better with him.</span><br><span data-ja="On か Off が下限に届かない選手は薄く表示（LOW）。チェックを外すと一覧から外れます。">Players under the minimum on or off are dimmed (LOW). Uncheck to hide them.</span></p>
                 <div class="adv-controls">
                     <label>Min. on &amp; off <select id="adv-onoff-min"></select></label>
-                    <label><input type="checkbox" id="adv-onoff-low"> Show low-sample rows</label>
+                    <label><input type="checkbox" id="adv-onoff-low" checked> Show low-sample rows</label>
                 </div>
                 <div id="adv-onoff"><div class="msg">Loading<span class="spinner"></span></div></div>
             </div>
@@ -187,8 +187,8 @@
 
 <script src="../assets/api.js?v=2026111301"></script>
 <script src="../assets/teams.js?v=2026111301"></script>
-<script src="../assets/ui.js?v=2026111301"></script>
-<script src="../assets/advanced.js?v=2026111601"></script>
+<script src="../assets/ui.js?v=2026111602"></script>
+<script src="../assets/advanced.js?v=2026111603"></script>
 <script>
 /* ═══════════════════════════════════════════════
    Teams タブ: リーグ全体のスタッツ表（Basic / Efficiency）

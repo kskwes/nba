@@ -10,7 +10,8 @@ const flPeriodStart = p => p <= 4 ? (p - 1) * 720 : 2880 + (p - 5) * 300;
 const flClockSec = s => String(s).includes(':') ? (+s.split(':')[0]) * 60 + parseFloat(s.split(':')[1]) : parseFloat(s) || 0;
 const flElapsed = (p, clock) => flPeriodStart(p) + flPeriodLen(p) - flClockSec(clock);
 const flPLabel = p => p <= 4 ? `Q${p}` : (p === 5 ? 'OT' : `OT${p - 4}`);
-const flDur = s => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`;
+// 先に秒で四捨五入してから分と秒に分ける（2:60 のような表示を防ぐ）
+const flDur = s => { const t = Math.round(s); return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`; };
 const flOther = side => side === 'a' ? 'h' : 'a';
 
 // フリースローの途中の交代は、+/- の区切りをその一連のフリースローの最後にずらす
