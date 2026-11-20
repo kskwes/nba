@@ -1,8 +1,8 @@
 // 自動生成ファイル（手で編集しない）。.claude/skills/nba-data-update/picks.mjs で更新する。
 // 各チームの2027〜2033年ドラフト指名権。outgoing: 自チームの指名権の行き先、incoming: 他チームから受け取る指名権
 window.NBA_DRAFT_PICKS = {
- "updatedAt": "2026-10-28",
- "sourceLatestTrade": "2026-09-14",
+ "updatedAt": "2026-11-20",
+ "sourceLatestTrade": "2026-11-08",
  "years": [
   2027,
   2033
@@ -3078,11 +3078,11 @@ window.NBA_DRAFT_PICKS = {
      "round": 2,
      "status": "traded",
      "teams": [
-      "DET"
+      "SAC"
      ],
      "protection": "",
      "note": "",
-     "detail": "Minnesota's 2030 2nd round pick to Oklahoma City (via Detroit) [Detroit-Minnesota, 2/8/2024; Detroit-Oklahoma City, 7/6/2026]"
+     "detail": "Minnesota's 2030 2nd round pick to Sacramento (via Detroit to Oklahoma City) [Detroit-Minnesota, 2/8/2024; Detroit-Oklahoma City, 7/6/2026; Oklahoma City-Sacramento, 11/8/2026]"
     },
     {
      "year": 2031,
@@ -3587,17 +3587,6 @@ window.NBA_DRAFT_PICKS = {
      "detail": "Oklahoma City has the right to swap its 2028 1st round pick for Dallas' 2028 1st round pick [Dallas-Oklahoma City, 2/8/2024]"
     },
     {
-     "year": 2028,
-     "round": 2,
-     "status": "acquired",
-     "teams": [
-      "UTA"
-     ],
-     "protection": "",
-     "note": "",
-     "detail": "Utah's 2028 2nd round pick to Oklahoma City [Oklahoma City-Utah, 7/30/2021; Oklahoma City-Utah, 1/4/2022]"
-    },
-    {
      "year": 2029,
      "round": 1,
      "status": "protected",
@@ -3666,17 +3655,6 @@ window.NBA_DRAFT_PICKS = {
      "protection": "",
      "note": "two least favorable",
      "detail": "Memphis will receive the most favorable of Denver's 2030 2nd round pick, Houston's 2030 2nd round pick and Miami's 2030 2nd round pick and Oklahoma City will receive the two least favorable of the three (via Denver to Charlotte to Oklahoma City; via Houston and Miami to Oklahoma City) [Miami-Oklahoma City, 7/6/2023; Atlanta-Houston-L.A. Clippers-Memphis-Oklahoma City, 7/8/2023; Charlotte-Dallas-Denver-Golden State-Minnesota-Philadelphia, 7/6/2024; Charlotte-Oklahoma City, 2/3/2025; Memphis-Oklahoma City, 6/23/2026]"
-    },
-    {
-     "year": 2030,
-     "round": 2,
-     "status": "acquired",
-     "teams": [
-      "MIN"
-     ],
-     "protection": "",
-     "note": "",
-     "detail": "Minnesota's 2030 2nd round pick to Oklahoma City (via Detroit) [Detroit-Minnesota, 2/8/2024; Detroit-Oklahoma City, 7/6/2026]"
     },
     {
      "year": 2031,
@@ -4555,6 +4533,28 @@ window.NBA_DRAFT_PICKS = {
      "detail": "Charlotte's 2027 2nd round pick to Sacramento; Sacramento may convey this pick to Oklahoma City (see Sacramento Incoming) (via New York to Atlanta to San Antonio) [Charlotte-New York, 7/30/2021; Atlanta-New York, 1/13/2022; Atlanta-San Antonio, 6/30/2022; Chicago-Sacramento-San Antonio, 2/3/2025]"
     },
     {
+     "year": 2028,
+     "round": 2,
+     "status": "acquired",
+     "teams": [
+      "UTA"
+     ],
+     "protection": "",
+     "note": "",
+     "detail": "Utah's 2028 2nd round pick to Sacramento (via Oklahoma City) [Oklahoma City-Utah, 7/30/2021; Oklahoma City-Utah, 1/4/2022; Oklahoma City-Sacramento, 11/8/2026]"
+    },
+    {
+     "year": 2030,
+     "round": 2,
+     "status": "acquired",
+     "teams": [
+      "MIN"
+     ],
+     "protection": "",
+     "note": "",
+     "detail": "Minnesota's 2030 2nd round pick to Sacramento (via Detroit to Oklahoma City) [Detroit-Minnesota, 2/8/2024; Detroit-Oklahoma City, 7/6/2026; Oklahoma City-Sacramento, 11/8/2026]"
+    },
+    {
      "year": 2031,
      "round": 1,
      "status": "acquired",
@@ -4873,11 +4873,11 @@ window.NBA_DRAFT_PICKS = {
      "round": 2,
      "status": "traded",
      "teams": [
-      "OKC"
+      "SAC"
      ],
      "protection": "",
      "note": "",
-     "detail": "Utah's 2028 2nd round pick to Oklahoma City [Oklahoma City-Utah, 7/30/2021; Oklahoma City-Utah, 1/4/2022]"
+     "detail": "Utah's 2028 2nd round pick to Sacramento (via Oklahoma City) [Oklahoma City-Utah, 7/30/2021; Oklahoma City-Utah, 1/4/2022; Oklahoma City-Sacramento, 11/8/2026]"
     },
     {
      "year": 2029,

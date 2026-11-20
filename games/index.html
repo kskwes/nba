@@ -116,6 +116,8 @@
         .g-leader small { color: var(--muted); font-size: 10px; margin-left: 2px; }
         /* NBA カップの試合 */
         .g-cup { color: var(--accent); border: 1px solid rgba(245,183,0,.45); border-radius: 4px; padding: 0 6px; letter-spacing: .5px; }
+        /* 試合前の注目の試合（bigGame） */
+        .g-big { color: var(--on-accent, #141000); background: var(--accent); border-radius: 4px; padding: 0 6px; letter-spacing: .5px; font-weight: 800; }
         .streak { font-weight: 700; }
         .streak.w { color: var(--pos); }
         .streak.l { color: var(--neg); }
@@ -507,6 +509,29 @@ function renderGames(events, id) {
     sorted.forEach(ev => el.appendChild(buildCard(ev)));
 }
 
+/* ── 試合前の注目の試合（Big Game）──
+   次のどれかに当てはまる試合（2026-11-20 ユーザーと決めた基準）:
+   ・両チームともカンファレンスの3位以内
+   ・両チームとも4連勝以上
+   ・両チームとも直近10試合で8勝以上
+   ・NBA カップの決勝トーナメント（準々決勝・準決勝・決勝）
+   順位・連勝が当てにならないシーズン序盤（どちらかが8試合未満）は、NBA カップ以外は付けない。プレーオフ中は付けない */
+const BIG = { rank: 3, streak: 4, l10: 8, minGp: 8 };
+function isBigGame(comp, away, home) {
+    if (isPlayoffMode) return false;
+    if (/Quarterfinal|Semifinal|Championship|Final/i.test(cupLabel(comp))) return true;
+    const side = t => {
+        const rk = rankMap[t.team.id] || {};
+        const rec = (t.records?.find(r => r.type === 'total') ?? t.records?.[0])?.summary || '';
+        const [w, l] = rec.split('-').map(Number);
+        const st = (rk.streak || '').match(/^W\s*(\d+)/);
+        return { gp: (w || 0) + (l || 0), rank: rk.rank || 99, win: st ? +st[1] : 0, l10: parseInt(rk.l10) || 0 };
+    };
+    const a = side(away), h = side(home);
+    if (a.gp < BIG.minGp || h.gp < BIG.minGp) return false;
+    return (a.rank <= BIG.rank && h.rank <= BIG.rank) || (a.win >= BIG.streak && h.win >= BIG.streak) || (a.l10 >= BIG.l10 && h.l10 >= BIG.l10);
+}
+
 // NBA カップの試合なら、段階を短く（ESPN の notes に「NBA Cup - Group Play」などが入る）
 function cupLabel(comp) {
     const h = (comp.notes || []).map(n => n.headline || '').find(x => /NBA Cup/i.test(x));
@@ -626,6 +651,7 @@ function buildCard(event) {
         ${(isPlayoffMode && seriesNote) ? `<div class="g-series">${seriesNote}</div>` : ''}
         <div class="g-foot">
             <span><span class="g-status ${statusClass}">${statusLabel}</span>${isOver ? `  <span class="g-ex" data-ex="${event.id}"></span>` : ''}</span>
+            ${!isOver && !isLive && isBigGame(comp, away, home) ? '<span class="g-big">Big Game</span>' : ''}
             ${cupLabel(comp) ? `<span class="g-cup">${cupLabel(comp)}</span>` : ''}
             <span class="g-box">${showScore ? 'Box Score' : 'Preview'} ›</span>
         </div>`;
