@@ -462,7 +462,7 @@
 
 <script src="../assets/api.js?v=2026111301"></script>
 <script src="../assets/teams.js?v=2026111301"></script>
-<script src="../assets/stats.js?v=2026112001"></script>
+<script src="../assets/stats.js?v=2026112002"></script>
 <script src="../assets/rotation.js?v=2026111603"></script>
 <script src="../assets/timeouts.js?v=2026111301"></script>
 <script src="../assets/ui.js?v=2026111602"></script>
@@ -1798,7 +1798,8 @@ function summaryHTML() {
     const story = tp?.hasWP ? flTpSentences(tp) : [];
     const kv = summaryStatsRows();
     if (!ex && !story.length && !kv.length) return '';
-    const exHTML = ex ? `<div class="game-summary-body"><span class="ex-tag ${ex.cls}">${ex.label}</span><span data-ja="${esc(`${ex.labelJa || ''}: ${(ex.reasonsJa || []).join(' · ') || `${ex.margin}点差`}`)}">${(ex.reasons || []).join(' · ') || `${ex.margin}-pt game`}</span></div>` : '';
+    // タグ（Classic / Blowout）がない試合でも、理由の行（延長・終盤まで接戦など）は出す
+    const exHTML = ex ? `<div class="game-summary-body">${ex.label ? `<span class="ex-tag ${ex.cls}">${ex.label}</span>` : ''}<span data-ja="${esc(`${ex.labelJa ? `${ex.labelJa}: ` : ''}${(ex.reasonsJa || []).join(' · ') || `${ex.margin}点差`}`)}">${(ex.reasons || []).join(' · ') || `${ex.margin}-pt game`}</span></div>` : '';
     const storyHTML = story.length ? `<div class="game-summary-story">${story.map(([en, ja]) => `<div><span data-ja="${flEsc(ja)}">${en}</span></div>`).join('')}</div>` : '';
     const kvHTML = kv.length ? `<dl class="game-summary-kv">${kv.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>` : '';
     return `<div class="game-summary ${kv.length ? 'has-kv' : ''}"><div><div class="game-summary-h">Summary</div>${exHTML}${storyHTML}</div>${kvHTML}</div>`;

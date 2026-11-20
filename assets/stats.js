@@ -191,9 +191,8 @@ function gameExcitement(d) {
     const score = 40 * Math.min(1, swing / 12) + 20 * Math.min(1, leadChanges / 12) + (lateClose ? 20 : 0) + (ot > 0 ? 10 : 0)
         + (margin <= 5 ? 10 : margin <= 10 ? 5 : 0);
     // [表示(英), 表示(日), クラス]。判定にはクラス（best/close/some/flat）を使う
-    // 点数が低い試合は、15点差以上なら Blowout、それより小さい点差なら Quiet（点差は小さいが動きの少なかった試合）
-    const level = score >= 85 ? ['Classic', '名勝負', 'best'] : score >= 60 ? ['Close', '接戦', 'close'] : score >= 40 ? ['Worth a look', '見どころあり', 'some']
-        : margin >= 15 ? ['Blowout', '一方的', 'flat'] : ['Quiet', '動きの少ない試合', 'flat'];
+    // タグは2つだけ（2026-11-20 ユーザー指定）: 85点以上は Classic、40点未満で15点差以上は Blowout。それ以外はタグなし（label: null）
+    const level = score >= 85 ? ['Classic', '名勝負', 'best'] : score < 40 && margin >= 15 ? ['Blowout', '一方的', 'flat'] : [null, null, null];
     // 理由は { en, ja } で持ち、reasons（英語の文字列の配列）は今までの呼び出し方のまま使える
     const reasonItems = [
         ot > 0 ? { en: `${ot > 1 ? ot : ''}OT`, ja: `延長${ot > 1 ? ot : ''}` } : null,

@@ -421,7 +421,7 @@
 
 <script src="../assets/api.js?v=2026111301"></script>
 <script src="../assets/teams.js?v=2026111301"></script>
-<script src="../assets/stats.js?v=2026112001"></script>
+<script src="../assets/stats.js?v=2026112002"></script>
 <script src="../assets/ui.js?v=2026111602"></script>
 <script>
 /* ── ET date helpers (America/New_York, handles DST automatically) ── */
@@ -663,7 +663,7 @@ function fillExcitement(events) {
     events.filter(e => e.status.type.completed || e.status.type.state === 'post').forEach(e => {
         fetchBoxScore(e.id).then(d => {
             const ex = gameExcitement(d);
-            if (!ex) return;
+            if (!ex?.label) return;   // タグは Classic と Blowout だけ。それ以外の試合は付けない
             document.querySelectorAll(`.g-ex[data-ex="${e.id}"]`).forEach(el => {
                 el.innerHTML = `<span class="ex-tag ${ex.cls}">${ex.label}</span>`;
             });
