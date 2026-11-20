@@ -26,7 +26,7 @@ NBA の試合結果・順位・選手やチームの成績と分析を、まと�
 
 | タブ | 内容 |
 |---|---|
-| Schedule | 今日・明日・昨日の試合カード（スコア、成績、各チームの得点リーダー）。終わった試合には見どころのラベル（Classic / Close / Worth a look / Blowout）、NBA カップの試合にはバッジが付く。怪我人は試合ごと（Tomorrow / Today / All teams） |
+| Schedule | 今日・明日・昨日の試合カード（スコア、成績、各チームの得点リーダー）。終わった試合には見どころのラベル（Classic / Close / Worth a look / Quiet / Blowout。勝率の揺れ・リード交代・終盤の接戦・延長・点差の100点満点で決め、40点未満は15点差以上なら Blowout、それ以外は Quiet）、NBA カップの試合にはバッジが付く。怪我人は試合ごと（Tomorrow / Today / All teams） |
 | Daily Leaders | その日の部門別の上位（Game Score、Points、TS%、Above Average（今季平均の Game Score を上回った量）、Rebounds など）。4〜10位は折りたたみ。ルーキー・2年目などの絞り込み |
 
 ### 試合ページ
