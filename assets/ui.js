@@ -203,7 +203,8 @@ window.NBA = window.NBA || {};
             right.querySelector('.last-updated')?.replaceWith(fresh);
             const btn = right.querySelector('.refresh-btn'); if (btn) right.append(btn);
             drawFresh();
-            NBA.data.advanced().then(d => { anaMeta = { generatedAt: d.generatedAt, from: d.from, to: d.to, games: d.games }; drawFresh(); }).catch(() => {});
+            // <body data-no-ana>（Games と試合ページ）では分析データの期間を出さない。よく開くページで手動データの古さを気にしないため（2026-11-24）
+            if (!('noAna' in document.body.dataset)) NBA.data.advanced().then(d => { anaMeta = { generatedAt: d.generatedAt, from: d.from, to: d.to, games: d.games }; drawFresh(); }).catch(() => {});
         }
         addJa(document.body);
         new MutationObserver(ms => ms.forEach(m => m.addedNodes.forEach(n => n.nodeType === 1 && !n.classList?.contains('ja-line') && addJa(n))))

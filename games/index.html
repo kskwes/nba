@@ -315,12 +315,54 @@
             .games-main .games-grid { grid-template-columns: 1fr; }
         }
 
+        /* ─── Topic: その日のハイライト（ニュース風。動画は無し。判定は assets/highlights.js）─── */
+        .tp-stack { display: grid; gap: 12px; margin-top: 12px; }
+        /* 大きいカード: 顔写真と主役の数字の帯 → 見出しの文章 → 補足 → スコア。PC は幅に合わせて2〜3列 */
+        .tp-big { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 12px; }
+        a.hl-big { display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; color: inherit; text-decoration: none; }
+        a.hl-big:hover { border-color: #3a3a44; }
+        .hl-big .media { position: relative; height: 118px; background: linear-gradient(135deg, #2a2a33, #141418); }
+        .hl-big .media::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(10,10,12,0) 40%, rgba(20,20,24,.9) 100%); }
+        .hl-big .media > * { position: absolute; z-index: 1; }
+        .hl-big .media .tlogo { right: -18px; top: -14px; width: 150px; height: 150px; opacity: .09; z-index: 0; }
+        .hl-big .tags { top: 10px; left: 12px; display: flex; gap: 4px; flex-wrap: wrap; }
+        .hl-big .face { left: 12px; bottom: 0; width: 116px; height: 85px; object-fit: cover; object-position: top; }
+        .hl-big .face.logo { width: 60px; height: 60px; bottom: 12px; }
+        .hl-big .hero { right: 14px; bottom: 9px; text-align: right; line-height: 1; }
+        .hl-big .hero .v { font-family: var(--font-score); font-size: 44px; font-weight: 700; color: var(--accent); }
+        .hl-big .hero .v.long { font-size: 34px; }
+        .hl-big .hero .u { display: block; font-size: 10px; font-weight: 800; letter-spacing: 1px; color: var(--text-dim); margin-top: 3px; text-transform: uppercase; }
+        .hl-big .body { display: flex; flex-direction: column; flex: 1; padding: 10px 14px 12px; }
+        .hl-big .text { font-size: 16px; font-weight: 700; line-height: 1.35; }
+        .hl-big .also { margin-top: 6px; display: grid; gap: 3px; font-size: 12.5px; color: var(--text-dim); }
+        .hl-big .also div::before { content: '+ '; color: var(--accent); font-weight: 800; }
+        .hl-big .sub { margin-top: 6px; font-size: 12px; color: var(--muted); }
+        .mini-score { display: flex; align-items: center; gap: 6px; margin-top: auto; padding-top: 9px; border-top: 1px solid var(--border); font-size: 13px; }
+        .hl-big .sub + .mini-score, .hl-big .also + .mini-score, .hl-big .text + .mini-score { margin-top: 10px; }
+        .mini-score img { width: 20px; height: 20px; }
+        .mini-score b { font-family: var(--font-score); font-size: 16px; font-weight: 600; }
+        .mini-score .lose { color: var(--muted); }
+        .mini-score .st { margin-left: auto; font-size: 11px; color: var(--muted); }
+        /* 小さい行: 1枚の面に並べる。PC は2列 */
+        .hl-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+        a.hl-row { display: grid; grid-template-columns: 44px 1fr 12px; gap: 10px; align-items: center; padding: 10px 12px; border-top: 1px solid var(--border); margin-top: -1px; color: inherit; text-decoration: none; }
+        a.hl-row:hover { background: var(--surface-deep); }
+        .hl-row .ic { width: 44px; height: 44px; border-radius: 50%; background: var(--surface2); overflow: hidden; display: flex; align-items: flex-end; justify-content: center; }
+        .hl-row .ic img.hs { width: 58px; height: 44px; object-fit: cover; object-position: top; }
+        .hl-row .ic img.lg { width: 30px; height: 30px; align-self: center; }
+        .hl-row .t { font-size: 13.5px; font-weight: 600; line-height: 1.35; margin-top: 2px; }
+        .hl-row .s { font-size: 11.5px; color: var(--muted); margin-top: 1px; }
+        .chev { color: var(--muted); font-size: 18px; }
+        .tag { display: inline-block; font-size: 10px; font-weight: 800; letter-spacing: .3px; line-height: 1.6; border-radius: 4px; padding: 0 6px; margin-right: 3px; white-space: nowrap; background: var(--surface2); color: var(--text-dim); }
+        .tag.hot { background: var(--accent); color: #141000; }
+        .tp-empty { padding: 30px 16px; text-align: center; color: var(--muted); }
+
         /* ─── タブ: Schedule / Daily Leaders ─── */
         .tab-panel.games-panel { display: none; }
         .tab-panel.games-panel.active { display: block; }
     </style>
 </head>
-<body class="theme-broadcast">
+<body class="theme-broadcast" data-no-ana>
 
 <header>
     <a class="site-logo" href="../games/">NBA <em>Daily</em></a>
@@ -340,9 +382,10 @@
 
 <div class="main-wrap">
 
-    <!-- タブ: Schedule（試合一覧・怪我人）/ Daily Leaders（ランキング） -->
+    <!-- タブ: Schedule（試合一覧・怪我人）/ Topic（その日のハイライト）/ Daily Leaders（ランキング） -->
     <div class="tabs-nav">
         <button class="tab-btn active" data-tab="schedule">Schedule</button>
+        <button class="tab-btn" data-tab="topic">Topic</button>
         <button class="tab-btn" data-tab="top">Daily Leaders</button>
     </div>
 
@@ -398,6 +441,17 @@
         </div>
     </div>
 
+    <div class="tab-panel games-panel" id="tab-topic">
+        <div class="section-header">
+            <h2>Topic</h2>
+            <span class="date-badge" id="topic-date"></span>
+        </div>
+        <div class="tp-subtitle" data-ja="その日の終わった試合のハイライト（今日の試合がまだなら前日）。決勝点・延長に持ち込む同点・15点差以上の逆転・キャリアハイ・大きな記録・ルーキーの20得点">Highlights from that day's final games (previous day if none have finished today): game-winners, shots forcing OT, 15+ pt comebacks, career highs, big stat lines, rookies scoring 20+</div>
+        <div id="topic-body">
+            <div class="msg">Loading<span class="spinner"></span></div>
+        </div>
+    </div>
+
     <div class="tab-panel games-panel" id="tab-top">
         <div class="section-header">
             <h2>Daily Leaders</h2>
@@ -419,10 +473,11 @@
 
 </div><!-- /main-wrap -->
 
-<script src="../assets/api.js?v=2026111301"></script>
+<script src="../assets/api.js?v=2026112401"></script>
 <script src="../assets/teams.js?v=2026111301"></script>
 <script src="../assets/stats.js?v=2026112002"></script>
-<script src="../assets/ui.js?v=2026111602"></script>
+<script src="../assets/ui.js?v=2026112401"></script>
+<script src="../assets/highlights.js?v=2026112401"></script>
 <script>
 /* ── ET date helpers (America/New_York, handles DST automatically) ── */
 function etDateStr(utcDate) {
@@ -446,11 +501,11 @@ function fmtJstDate(utcDate) {
     return `${datePart} (${weekday})`;
 }
 
-/* ── Tab switching（?tab=top で Daily Leaders を開く） ── */
+/* ── Tab switching（?tab=top で Daily Leaders、?tab=topic で Topic を開く） ── */
 function switchTab(tab) {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
     document.querySelectorAll('.games-panel').forEach(p => p.classList.toggle('active', p.id === `tab-${tab}`));
-    NBA.url.set({ tab: tab === 'top' ? 'top' : null });
+    NBA.url.set({ tab: tab === 'top' || tab === 'topic' ? tab : null });
     // Above Average の今季平均は、Daily Leaders を開いたときだけ取得する
     if (tab === 'top') loadSeasonAvg();
 }
@@ -1116,6 +1171,65 @@ document.querySelectorAll('#inj-view .conf-btn').forEach(btn => btn.addEventList
 }));
 
 /* ── Main ── */
+/* ── Topic: その日のハイライト（assets/highlights.js で判定）──
+   日は Daily Leaders と同じ（今日の試合が1つでも終わっていれば今日、まだなら前日）。
+   summary とロスター（ルーキーの判定）は Daily Leaders と同じキャッシュを使うので、取得は増えない。
+   大きいカード（Game-winner / Forced OT / Comeback / Career high）→ 小さい行（Big lines / Rookie）。それぞれ重要度の高い順 */
+const TP_HERO = h => {
+    if (h.type === 'careerHigh') return [h.value, ({ pts: 'PTS', reb: 'REB', ast: 'AST', tpm: '3PM', stl: 'STL', blk: 'BLK' })[h.stat] + ' · career high'];
+    if (h.type === 'gameWinner') return [`${h.value}s`, 'left'];
+    if (h.type === 'forcedOT') return [`${h.value}s`, 'left in Q4'];
+    if (h.type === 'comeback') return [h.value, 'pt deficit'];
+    return h.hero ? [h.hero.value, h.hero.label] : null;
+};
+const tpEsc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const tpTags = h => h.tags.map((t, i) => `<span class="tag ${i === 0 ? 'hot' : ''}">${tpEsc(t)}</span>`).join('');
+function tpMiniScore(h) {
+    const a = h.game.away, o = h.game.home, aw = a.score > o.score, ot = h.game.periods > 4 ? (h.game.periods === 5 ? '/OT' : `/${h.game.periods - 4}OT`) : '';
+    return `<div class="mini-score"><img src="${tpEsc(a.logo)}" alt=""><span class="${aw ? '' : 'lose'}">${tpEsc(a.abbr)} <b>${a.score}</b></span><span style="color:var(--muted)">–</span>
+      <span class="${aw ? 'lose' : ''}"><b>${o.score}</b> ${tpEsc(o.abbr)}</span><img src="${tpEsc(o.logo)}" alt=""><span class="st">Final${ot} ›</span></div>`;
+}
+function tpBigCard(h) {
+    const hero = TP_HERO(h);
+    const face = h.player ? `<img class="face" src="${tpEsc(h.player.headshot)}" alt="" onerror="this.remove()">` : `<img class="face logo" src="${tpEsc(h.team.logo)}" alt="">`;
+    const also = (h.extras || []).filter(x => x.type !== 'bigLine').map(x => `<div data-ja="${tpEsc(x.ja)}">${tpEsc(x.text.replace(h.player ? h.player.name + ' ' : '', ''))}</div>`).join('')
+        + (h.lineTags ? `<div>${tpEsc(h.lineTags.join(', '))}</div>` : '');
+    return `<a class="hl-big" href="game.html?id=${h.gameId}">
+      <div class="media">${h.team ? `<img class="tlogo" src="${tpEsc(h.team.logo)}" alt="">` : ''}
+        <div class="tags">${tpTags(h)}</div>${face}
+        ${hero ? `<div class="hero"><span class="v ${String(hero[0]).length > 4 ? 'long' : ''}">${tpEsc(hero[0])}</span><span class="u">${tpEsc(hero[1])}</span></div>` : ''}
+      </div>
+      <div class="body">
+        <p class="text" data-ja="${tpEsc(h.ja)}">${tpEsc(h.text)}</p>
+        ${also ? `<div class="also">${also}</div>` : ''}
+        <p class="sub">${tpEsc(h.scope === 'game' || !h.player ? h.sub : h.player.line)}</p>
+        ${tpMiniScore(h)}
+      </div>
+    </a>`;
+}
+function tpSmallRow(h) {
+    const ic = h.player ? `<img class="hs" src="${tpEsc(h.player.headshot)}" alt="" loading="lazy" onerror="this.remove()">` : `<img class="lg" src="${tpEsc(h.team?.logo)}" alt="">`;
+    return `<a class="hl-row" href="game.html?id=${h.gameId}">
+      <span class="ic">${ic}</span>
+      <span><span>${tpTags(h)}</span><p class="t" data-ja="${tpEsc(h.ja)}">${tpEsc(h.text)}</p><p class="s">${tpEsc(h.sub)}</p></span>
+      <span class="chev">›</span></a>`;
+}
+async function loadTopic(events) {
+    const completed = events.filter(e => e.status.type.completed || e.status.type.state === 'post');
+    const summaries = (await Promise.all(completed.map(e => fetchBoxScore(e.id)))).filter(Boolean);
+    const standings = await NBA.api.standings().catch(() => null);
+    const experience = {};
+    const exps = await Promise.all(NBAHighlights.rookieCandidateTeams(summaries).map(fetchTeamExperience));
+    exps.forEach(m => m.forEach((y, id) => { experience[id] = y; }));
+    return { list: NBAHighlights.detect(summaries, standings, { experience }), games: completed.length };
+}
+function renderTopic({ list, games }) {
+    const el = document.getElementById('topic-body');
+    if (!list.length) { el.innerHTML = `<div class="msg">${games ? 'No highlights' : 'No final games yet'}</div>`; return; }
+    const big = list.filter(h => h.size === 'big'), small = list.filter(h => h.size !== 'big');
+    el.innerHTML = `<div class="tp-stack">${big.length ? `<div class="tp-big">${big.map(tpBigCard).join('')}</div>` : ''}${small.length ? `<div class="hl-list">${small.map(tpSmallRow).join('')}</div>` : ''}</div>`;
+}
+
 let refreshTimer = null;
 // force: 更新ボタン。今日の試合だけはキャッシュを見ずに取り直す
 async function init(force = false) {
@@ -1174,6 +1288,8 @@ async function init(force = false) {
         document.getElementById('tomorrow-date').textContent    = scheduleEvents.length ? fmtJstDate(new Date(scheduleEvents[0].date)) : fmtJstDate(new Date(now.getTime() + 86400000));
         document.getElementById('yesterday-date').textContent   = yesterdayEvents.length ? fmtJstDate(new Date(yesterdayEvents[0].date)) : fmtJstDate(new Date(now.getTime() - 86400000));
         document.getElementById('top-players-date').textContent = fmtJstDate(topPlayersDate);
+        const tpDone = topPlayerEvents.filter(e => e.status.type.completed || e.status.type.state === 'post').length;
+        document.getElementById('topic-date').textContent = `${fmtJstDate(topPlayersDate)} · ${tpDone} games`;
         // 怪我人: 初期表示は、今日の試合がすべて終わっていれば Tomorrow、そうでなければ Today
         injState.today    = todayEvents;
         injState.tomorrow = scheduleEvents;
@@ -1193,6 +1309,7 @@ async function init(force = false) {
             document.getElementById(id).innerHTML = '<div class="msg error">Failed to load data</div>';
         };
         extractTopPlayers(topPlayerEvents).then(setTopPlayers).catch(showError('rankings', 'top players:'));
+        loadTopic(topPlayerEvents).then(renderTopic).catch(showError('topic-body', 'topic:'));
         fillExcitement([...resultsEvents, ...yesterdayEvents]);
         fetchInjuries(todayEvents, yesterdayEvents).then(setInjuries).catch(showError('injury-players', 'injuries:'));
 
@@ -1212,6 +1329,7 @@ async function init(force = false) {
 
 // ?tab=top で開いたとき（今季平均の変数を宣言した後で呼ぶ）
 if (NBA.url.get('tab') === 'top') switchTab('top');
+if (NBA.url.get('tab') === 'topic') switchTab('topic');
 init();
 </script>
 </body>

@@ -90,9 +90,10 @@ window.NBA = window.NBA || {};
     // opts.ttl: 有効期間（ms）か、取得したデータから期間を決める関数。0 なら保存しない
     // opts.trim: 保存前に要らない部分を落とす関数
     // opts.fresh: true ならキャッシュを見ずに取り直す（失敗時は前回のデータを返す）
+    // opts.accept: 保存してあるデータを使ってよいか（形が古いものを取り直す）
     // opts.maxAge: 期限切れでも、保存からこの時間内なら使う（怪我人など細かく追わなくてよい用途）
     async function json(url, opts = {}) {
-        const usable = e => !opts.fresh && e && (e.exp > Date.now() || (opts.maxAge && Date.now() - e.t < opts.maxAge));
+        const usable = e => !opts.fresh && e && (e.exp > Date.now() || (opts.maxAge && Date.now() - e.t < opts.maxAge)) && (!opts.accept || opts.accept(e.data));
         const hit = mem.get(url);
         if (usable(hit)) return hit.data;
         if (inflight.has(url)) return inflight.get(url);
@@ -144,7 +145,15 @@ window.NBA = window.NBA || {};
             const st = d?.header?.competitions?.[0]?.status?.type;
             return st?.completed ? 7 * DAY : st?.state === 'in' ? 20 * SEC : 10 * MIN;
         },
-        trim: d => { SUMMARY_DROP.forEach(k => delete d[k]); return d; },
+        trim: d => {
+            // Topic タブの Career high の判定用に、記事のうち career high / best を含む文だけ残す（記事そのものは保存しない）
+            const story = String(d.article?.story || '').replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ');
+            d.careerNotes = story.split(/(?<=[.!?])\s+(?=[A-Z"“])/).filter(x => /career[- ](high|best)/i.test(x));
+            SUMMARY_DROP.forEach(k => delete d[k]);
+            return d;
+        },
+        // careerNotes を残す前に保存した終了試合は使わずに取り直す
+        accept: d => !d?.header?.competitions?.[0]?.status?.type?.completed || Array.isArray(d.careerNotes),
         ...opts,
     });
 

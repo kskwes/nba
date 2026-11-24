@@ -27,6 +27,7 @@ NBA の試合結果・順位・選手やチームの成績と分析を、まと�
 | タブ | 内容 |
 |---|---|
 | Schedule | 今日・明日・昨日の試合カード（スコア、成績、各チームの得点リーダー）。終わった試合には見どころのタグ（勝率の揺れ・リード交代・終盤の接戦・延長・点差の100点満点で決め、85点以上は Classic、40点未満で15点差以上は Blowout。それ以外はタグなし）、NBA カップの試合にはバッジが付く。怪我人は試合ごと（Tomorrow / Today / All teams） |
+| Topic | その日のハイライト（ニュース風。動画は無し）。大きいカードは Game-winner（最終ピリオド残り5秒以内の勝ち越し）・Forced OT・Comeback（15点差以上の逆転）・Career high（ESPN の試合記事から判定）、小さい行は Big lines（40得点・トリプルダブル・20-20・20リバウンド・15アシスト・3P 8本）・Rookie（20得点）。日は Daily Leaders と同じ。判定は `assets/highlights.js` で、ESPN のデータだけを使う |
 | Daily Leaders | その日の部門別の上位（Game Score、Points、TS%、Above Average（今季平均の Game Score を上回った量）、Rebounds など）。4〜10位は折りたたみ。ルーキー・2年目などの絞り込み |
 
 ### 試合ページ
